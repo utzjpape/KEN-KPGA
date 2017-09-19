@@ -19,7 +19,7 @@ if (inlist("${suser}","wb390290","WB390290")) {
 else if (inlist("${suser}","wb484006","WB484006")) {
 	*Gonzalo
 	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\WB484006\OneDrive - WBG\Code\SOM\Wave 1"
+	local swdLocal = "C:\Users\wb445085\OneDrive - WBG\KPGA-Code"
 	*Box directory where the Data folder can be located
 	local swdBox = "C:\Users\WB484006\WBG\Utz Johann Pape - Shared\Wave1\Analysis\DataBox"
                     

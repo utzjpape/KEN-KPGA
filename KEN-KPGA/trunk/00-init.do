@@ -16,15 +16,16 @@ if (inlist("${suser}","wb390290","WB390290")) {
 	*Box directory where the Data folder can be located
 	local swdBox = "C:\Users\wb390290\OneDrive - WBG\Home\Countries\Somalia\Projects\HFS\Shared\Wave1\Analysis\DataBox"
 }
-else if (inlist("${suser}","wb484006","WB484006")) {
-	*Gonzalo
+
+else if (inlist("${suser}","wb445085","WB445085")) {
+	*Carolina
 	*Local directory of your checked out copy of the code
 	local swdLocal = "C:\Users\wb445085\OneDrive - WBG\KPGA-Code"
 	*Box directory where the Data folder can be located
-	local swdBox = "C:\Users\WB484006\WBG\Utz Johann Pape - Shared\Wave1\Analysis\DataBox"
+	local swdBox = "C:\Users\wb445085\OneDrive - WBG\KPGA\DataBox"
                     
 	}
-	
+
 else if (inlist("${suser}","WB499706", "wb499706")) {
 	*Philip
 	*Local directory of your checked out copy of the code

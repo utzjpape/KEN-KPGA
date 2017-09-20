@@ -26,12 +26,12 @@ else if (inlist("${suser}","wb445085","WB445085")) {
                     
 	}
 
-else if (inlist("${suser}","WB499706", "wb499706")) {
-	*Philip
+else if (inlist("${suser}","nduati", "wb475840", "WB475840")) {
+	*Nduati
 	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\WB499706\OneDrive - WBG\WBG Data PW\Code\SOM\trunk\Wave1"
+	local swdLocal = "/Users/nduati/Box Sync/Countries/Kenya/KPGA"
 	*Box directory where the Data folder can be located
-	local swdBox = "C:\Users\WB499706\WBG\Utz Johann Pape - Shared\Wave1\Analysis\DataBox"
+	*local swdBox = "C:\Users\WB499706\WBG\Utz Johann Pape - Shared\Wave1\Analysis\DataBox"
 	}
 	
 	else if (inlist("${suser}","WB502620", "wb502620")) {
@@ -65,7 +65,7 @@ scalar define n_output=_rc
 scalar define check=n_data+n_temp+n_output
 di check
 
-if check!=0 {
+if check!=0 & "${suser}"!="nduati" {
 	mkdir "${gsdData}"
 	mkdir "${gsdData}/0-RawTemp"
 	mkdir "${gsdData}/0-RawOutput"

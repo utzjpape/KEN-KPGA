@@ -3,7 +3,7 @@
 **********************************
 *2005 household identification
 **********************************
-use "${l_sdData}/0-RawInput/2005/consumption aggregated data.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS05/consumption aggregated data.dta", clear
 drop fdbrdby-nfditexp
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -50,12 +50,12 @@ foreach var of varlist _all {
 	assert !mi(`var')
 }
 order resid county eatype id_clust id_hh hhsize
-save "${l_sdData}/1-CleanTemp/2005/poverty.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS05/poverty.dta", replace
 
 **********************************
 *2015 household identification
 **********************************
-use "${l_sdData}/0-RawInput/2015/q1_hh.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS15/q1_hh.dta", clear
 
 keep clid hhid county resid eatype hhsize cycle ctry_adq
 label var cycle "2-week data collection period"
@@ -67,21 +67,21 @@ label var urban "Urban"
 foreach var of varlist _all {
 	assert !mi(`var')
 }	
-save "${l_sdData}/1-CleanTemp/2015/section_a.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS15/section_a.dta", replace
 ****************************************
 *Merge in consumption data and weights
 *missings for some users
 ****************************************
-use "${l_sdData}/1-CleanTemp/2015/section_a.dta" , clear
-merge 1:1 clid hhid using  "${l_sdData}/0-RawInput/2015/q1_poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor texp_quint b40pct) nogen
+use "${l_sdData}/1-CleanTemp/KIHBS15/section_a.dta" , clear
+merge 1:1 clid hhid using  "${l_sdData}/0-RawInput/KIHBS15/q1_poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor texp_quint b40pct) nogen
 
-save "${l_sdData}/1-CleanTemp/2015/hhpoverty.dta" , replace
+save "${l_sdData}/1-CleanTemp/KIHBS15/hhpoverty.dta" , replace
 
 
 **********************************
 *2005 HH composition
 **********************************
-use "${l_sdData}/0-RawInput/2005/Section B Household member Information.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS05/Section B Household member Information.dta", clear
 
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -208,18 +208,18 @@ preserve
 	
 	isid uhhid
 	sort uhhid
-	save "${l_sdData}/1-CleanTemp/2005/hhcomposition.dta", replace
+	save "${l_sdData}/1-CleanTemp/KIHBS05/hhcomposition.dta", replace
 restore
 
 keep uhhid b_id famrel b04 age
 order uhhid b_id famrel b04 age
 sort uhhid b_id
-save "${l_sdData}/1-CleanTemp/2005/demo.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS05/demo.dta", replace
 
 **********************************
 *2015 HH composition
 **********************************
-use "${l_sdData}/0-RawInput/2015/q1_hhm.dta" , clear
+use "${l_sdData}/0-RawInput/KIHBS15/q1_hhm.dta" , clear
 keep clid hhid b*
 
 ren b05_yy age
@@ -333,19 +333,19 @@ preserve
 	
 	isid clid hhid 
 	sort clid hhid 
-	save "${l_sdData}/1-CleanTemp/2015/hhcomposition.dta", replace
+	save "${l_sdData}/1-CleanTemp/KIHBS15/hhcomposition.dta", replace
 restore
 
 keep clid hhid  b01 famrel b04 age
 order clid hhid b01 famrel b04 age
 sort clid hhid  b01
-save "${l_sdData}/1-CleanTemp/2015/demo.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS15/demo.dta", replace
 
 
 **********************************
 *2005 HH head characteristics
 **********************************
-use "${l_sdData}/0-RawInput/2005/Section B Household member Information.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS05/Section B Household member Information.dta", clear
 
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -404,12 +404,12 @@ lab val marhead marhead
 keep uhhid malehead agehead ageheadg agehead_sq relhead marhead
 
 sort uhhid 
-save "${l_sdData}/1-CleanTemp/2005/hheadchars.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS05/hheadchars.dta", replace
 
 **********************************
 *2015 HH head characteristics
 **********************************
-use "${l_sdData}/0-RawInput/2015/q1_hhm.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS15/q1_hhm.dta", clear
 *generate a dummy for each hh if spouse is present
 gen zx = (b03==2)
 bys clid hhid: egen spouse = max(zx)
@@ -463,13 +463,13 @@ lab val marhead marhead
 
 keep clid hhid malehead agehead ageheadg agehead_sq relhead marhead
 sort clid hhid 
-save "${l_sdData}/1-CleanTemp/2015/hheadchars.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS15/hheadchars.dta", replace
 
 
 **********************************
 * 2005 education
 **********************************
-use "${l_sdData}/0-RawInput/2005/Section C education.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS05/Section C education.dta", clear
 
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -478,7 +478,7 @@ label var uhhid "Unique HH id"
 isid uhhid b_id
 sort uhhid b_id
 *26 observations have no demographic data and education data. 6,740 have demographic data and no education data.
-merge 1:1 uhhid b_id using "${l_sdData}/1-CleanTemp/2005/demo.dta" , keep(match) nogen
+merge 1:1 uhhid b_id using "${l_sdData}/1-CleanTemp/KIHBS05/demo.dta" , keep(match) nogen
 
 * drop individuals that should not have been interviewed because they are too young / missing age (134 observations);
 drop if age < 3 | mi(age)
@@ -520,7 +520,7 @@ preserve
 	label var aveyrsch "Average yrs of school 15+"
 	isid uhhid
 	sort uhhid
-	save "${l_sdData}/1-CleanTemp/2005/hhedu.dta", replace
+	save "${l_sdData}/1-CleanTemp/KIHBS05/hhedu.dta", replace
 restore
 
 *Edu vars for the hhead
@@ -545,14 +545,14 @@ tab hhedu, m
 keep uhhid educhead hhedu
 isid uhhid
 sort uhhid 
-save "${l_sdData}/1-CleanTemp/2005/hheduhead.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS05/hheduhead.dta", replace
 **********************************
 *2015 education
 **********************************
-use "${l_sdData}/0-RawInput/2015/q1_hhm.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS15/q1_hhm.dta", clear
 
 keep clid hhid b* c*
-merge 1:1 clid hhid b01 using "${l_sdData}/1-CleanTemp/2015/demo.dta" , assert(match) nogen keepusing(age famrel)
+merge 1:1 clid hhid b01 using "${l_sdData}/1-CleanTemp/KIHBS15/demo.dta" , assert(match) nogen keepusing(age famrel)
 drop b05_yy 
 
 *drop observations where age <3 OR age filter is either no or don't know. 
@@ -631,7 +631,7 @@ preserve
 	label var aveyrsch "Average yrs of school 15+"
 	isid clid hhid
 	sort clid hhid
-	save "${l_sdData}/1-CleanTemp/2015/hhedu.dta", replace
+	save "${l_sdData}/1-CleanTemp/KIHBS15/hhedu.dta", replace
 restore
 
 *Edu vars for the hhead
@@ -659,14 +659,14 @@ tab hhedu, m
 keep clid hhid educhead hhedu
 isid clid hhid
 sort clid hhid 
-save "${l_sdData}/1-CleanTemp/2015/hheduhead.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS15/hheduhead.dta", replace
 
 
 **********************************
 * 5. 2005 Labor vars
 **********************************
 
-use "${l_sdData}/0-RawInput/2005/Section E Labour.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS05/Section E Labour.dta", clear
 rename e_id b_id
 
 *gen unique hh id using cluster and house #
@@ -675,7 +675,7 @@ label var uhhid "Unique HH id"
 isid uhhid b_id
 sort uhhid b_id
 
-merge 1:1 uhhid b_id using "${l_sdData}/1-CleanTemp/2005/demo.dta" , keep(match) nogen
+merge 1:1 uhhid b_id using "${l_sdData}/1-CleanTemp/KIHBS05/demo.dta" , keep(match) nogen
 
 * individuals not eligible for employment module need to be dropped (e02 = filter);
 drop if e02 == 1
@@ -779,7 +779,7 @@ preserve
 	
 	isid uhhid
 	sort uhhid
-	save "${l_sdData}/1-CleanTemp/2005/hhlab.dta", replace
+	save "${l_sdData}/1-CleanTemp/KIHBS05/hhlab.dta", replace
 restore
 
 *Labor vars for HH head
@@ -804,14 +804,14 @@ keep uhhid hhunemp hhempstat hhsector hhnilf
 
 isid uhhid
 sort uhhid
-save "${l_sdData}/1-CleanTemp/2005/hheadlabor.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS05/hheadlabor.dta", replace
 
 **********************************
 * 5. 2015 Labor vars
 **********************************
 
-use "${l_sdData}/0-RawInput/2015/q1_hhm.dta", clear
-merge 1:1 clid hhid b01 using "${l_sdData}/1-CleanTemp/2015/demo.dta" , assert(match) keepusing(age famrel) nogen
+use "${l_sdData}/0-RawInput/KIHBS15/q1_hhm.dta", clear
+merge 1:1 clid hhid b01 using "${l_sdData}/1-CleanTemp/KIHBS15/demo.dta" , assert(match) keepusing(age famrel) nogen
 
 * individuals not eligible for employment module need to be dropped (e02 = filter);
 keep if d01 == 1
@@ -932,7 +932,7 @@ preserve
 	
 	isid clid hhid
 	sort clid hhid
-	save "${l_sdData}/1-CleanTemp/2015/hhlab.dta", replace
+	save "${l_sdData}/1-CleanTemp/KIHBS15/hhlab.dta", replace
 restore
 
 *Labor vars for HH head
@@ -956,14 +956,14 @@ keep clid hhid hhunemp hhempstat hhsector hhnilf
 
 isid clid hhid
 sort clid hhid
-save "${l_sdData}/1-CleanTemp/2015/hheadlabor.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS15/hheadlabor.dta", replace
 
 
 **********************************
 *2005 Housing Characteristics
 **********************************
 *Owns house
-use id_clust id_hh g01 g09* using "${l_sdData}/0-RawInput/2005/Section G Housing", clear
+use id_clust id_hh g01 g09* using "${l_sdData}/0-RawInput/KIHBS05/Section G Housing", clear
 
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -980,12 +980,12 @@ lab var ownhouse "Owns house"
 
 keep uhhid ownhouse rooms
 sort uhhid 
-save "${l_sdData}/1-CleanTemp/2005/housing.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS05/housing.dta", replace
 
 **********************************
 *2015 Housing Characteristics
 **********************************
-use "${l_sdData}/0-RawInput/2015/q1_hh.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS15/q1_hh.dta", clear
 
 *set max number of rooms in dwelling to 20
 egen rooms = rsum(i12_1 i12_2)
@@ -995,12 +995,12 @@ label var rooms "number of rooms in household"
 gen ownhouse = (i02==1)
 lab var ownhouse "Owns house" 
 keep clid hhid ownhouse rooms
-save "${l_sdData}/1-CleanTemp/2015/housing.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS15/housing.dta", replace
 
 **********************************
 *2005 Water and Sanitation 
 **********************************
-use "${l_sdData}/0-RawInput/2005/Section H1 Water Sanitation", clear
+use "${l_sdData}/0-RawInput/KIHBS05/Section H1 Water Sanitation", clear
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -1029,12 +1029,12 @@ lab var garcoll "HH with garbage collection"
 
 keep uhhid impwater impsan elec_light elec_acc garcoll
 sort uhhid  
-save "${l_sdData}/1-CleanTemp/2005/housing2.dta", replace 
+save "${l_sdData}/1-CleanTemp/KIHBS05/housing2.dta", replace 
 
 **********************************
 *2015 Water and Sanitation 
 **********************************
-use "${l_sdData}/0-RawInput/2015/q1_hh.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS15/q1_hh.dta", clear
 *Improved water sources are as follows:
 	*Any water piped into hh (1,2,3,4)
 	*Protected well (5)
@@ -1070,12 +1070,12 @@ lab var garcoll "HH with garbage collection"
 
 keep clid hhid impwater impsan elec_light elec_acc garcoll
 sort clid hhid  
-save "${l_sdData}/1-CleanTemp/2015/housing2.dta", replace 
+save "${l_sdData}/1-CleanTemp/KIHBS15/housing2.dta", replace 
 
 **********************************
 *2005 Land ownership  
 **********************************
-use "${l_sdData}/0-RawInput/2005/Section N Agriculture Holding.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS05/Section N Agriculture Holding.dta", clear
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -1102,14 +1102,14 @@ lab var title "household has landtitle"
 
 sort uhhid
 
-save "${l_sdData}/1-CleanTemp/2005/land.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS05/land.dta", replace
  
 **********************************
 *2015 Land ownership  
 **********************************
-use  "${l_sdData}/0-RawInput/2015/q1_k1.dta", clear
+use  "${l_sdData}/0-RawInput/KIHBS15/q1_k1.dta", clear
 *merge full set of households and module filter(k01)
-merge m:1 clid hhid using "${l_sdData}/0-RawInput/2015/q1_hh.dta" , keepusing(clid hhid k01) keep(using match)
+merge m:1 clid hhid using "${l_sdData}/0-RawInput/KIHBS15/q1_hh.dta" , keepusing(clid hhid k01) keep(using match)
 
 recode k02 .=0
 duplicates tag clid hhid k02, gen(tag)
@@ -1132,12 +1132,12 @@ lab var title "household has land title"
 
 sort clid hhid
 
-save "${l_sdData}/1-CleanTemp/2015/land.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS15/land.dta", replace
  
 **********************************
 *2005 Transfers
 **********************************
-use "${l_sdData}/0-RawInput/2005/Section R Transfers", clear
+use "${l_sdData}/0-RawInput/KIHBS05/Section R Transfers", clear
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -1187,12 +1187,12 @@ lab var traa_all "Transfers all (amount)"
 
 keep uhhid tra* traa*
 sort uhhid 
-save "${l_sdData}/1-CleanTemp/2005/transfers.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS05/transfers.dta", replace
 
  **********************************
 *2015 Transfers
 **********************************
- use "${l_sdData}/0-RawInput/2015/q1_hh.dta", clear
+ use "${l_sdData}/0-RawInput/KIHBS15/q1_hh.dta", clear
 *keep only households that received transfers
 egen osum = rsum(o02_a o02_b o02_c o02_d o02_e o02_f o02_g o02_h o11_a o11_b o11_c o11_d o11_e o12_a o12_b o12_c o12_d o12_e o10_a o10_b o10_c o10_d o10_e)
 assert osum==0 if o01==2
@@ -1244,13 +1244,13 @@ lab var traa_all "Transfers all (amount)"
 
 keep clid hhid tra* traa*
 sort clid hhid 
-save "${l_sdData}/1-CleanTemp/2015/transfers.dta", replace
+save "${l_sdData}/1-CleanTemp/KIHBS15/transfers.dta", replace
  
 *********************************
 * 8. Merging all databases and appending the two years
 **********************************
 
-use "${l_sdData}/0-RawInput/2005/Section A Identification.dta", clear
+use "${l_sdData}/0-RawInput/KIHBS05/Section A Identification.dta", clear
 
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -1261,8 +1261,8 @@ drop a11 a13
 sort uhhid 
 
 *Keep only those observations with household information
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/hhcomposition.dta", assert(match) nogen
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/poverty.dta", keep(match master) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/hhcomposition.dta", assert(match) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/poverty.dta", keep(match master) nogen
 *replacing cmissing county and peri-urban dummy for households not used in poverty estimation with values within cluster.
 bys id_clust: egen a01 = min(county)
 replace county = a01 if mi(county)
@@ -1277,15 +1277,15 @@ replace resid = zy if mi(resid)
 assert !mi(resid)
 drop zy
 
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/hheadchars.dta", keep(match master) nogen
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/hhedu.dta", keep(match master) nogen
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/hheduhead.dta", keep(match master) nogen
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/hhlab.dta", keep(match master) nogen
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/hheadlabor.dta", keep(match master) nogen
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/housing.dta", keep(match master) nogen
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/housing2.dta", keep(match master) nogen
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/land.dta" ,keep(match master) nogen
-merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/2005/transfers.dta", keep(match master) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/hheadchars.dta", keep(match master) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/hhedu.dta", keep(match master) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/hheduhead.dta", keep(match master) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/hhlab.dta", keep(match master) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/hheadlabor.dta", keep(match master) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/housing.dta", keep(match master) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/housing2.dta", keep(match master) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/land.dta" ,keep(match master) nogen
+merge 1:1 uhhid using "${l_sdData}/1-CleanTemp/KIHBS05/transfers.dta", keep(match master) nogen
 *Generating survey dummy
 gen kihbs = 2005
 label var kihbs "Survey year"
@@ -1294,17 +1294,17 @@ save "${l_sdData}/1-CleanOutput/kibhs05_06.dta", replace
 
 
 *Keep only those observations with household information
-use "${l_sdData}/1-CleanTemp/2015/hhpoverty" , clear
-merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/hhcomposition.dta", assert(match) nogen
-merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/hheadchars.dta", assert(match) nogen
-merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/hhedu.dta", keep(match master) nogen
-merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/hheduhead.dta", keep(match master) nogen
-merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/hhlab.dta", keep(match master) nogen
-merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/hheadlabor.dta", keep(match master) nogen
-merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/housing.dta", assert(match) nogen
-merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/housing2.dta", assert(match) nogen
-merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/land.dta" ,keep(match master) nogen
-merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/transfers.dta", keep(match master) nogen
+use "${l_sdData}/1-CleanTemp/KIHBS15/hhpoverty" , clear
+merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/KIHBS15/hhcomposition.dta", assert(match) nogen
+merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/KIHBS15/hheadchars.dta", assert(match) nogen
+merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/KIHBS15/hhedu.dta", keep(match master) nogen
+merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/KIHBS15/hheduhead.dta", keep(match master) nogen
+merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/KIHBS15/hhlab.dta", keep(match master) nogen
+merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/KIHBS15/hheadlabor.dta", keep(match master) nogen
+merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/KIHBS15/housing.dta", assert(match) nogen
+merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/KIHBS15/housing2.dta", assert(match) nogen
+merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/KIHBS15/land.dta" ,keep(match master) nogen
+merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/KIHBS15/transfers.dta", keep(match master) nogen
 *Generating survey dummy
 gen kihbs = 2015
 label var kihbs "Survey year"

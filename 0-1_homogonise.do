@@ -18,6 +18,8 @@ ren rururb resid
 label define lresid 1 "Rural" 2 "Urban" , modify
 label values resid lresid
 
+ren nfdtepdr nfdtexpdr
+
 *Poverty 
 gen poor_food=(y_i<z_i)
 label var poor "Poor under food pl"
@@ -66,6 +68,15 @@ foreach var of varlist _all {
 	assert !mi(`var')
 }	
 save "${l_sdData}/1-CleanTemp/2015/section_a.dta", replace
+****************************************
+*Merge in consumption data and weights
+*missings for some users
+****************************************
+use "${l_sdData}/1-CleanTemp/2015/section_a.dta" , clear
+merge 1:1 clid hhid using  "${l_sdData}/1-CleanTemp/2015/q1_poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor texp_quint b40pct) nogen
+
+save "${l_sdData}/1-CleanTemp/2015/hhpoverty.dta" , replace
+
 
 **********************************
 *2005 HH composition
@@ -1077,7 +1088,6 @@ bysort id_clust id_hh n_id: keep if _n==1
 
 assert n05==. if n01==2
 count if n05!=.	& n01==1
-* this seems to be OK
 
 * these variables refers to all parcels combined
 gen ownsland = (n05>0 & n09==1)
@@ -1284,7 +1294,7 @@ save "${l_sdData}/1-CleanOutput/kibhs05_06.dta", replace
 
 
 *Keep only those observations with household information
-use "${l_sdData}/1-CleanTemp/2015/section_a.dta" , clear
+use "${l_sdData}/1-CleanTemp/2015/hhpoverty" , clear
 merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/hhcomposition.dta", assert(match) nogen
 merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/hheadchars.dta", assert(match) nogen
 merge 1:1 clid hhid using "${l_sdData}/1-CleanTemp/2015/hhedu.dta", keep(match master) nogen
@@ -1300,14 +1310,35 @@ gen kihbs = 2015
 label var kihbs "Survey year"
 save "${l_sdData}/1-CleanOutput/kibhs15_16.dta", replace
 
+**********************************
+*appending 2 datasets
+**********************************
 use "${l_sdData}/1-CleanOutput/kibhs15_16.dta" , clear
 append using "${l_sdData}/1-CleanOutput/kibhs05_06.dta"
+*dropping households not used in 05 pov. estimation from 05 sample.
+keep if filter == 1 | kihbs==2015
 order kihbs resid urban eatype county cycle
 order hhsizec ctry_adq, after(hhsize) 
 label var hhsizec "hhsize (ind. missing age not counted) - only 2005"
 replace urban = (resid - 1) if mi(urban)
 drop rururb
 sort kihbs county resid clid hhid
+*dropping vars that aren't in the 2015 dataset
+drop prov district doi weight_hh weight_pop uhhid fao_adq fpl absl hcl filter
+
+egen strata = group(county urban)
+order strata , after(county)
+order fdtexp fdtexpdr nfdtexp nfdtexpdr hhtexp hhtexpdr adqexp adqexpdr , after(wta_adq)
+
+*ensure the household weight is consistent within each cluster
+bys kihbs clid: egen zy = mode(wta_hh) 
+assert wta_hh == zy
+drop zy
+
+foreach var of varlist kihbs resid urban eatype county strata clid hhid hhsize hhsizec ctry_adq wta_hh wta_pop wta_adq fdtexp fdtexpdr nfdtexp nfdtexpdr hhtexp hhtexpdr adqexp adqexpdr fpindex y2_i y_i z2_i z_i poor_food poor twx_poor texp_quint b40pct {
+
+	assert !mi(`var')
+}	
 
 save "${l_sdData}/1-CleanOutput/hh_full.dta" , replace
 use "${l_sdData}/1-CleanOutput/hh_full.dta" , clear

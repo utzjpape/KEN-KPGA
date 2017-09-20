@@ -1330,15 +1330,6 @@ egen strata = group(county urban)
 order strata , after(county)
 order fdtexp fdtexpdr nfdtexp nfdtexpdr hhtexp hhtexpdr adqexp adqexpdr , after(wta_adq)
 
-*ensure the household weight is consistent within each cluster
-bys kihbs clid: egen zy = mode(wta_hh) 
-assert wta_hh == zy
-drop zy
-
-foreach var of varlist kihbs resid urban eatype county strata clid hhid hhsize hhsizec ctry_adq wta_hh wta_pop wta_adq fdtexp fdtexpdr nfdtexp nfdtexpdr hhtexp hhtexpdr adqexp adqexpdr fpindex y2_i y_i z2_i z_i poor_food poor twx_poor texp_quint b40pct {
-
-	assert !mi(`var')
-}	
 
 save "${l_sdData}/1-CleanOutput/hh.dta" , replace
 

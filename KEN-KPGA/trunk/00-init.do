@@ -12,11 +12,13 @@ set sortseed 11041955
 if (inlist("${suser}","wb390290","WB390290")) {
 	*Utz
 	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\WB390290\Documents\Temp"
+	local swdLocal = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\KPGA\SV-KPGA"
 	*Box directory where the Data folder can be located
-	local swdBox = "C:\Users\wb390290\OneDrive - WBG\Home\Countries\Somalia\Projects\HFS\Shared\Wave1\Analysis\DataBox"
+	*Full Dataset
+	local swdBox = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\KPGA\DataBoxFull"
+	*Team Dataset
+*	local swdBox = "C:\Users\WB390290\WBG\Carolina Mejia-Mantilla - KPGA\DataBox"
 }
-
 else if (inlist("${suser}","wb445085","WB445085")) {
 	*Carolina
 	*Local directory of your checked out copy of the code
@@ -24,23 +26,14 @@ else if (inlist("${suser}","wb445085","WB445085")) {
 	*Box directory where the Data folder can be located
 	local swdBox = "C:\Users\wb445085\OneDrive - WBG\KPGA\DataBox"
                     
-	}
-
+}
 else if (inlist("${suser}","nduati", "wb475840", "WB475840")) {
 	*Nduati
 	*Local directory of your checked out copy of the code
 	local swdLocal = "/Users/nduati/Box Sync/Countries/Kenya/KPGA"
 	*Box directory where the Data folder can be located
 	*local swdBox = "C:\Users\WB499706\WBG\Utz Johann Pape - Shared\Wave1\Analysis\DataBox"
-	}
-	
-	else if (inlist("${suser}","WB502620", "wb502620")) {
-	*luca
-	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\wb502620\OneDrive - WBG\LP Data files\SOM\Wave1"
-	*Box directory where the Data folder can be located
-	local swdBox = "C:\Users\wb502620\WBG\Utz Johann Pape - Shared\Wave1\Analysis\DataBox"
-	}
+}
 else {
 	di as error "Configure work environment in 00-init.do before running the code."
 	error 1
@@ -51,8 +44,7 @@ global gsdData = "`swdLocal'/Data"
 global gsdDo = "`swdLocal'/Do"
 global gsdTemp = "`swdLocal'/Temp"
 global gsdOutput = "`swdLocal'/Output"
-global gsdDownloads = "`swdBox'/00-Downloads"
-global gsdDataRaw = "`swdBox'/0-RawInput"
+global gsdDataRaw = "`swdBox'"
 global gsdOutput_poverty_profile = "`swdBox_poverty_profile'/Figures"
 
 *If needed, install the directories and packages used in the process 
@@ -65,22 +57,16 @@ scalar define n_output=_rc
 scalar define check=n_data+n_temp+n_output
 di check
 
-if check!=0 & "${suser}"!="nduati" {
+if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdData}"
-	mkdir "${gsdData}/0-RawTemp"
-	mkdir "${gsdData}/0-RawOutput"
 	mkdir "${gsdData}/1-CleanInput"
-	mkdir "${gsdData}/1-CleanInput/SLHS13"
-	mkdir "${gsdData}/1-CleanInput/External"
-	mkdir "${gsdData}/1-CleanInput/External/PL_Team"
-	mkdir "${gsdData}/1-CleanInput/External/SC_Team"
-	mkdir "${gsdData}/1-CleanInput/External/SL_Team"
 	mkdir "${gsdData}/1-CleanTemp"
 	mkdir "${gsdData}/1-CleanOutput"
 	mkdir "${gsdTemp}"
 	mkdir "${gsdOutput}"
 
 	*install packages used in the process
+	ssc install distinct
 	ssc install missings
 	ssc install labutil2
 	ssc install labutil

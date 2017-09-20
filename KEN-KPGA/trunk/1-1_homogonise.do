@@ -3,7 +3,7 @@
 **********************************
 *2005 household identification
 **********************************
-use "${gsdData}/0-RawInput/KIHBS05/consumption aggregated data.dta", clear
+use "${gsdDataRaw}/KIHBS05/consumption aggregated data.dta", clear
 drop fdbrdby-nfditexp
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -40,7 +40,7 @@ gen twx_poor = (y2_i<(z2_i*2))
 label var twx_poor "poor under 2x pl"
 order twx_poor, after (poor)
 *Merge in mapping of 2015 counties / peri-urban to 2005 data (list provided by KNBS)
-merge 1:1 id_clust id_hh  using "${gsdData}/0-RawTemp/2005_county.dta"  , assert(match) keepusing(county eatype) nogen 
+merge 1:1 id_clust id_hh  using "${gsdDataRaw}/KIHBS05/county.dta"  , assert(match) keepusing(county eatype) nogen 
 distinct county
 assert `r(ndistinct)' == 47
 distinct eatype
@@ -55,7 +55,7 @@ save "${gsdData}/1-CleanTemp/poverty05.dta", replace
 **********************************
 *2015 household identification
 **********************************
-use "${gsdData}/0-RawInput/KIHBS15/q1_hh.dta", clear
+use "${gsdDataRaw}/KIHBS15/q1_hh.dta", clear
 
 keep clid hhid county resid eatype hhsize cycle ctry_adq
 label var cycle "2-week data collection period"
@@ -73,7 +73,7 @@ save "${gsdData}/1-CleanTemp/section_a.dta", replace
 *missings for some users
 ****************************************
 use "${gsdData}/1-CleanTemp/section_a.dta" , clear
-merge 1:1 clid hhid using  "${gsdData}/0-RawInput/KIHBS15/q1_poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor texp_quint b40pct) nogen
+merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/q1_poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor texp_quint b40pct) nogen
 
 save "${gsdData}/1-CleanTemp/hhpoverty.dta" , replace
 
@@ -81,7 +81,7 @@ save "${gsdData}/1-CleanTemp/hhpoverty.dta" , replace
 **********************************
 *2005 HH composition
 **********************************
-use "${gsdData}/0-RawInput/KIHBS05/Section B Household member Information.dta", clear
+use "${gsdDataRaw}/KIHBS05/Section B Household member Information.dta", clear
 
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -219,7 +219,7 @@ save "${gsdData}/1-CleanTemp/demo05.dta", replace
 **********************************
 *2015 HH composition
 **********************************
-use "${gsdData}/0-RawInput/KIHBS15/q1_hhm.dta" , clear
+use "${gsdDataRaw}/KIHBS15/q1_hhm.dta" , clear
 keep clid hhid b*
 
 ren b05_yy age
@@ -345,7 +345,7 @@ save "${gsdData}/1-CleanTemp/demo15.dta", replace
 **********************************
 *2005 HH head characteristics
 **********************************
-use "${gsdData}/0-RawInput/KIHBS05/Section B Household member Information.dta", clear
+use "${gsdDataRaw}/KIHBS05/Section B Household member Information.dta", clear
 
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -409,7 +409,7 @@ save "${gsdData}/1-CleanTemp/hheadchars05.dta", replace
 **********************************
 *2015 HH head characteristics
 **********************************
-use "${gsdData}/0-RawInput/KIHBS15/q1_hhm.dta", clear
+use "${gsdDataRaw}/KIHBS15/q1_hhm.dta", clear
 *generate a dummy for each hh if spouse is present
 gen zx = (b03==2)
 bys clid hhid: egen spouse = max(zx)
@@ -469,7 +469,7 @@ save "${gsdData}/1-CleanTemp/hheadchars15.dta", replace
 **********************************
 * 2005 education
 **********************************
-use "${gsdData}/0-RawInput/KIHBS05/Section C education.dta", clear
+use "${gsdDataRaw}/KIHBS05/Section C education.dta", clear
 
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -530,10 +530,14 @@ lab var educhead "Years of schooling of head"
 
 
 gen hhedu=.
-replace hhedu=1 if educhead==0  				/* No Edu */
-replace hhedu=2 if (educhead>0 & educhead<=8)   /* Primary (some/comp) */
-replace hhedu=3 if (educhead>8 & educhead<=14)	/* Secondary (some/comp) */
-replace hhedu=4 if (educhead>14)				/* Tertiary (some/comp) */
+*no edu
+replace hhedu=1 if educhead==0
+*primary
+replace hhedu=2 if (educhead>0 & educhead<=8)
+*secondary
+replace hhedu=3 if (educhead>8 & educhead<=14)
+*tertiary
+replace hhedu=4 if (educhead>14)
 replace hhedu=. if (educhead==.)
 
 lab var hhedu "HH head edu level"
@@ -549,7 +553,7 @@ save "${gsdData}/1-CleanTemp/hhedhead05.dta", replace
 **********************************
 *2015 education
 **********************************
-use "${gsdData}/0-RawInput/KIHBS15/q1_hhm.dta", clear
+use "${gsdDataRaw}/KIHBS15/q1_hhm.dta", clear
 
 keep clid hhid b* c*
 merge 1:1 clid hhid b01 using "${gsdData}/1-CleanTemp/demo15.dta" , assert(match) nogen keepusing(age famrel)
@@ -666,7 +670,7 @@ save "${gsdData}/1-CleanTemp/hhedhead15.dta", replace
 * 5. 2005 Labor vars
 **********************************
 
-use "${gsdData}/0-RawInput/KIHBS05/Section E Labour.dta", clear
+use "${gsdDataRaw}/KIHBS05/Section E Labour.dta", clear
 rename e_id b_id
 
 *gen unique hh id using cluster and house #
@@ -740,8 +744,7 @@ replace ocusec=9 if e16>9000 & e16<10000
 
 lab var ocusec "Sector of occupation"
 
-lab def ocusec 1 "Agriculture" 2 "Mining" 3 "Manufacturing" 4 "Electricity/water" 5 "Construction" 6 "Trade/Restaurant/Tourism" ///
-		7 "Transport/Comms" 8 "Finance" 9 "Social Services" 
+lab def ocusec 1 "Agriculture" 2 "Mining" 3 "Manufacturing" 4 "Electricity/water" 5 "Construction" 6 "Trade/Restaurant/Tourism" 7 "Transport/Comms" 8 "Finance" 9 "Social Services" 
 lab val ocusec ocusec
 
 *Sector short
@@ -810,7 +813,7 @@ save "${gsdData}/1-CleanTemp/hheadlabor05.dta", replace
 * 5. 2015 Labor vars
 **********************************
 
-use "${gsdData}/0-RawInput/KIHBS15/q1_hhm.dta", clear
+use "${gsdDataRaw}/KIHBS15/q1_hhm.dta", clear
 merge 1:1 clid hhid b01 using "${gsdData}/1-CleanTemp/demo15.dta" , assert(match) keepusing(age famrel) nogen
 
 * individuals not eligible for employment module need to be dropped (e02 = filter);
@@ -842,15 +845,15 @@ replace nilf = 1 if inlist(d14,2,4,8,14,15,17)
 
 *Employment Status
 gen empstat=.
-/*wage employee*/   
+*wage employee   
 replace empstat=1 if (unemp==0 & inlist(d10_p,1,2))  
-/*self employed*/  			
+*self employed			
 replace empstat=2 if (unemp==0 & inlist(d10_p,3,4))  
-/*unpaid family*/
+*unpaid family
 replace empstat=3 if (unemp==0 & d10_p==6)
- /*apprentice*/
+*apprentice
 replace empstat=4 if (unemp==0 & d10_p==7)
- /*other*/ 	
+*other*
 replace empstat=5 if (unemp==0 & inlist(d10_p,5,8,96))    		    
 lab var empstat "Employment Status"
 
@@ -891,8 +894,7 @@ replace ocusec=2 if inrange(d16,800,899)
 replace ocusec=3 if inrange(d16,900,999)
 lab var ocusec "Sector of occupation"
 
-lab def ocusec 1 "Agriculture" 2 "Mining" 3 "Manufacturing" 4 "Electricity/water" 5 "Construction" 6 "Trade/Restaurant/Tourism" ///
-		7 "Transport/Comms" 8 "Finance" 9 "Social Services" 
+lab def ocusec 1 "Agriculture" 2 "Mining" 3 "Manufacturing" 4 "Electricity/water" 5 "Construction" 6 "Trade/Restaurant/Tourism" 7 "Transport/Comms" 8 "Finance" 9 "Social Services" 
 lab val ocusec ocusec
 
 *assert that the only observations where the sector variable is missing is where the ISIC code is missing.
@@ -963,7 +965,7 @@ save "${gsdData}/1-CleanTemp/hheadlabor15.dta", replace
 *2005 Housing Characteristics
 **********************************
 *Owns house
-use id_clust id_hh g01 g09* using "${gsdData}/0-RawInput/KIHBS05/Section G Housing", clear
+use id_clust id_hh g01 g09* using "${gsdDataRaw}/KIHBS05/Section G Housing", clear
 
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -985,7 +987,7 @@ save "${gsdData}/1-CleanTemp/housing05.dta", replace
 **********************************
 *2015 Housing Characteristics
 **********************************
-use "${gsdData}/0-RawInput/KIHBS15/q1_hh.dta", clear
+use "${gsdDataRaw}/KIHBS15/q1_hh.dta", clear
 
 *set max number of rooms in dwelling to 20
 egen rooms = rsum(i12_1 i12_2)
@@ -1000,7 +1002,7 @@ save "${gsdData}/1-CleanTemp/housing15.dta", replace
 **********************************
 *2005 Water and Sanitation 
 **********************************
-use "${gsdData}/0-RawInput/KIHBS05/Section H1 Water Sanitation", clear
+use "${gsdDataRaw}/KIHBS05/Section H1 Water Sanitation", clear
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -1034,7 +1036,7 @@ save "${gsdData}/1-CleanTemp/housing2_05.dta", replace
 **********************************
 *2015 Water and Sanitation 
 **********************************
-use "${gsdData}/0-RawInput/KIHBS15/q1_hh.dta", clear
+use "${gsdDataRaw}/KIHBS15/q1_hh.dta", clear
 *Improved water sources are as follows:
 	*Any water piped into hh (1,2,3,4)
 	*Protected well (5)
@@ -1075,7 +1077,7 @@ save "${gsdData}/1-CleanTemp/housing2_15.dta", replace
 **********************************
 *2005 Land ownership  
 **********************************
-use "${gsdData}/0-RawInput/KIHBS05/Section N Agriculture Holding.dta", clear
+use "${gsdDataRaw}/KIHBS05/Section N Agriculture Holding.dta", clear
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -1107,9 +1109,9 @@ save "${gsdData}/1-CleanTemp/land05.dta", replace
 **********************************
 *2015 Land ownership  
 **********************************
-use  "${gsdData}/0-RawInput/KIHBS15/q1_k1.dta", clear
+use  "${gsdDataRaw}/KIHBS15/q1_k1.dta", clear
 *merge full set of households and module filter(k01)
-merge m:1 clid hhid using "${gsdData}/0-RawInput/KIHBS15/q1_hh.dta" , keepusing(clid hhid k01) keep(using match)
+merge m:1 clid hhid using "${gsdDataRaw}/KIHBS15/q1_hh.dta" , keepusing(clid hhid k01) keep(using match)
 
 recode k02 .=0
 duplicates tag clid hhid k02, gen(tag)
@@ -1137,7 +1139,7 @@ save "${gsdData}/1-CleanTemp/land15.dta", replace
 **********************************
 *2005 Transfers
 **********************************
-use "${gsdData}/0-RawInput/KIHBS05/Section R Transfers", clear
+use "${gsdDataRaw}/KIHBS05/Section R Transfers", clear
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -1192,7 +1194,7 @@ save "${gsdData}/1-CleanTemp/transfers05.dta", replace
  **********************************
 *2015 Transfers
 **********************************
- use "${gsdData}/0-RawInput/KIHBS15/q1_hh.dta", clear
+ use "${gsdDataRaw}/KIHBS15/q1_hh.dta", clear
 *keep only households that received transfers
 egen osum = rsum(o02_a o02_b o02_c o02_d o02_e o02_f o02_g o02_h o11_a o11_b o11_c o11_d o11_e o12_a o12_b o12_c o12_d o12_e o10_a o10_b o10_c o10_d o10_e)
 assert osum==0 if o01==2
@@ -1250,7 +1252,7 @@ save "${gsdData}/1-CleanTemp/transfers15.dta", replace
 * 8. Merging all databases and appending the two years
 **********************************
 
-use "${gsdData}/0-RawInput/KIHBS05/Section A Identification.dta", clear
+use "${gsdDataRaw}/KIHBS05/Section A Identification.dta", clear
 
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)

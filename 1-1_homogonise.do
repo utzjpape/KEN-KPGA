@@ -29,12 +29,6 @@ tabstat poor* [aw=wta_pop]
 tabstat poor [aw=wta_pop], by(resid)
 
 *Create additional pov / expenditure measures
-*Total expenditure quintiles
-xtile texp_quint = y2_i  , nq(5)
-label var texp_quint "Total expenditure quintiles"
-*bottom 40% of total expenditure (equivalent to the bottom 2 quintiles)
-gen b40pct = inlist(texp_quint,1,2)
-label var b40pct "hh in bottom 40% of total expenditure distribution"
 *Measure of 2x poverty line.
 gen twx_poor = (y2_i<(z2_i*2)) 
 label var twx_poor "poor under 2x pl"
@@ -73,7 +67,7 @@ save "${gsdData}/1-CleanTemp/section_a.dta", replace
 *missings for some users
 ****************************************
 use "${gsdData}/1-CleanTemp/section_a.dta" , clear
-merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/q1_poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor texp_quint b40pct) nogen
+merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/q1_poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
 
 save "${gsdData}/1-CleanTemp/hhpoverty.dta" , replace
 

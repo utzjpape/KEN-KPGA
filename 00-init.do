@@ -32,7 +32,8 @@ else if (inlist("${suser}","nduati", "wb475840", "WB475840")) {
 	*Local directory of your checked out copy of the code
 	local swdLocal = "/Users/nduati/Box Sync/Countries/Kenya/KPGA"
 	*Box directory where the Data folder can be located
-	*local swdBox = "C:\Users\WB499706\WBG\Utz Johann Pape - Shared\Wave1\Analysis\DataBox"
+	local swdBox = "/Users/nduati/Box Sync/Countries/Kenya/KPGA/Data/0-RawInput"
+
 }
 else {
 	di as error "Configure work environment in 00-init.do before running the code."

@@ -1243,11 +1243,37 @@ sort clid hhid
 save "${gsdData}/1-CleanTemp/transfers15.dta", replace
  
 *********************************
+*Asset ownership
+use "${gsdDataRaw}/KIHBS05/Section M Durables.dta" , clear
+egen uhhid=concat(id_clust id_hh)
+gen car = (m04==1 & m02==5215)
+gen motorcycle = (m04==1 & m02==5217)
+gen radio = (m04==1 & m02==5224)
+gen tv = (m04==1 & m02==5225)
+gen kero_stove = (m04==1 & m02==4907)
+gen char_jiko = (m04==1 & m02==4905)
+gen mnet = (m04==1 & m02==5112)
+gen bicycle = (m04==1 & m02==5218)
+gen fan = (m04==1 & m02==4910)
+gen cell_phone = (m04==1 & m02==5213)
+
+collapse (max) car motorcycle radio tv kero_stove char_jiko mnet bicycle fan cell_phone , by(uhhid)
+foreach var of varlist car motorcycle radio tv kero_stove char_jiko mnet bicycle fan cell_phone {
+	label var `var' "HH owns a `var' "
+}
+label var mnet "HH owns a mosquito net"
+label var kero_stove "HH owns a kerosene stove"
+label var char_jiko "HH owns a charcoal jiko"
+
+save "${gsdData}/1-CleanTemp/assets05.dta", replace
+
+use  "${gsdDataRaw}/KIHBS15/q1_assets.dta",clear
+save "${gsdData}/1-CleanTemp/assets15.dta" , replace
+*********************************
 * 8. Merging all databases and appending the two years
 **********************************
 
 use "${gsdDataRaw}/KIHBS05/Section A Identification.dta", clear
-
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
@@ -1282,6 +1308,8 @@ merge 1:1 uhhid using "${gsdData}/1-CleanTemp/housing05.dta", keep(match master)
 merge 1:1 uhhid using "${gsdData}/1-CleanTemp/housing2_05.dta", keep(match master) nogen
 merge 1:1 uhhid using "${gsdData}/1-CleanTemp/land05.dta" ,keep(match master) nogen
 merge 1:1 uhhid using "${gsdData}/1-CleanTemp/transfers05.dta", keep(match master) nogen
+merge 1:1 uhhid using "${gsdData}/1-CleanTemp/assets05.dta", keep(match master) nogen
+
 *Generating survey dummy
 gen kihbs = 2005
 label var kihbs "Survey year"
@@ -1301,6 +1329,8 @@ merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/housing15.dta", assert(match) 
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/housing2_15.dta", assert(match) nogen
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/land15.dta" ,keep(match master) nogen
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/transfers15.dta", keep(match master) nogen
+merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/assets15.dta", keep(match master) nogen
+
 *Generating survey dummy
 gen kihbs = 2015
 label var kihbs "Survey year"
@@ -1325,7 +1355,5 @@ drop prov district doi weight_hh weight_pop uhhid fao_adq fpl absl hcl filter
 egen strata = group(county urban)
 order strata , after(county)
 order fdtexp fdtexpdr nfdtexp nfdtexpdr hhtexp hhtexpdr adqexp adqexpdr , after(wta_adq)
-
-
 save "${gsdData}/1-CleanOutput/hh.dta" , replace
 

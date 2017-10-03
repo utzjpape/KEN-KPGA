@@ -14,7 +14,7 @@ isid uhhid
 *generate urban dummy and label rurural / urban classification
 gen urban= rururb - 1
 label var urban "Urban"
-ren rururb resid
+ren (rururb) (resid)
 label define lresid 1 "Rural" 2 "Urban" , modify
 label values resid lresid
 
@@ -1256,18 +1256,30 @@ gen mnet = (m04==1 & m02==5112)
 gen bicycle = (m04==1 & m02==5218)
 gen fan = (m04==1 & m02==4910)
 gen cell_phone = (m04==1 & m02==5213)
+gen sofa = (m04==1 & m02==4701)
+*fridge is grouped with freezer in the 2015 survey so the same is done here
+gen fridge = (m04==1 & (m02==4901 | m02==4902))
+gen wash_machine = (m04==1 & m02==4903)
+gen microwave = (m04==1 & m02==4906)
+gen kettle = (m04==1 & m02==4917)
+gen computer = (m04==1 & m02==5222)
 
-collapse (max) car motorcycle radio tv kero_stove char_jiko mnet bicycle fan cell_phone , by(uhhid)
-foreach var of varlist car motorcycle radio tv kero_stove char_jiko mnet bicycle fan cell_phone {
+collapse (max) car motorcycle radio tv kero_stove char_jiko mnet bicycle fan cell_phone sofa fridge wash_machine microwave kettle computer, by(uhhid)
+foreach var of varlist car motorcycle radio tv kero_stove char_jiko mnet bicycle fan cell_phone sofa fridge wash_machine microwave kettle computer {
 	label var `var' "HH owns a `var' "
 }
 label var mnet "HH owns a mosquito net"
 label var kero_stove "HH owns a kerosene stove"
 label var char_jiko "HH owns a charcoal jiko"
+label var wash_machine "HH owns a washing machine"
 
 save "${gsdData}/1-CleanTemp/assets05.dta", replace
 
 use  "${gsdDataRaw}/KIHBS15/q1_assets.dta",clear
+*creating one single variable "computer" to combine "Laptop" , "Tablet" & "Desktop"
+gen computer = (inlist(1,laptop,tablet,desktop))
+label var computer "HH owns a computer"
+drop laptop desktop tablet
 save "${gsdData}/1-CleanTemp/assets15.dta" , replace
 *********************************
 * 8. Merging all databases and appending the two years
@@ -1278,7 +1290,6 @@ use "${gsdDataRaw}/KIHBS05/Section A Identification.dta", clear
 egen uhhid=concat(id_clust id_hh)
 label var uhhid "Unique HH id"
 isid uhhid 
-
 drop a11 a13
 sort uhhid 
 

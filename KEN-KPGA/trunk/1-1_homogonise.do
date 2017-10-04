@@ -40,6 +40,21 @@ assert `r(ndistinct)' == 47
 distinct eatype
 assert  `r(ndistinct)' == 3
 
+gen province = . 
+replace province = 1 if inrange(county,1,6)
+replace province = 2 if inrange(county,7,9)
+replace province = 3 if inrange(county,10,17)
+replace province = 4 if inrange(county,18,22)
+replace province = 5 if inrange(county,23,36)
+replace province = 6 if inrange(county,37,40)
+replace province = 7 if inrange(county,41,46)
+replace province = 8 if county == 47
+assert !mi(county)
+
+label define lprovince 1"Coast" 2"North Eastern"  3"Eastern"  4"Central" 5"Rift Valley" 6"Western" 7"Nyanza" 8"Nairobi" ,  replace
+label values province lprovince 
+
+
 foreach var of varlist _all {
 	assert !mi(`var')
 }
@@ -57,6 +72,21 @@ label var cycle "2-week data collection period"
 *generate urban dummy and label rurural / urban classification
 gen urban= resid - 1
 label var urban "Urban"
+
+gen province = . 
+replace province = 1 if inrange(county,1,6)
+replace province = 2 if inrange(county,7,9)
+replace province = 3 if inrange(county,10,17)
+replace province = 4 if inrange(county,18,22)
+replace province = 5 if inrange(county,23,36)
+replace province = 6 if inrange(county,37,40)
+replace province = 7 if inrange(county,41,46)
+replace province = 8 if county == 47
+assert !mi(county)
+
+label define lprovince 1"Coast" 2"North Eastern"  3"Eastern"  4"Central" 5"Rift Valley" 6"Western" 7"Nyanza" 8"Nairobi" ,  replace
+label values province lprovince 
+
 
 foreach var of varlist _all {
 	assert !mi(`var')
@@ -1281,6 +1311,7 @@ gen computer = (inlist(1,laptop,tablet,desktop))
 label var computer "HH owns a computer"
 drop laptop desktop tablet
 save "${gsdData}/1-CleanTemp/assets15.dta" , replace
+
 *********************************
 * 8. Merging all databases and appending the two years
 **********************************

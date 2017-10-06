@@ -1,5 +1,7 @@
 *Run 00-init.do before running this do-file
 
+set more off
+
 **********************************
 *2005 household identification
 **********************************
@@ -1382,6 +1384,7 @@ save "${gsdData}/1-CleanOutput/kibhs15_16.dta", replace
 *appending 2 datasets
 **********************************
 use "${gsdData}/1-CleanOutput/kibhs15_16.dta" , clear
+merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15/assetindex.dta", assert(match) keep(match) keepusing(assetindex)
 append using "${gsdData}/1-CleanOutput/kibhs05_06.dta"
 *dropping households not used in 05 pov. estimation from 05 sample.
 keep if filter == 1 | kihbs==2015

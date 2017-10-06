@@ -35,6 +35,15 @@ else if (inlist("${suser}","nduati", "wb475840", "WB475840")) {
 	local swdBox = "/Users/nduati/Box Sync/Countries/Kenya/KPGA/Data/0-RawInput"
 
 }
+
+else if (inlist("${suser}","WB499706", "wb499706")) {
+	*Philip
+	*Local directory of your checked out copy of the code
+	local swdLocal = "C:\Users\WB499706\OneDrive - WBG\WBG Data PW\Code\KEN\KPGA"
+	*Box directory where the Data folder can be located
+	local swdBox = "C:\Users\WB499706\WBG\Carolina Mejia-Mantilla - KPGA\DataBox"
+	
+}
 else {
 	di as error "Configure work environment in 00-init.do before running the code."
 	error 1

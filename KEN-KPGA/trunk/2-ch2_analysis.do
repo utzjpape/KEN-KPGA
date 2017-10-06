@@ -324,5 +324,41 @@ foreach s of local provinces  {
 graph combine gic1 gic2 gic3, iscale(*0.9) title("2005-2015")
 graph save "${gsdOutput}/GIC_provinces.gph", replace
 
-drop pctile* schange* change* x z*_pp_* pfactor
+drop pctile* schange* change* x pfactor
 save "${gsdTemp}/ch2_analysis2.dta" , replace
+
+/*6.Sectoral decompoosition*/
+*****************************
+*Sectoral decomposition using dfgtg2d (DASP command) must be done using a value for the poverty line
+*Therefore there shall be 2 datasets (urban & rural).
+*preserving datasets and declaring survey desing (dfgtg2d requires the latter or "weight not found" will be displayed)
+use "${gsdTemp}/ch2_analysis2.dta" , clear
+keep if urban ==0 & kihbs==2005
+svyset clid [pweight = wta_hh]  , strata(strata)
+save "${gsdTemp}/decomp_rur_05.dta" , replace
+use "${gsdTemp}/ch2_analysis2.dta" , clear
+keep if urban ==0 & kihbs==2015
+svyset clid [pweight = wta_hh]  , strata(strata)
+save "${gsdTemp}/decomp_rur_15.dta" , replace
+
+use "${gsdTemp}/ch2_analysis2.dta" , clear
+keep if urban ==1 & kihbs==2005
+svyset clid [pweight = wta_hh]  , strata(strata)
+save "${gsdTemp}/decomp_urb_05.dta" , replace
+use "${gsdTemp}/ch2_analysis2.dta" , clear
+keep if urban ==1 & kihbs==2015
+svyset clid [pweight = wta_hh]  , strata(strata)
+save "${gsdTemp}/decomp_urb_15.dta" , replace
+
+use "${gsdTemp}/ch2_analysis2.dta" , clear
+*Sectoral decomposition for rural households
+dfgtg2d rcons rcons, alpha(0) hgroup(hhsector) pline(3252.285) file1("${gsdTemp}/decomp_rur_05.dta") hsize1(hhsize) file2("${gsdTemp}/decomp_rur_15.dta") hsize2(hhsize) ref(2)
+
+*Sectoral decomposition for rural households
+dfgtg2d rcons rcons, alpha(0) hgroup(hhsector) pline(5994.613) file1("${gsdTemp}/decomp_urb_05.dta") hsize1(hhsize) hsize2(hhsize) file2("${gsdTemp}/decomp_urb_15.dta") ref(2)
+
+erase "${gsdTemp}/decomp_rur_15.dta"
+erase "${gsdTemp}/decomp_rur_05.dta"
+erase "${gsdTemp}/decomp_urb_15.dta"
+erase "${gsdTemp}/decomp_urb_05.dta"
+

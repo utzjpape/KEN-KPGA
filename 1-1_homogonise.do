@@ -1403,7 +1403,6 @@ replace poor=0 if (assetindex>=5 & kihbs==2015)
 
 tabstat poor [aw=wta_pop], by(kihbs)
 
-label var poor "Poor under food pl"
 egen strata = group(county urban)
 order strata , after(county)
 order fdtexp fdtexpdr nfdtexp nfdtexpdr hhtexp hhtexpdr adqexp adqexpdr , after(wta_adq)

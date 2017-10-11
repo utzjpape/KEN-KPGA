@@ -1397,6 +1397,14 @@ sort kihbs county resid clid hhid
 *dropping vars that aren't in the 2015 dataset
 drop prov district doi weight_hh weight_pop uhhid fao_adq fpl absl hcl filter
 
+*temporary poverty status 15/16
+replace poor=1 if (assetindex<5 & kihbs==2015)
+replace poor=0 if (assetindex>=5 & kihbs==2015)
+
+*NDUATI: please check weights
+tabstat poor [aw=wta_pop], by(kihbs)
+
+label var poor "Poor under food pl"
 egen strata = group(county urban)
 order strata , after(county)
 order fdtexp fdtexpdr nfdtexp nfdtexpdr hhtexp hhtexpdr adqexp adqexpdr , after(wta_adq)

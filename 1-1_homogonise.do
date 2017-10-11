@@ -1401,7 +1401,6 @@ drop prov district doi weight_hh weight_pop uhhid fao_adq fpl absl hcl filter
 replace poor=1 if (assetindex<5 & kihbs==2015)
 replace poor=0 if (assetindex>=5 & kihbs==2015)
 
-*NDUATI: please check weights
 tabstat poor [aw=wta_pop], by(kihbs)
 
 label var poor "Poor under food pl"

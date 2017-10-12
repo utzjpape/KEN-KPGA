@@ -1315,6 +1315,41 @@ drop laptop desktop tablet
 save "${gsdData}/1-CleanTemp/assets15.dta" , replace
 
 *********************************
+*Household Shocks 
+*********************************
+use "${gsdDataRaw}/KIHBS05/Section T Recent Shocks.dta" , clear
+egen uhhid=concat(id_clust id_hh)
+
+gen shock_drought = 	(t02==1 & t01==101)
+gen shock_crop = 		(t02==1 & t01==102)
+gen shock_lstockdeath = 		(t02==1 & t01==103)
+gen shock_famdeath = 	(t02==1 & t01==115)
+gen shock_prise = 		(t02==1 & t01==108)
+collapse (max) shock_drought shock_prise shock_lstockdeath shock_crop shock_famdeath , by(uhhid)
+label var shock_drought "HH shock -  Drought or floods"
+label var shock_prise "HH shock -  Large rise in food prices"
+label var shock_lstockdeath "HH shock -   Livestock died"
+label var shock_crop "HH shock -  Crop disease / pests"
+label var shock_famdeath "HH shock -   Death of other fam. member"
+save "${gsdData}/1-CleanTemp/shocks05.dta" , replace
+
+
+*2015 - Section Q
+use "${gsdDataRaw}/KIHBS15/q1_hhshocks.dta" , clear
+gen shock_drought = 	(q03==1 & q01==101)
+gen shock_prise = 		(q03==1 & q01==109)
+gen shock_lstockdeath = 		(q03==1 & q01==103)
+gen shock_crop = 		(q03==1 & q01==102)
+gen shock_famdeath = 	(q03==1 & q01==115)
+collapse (max) shock_drought shock_prise shock_lstockdeath shock_crop shock_famdeath , by(clid hhid)
+label var shock_drought "HH shock -  Drought or floods"
+label var shock_prise "HH shock -  Large rise in food prices"
+label var shock_lstockdeath "HH shock -   Livestock died"
+label var shock_crop "HH shock -  Crop disease / pests"
+label var shock_famdeath "HH shock -   Death of other fam. member"
+save "${gsdData}/1-CleanTemp/shocks15.dta" , replace
+
+*********************************
 * 8. Merging all databases and appending the two years
 **********************************
 
@@ -1353,6 +1388,7 @@ merge 1:1 uhhid using "${gsdData}/1-CleanTemp/housing2_05.dta", keep(match maste
 merge 1:1 uhhid using "${gsdData}/1-CleanTemp/land05.dta" ,keep(match master) nogen
 merge 1:1 uhhid using "${gsdData}/1-CleanTemp/transfers05.dta", keep(match master) nogen
 merge 1:1 uhhid using "${gsdData}/1-CleanTemp/assets05.dta", keep(match master) nogen
+merge 1:1 uhhid using "${gsdData}/1-CleanTemp/shocks05.dta", keep(match master) nogen
 
 *Generating survey dummy
 gen kihbs = 2005
@@ -1374,6 +1410,7 @@ merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/housing2_15.dta", assert(match
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/land15.dta" ,keep(match master) nogen
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/transfers15.dta", keep(match master) nogen
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/assets15.dta", keep(match master) nogen
+merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/shocks15.dta", keep(match master) nogen
 
 *Generating survey dummy
 gen kihbs = 2015
@@ -1384,7 +1421,7 @@ save "${gsdData}/1-CleanOutput/kibhs15_16.dta", replace
 *appending 2 datasets
 **********************************
 use "${gsdData}/1-CleanOutput/kibhs15_16.dta" , clear
-merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15/assetindex.dta", assert(match) keep(match) keepusing(assetindex)
+merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15/assetindex.dta", assert(match) keep(match) keepusing(assetindex) nogen
 append using "${gsdData}/1-CleanOutput/kibhs05_06.dta"
 *dropping households not used in 05 pov. estimation from 05 sample.
 keep if filter == 1 | kihbs==2015

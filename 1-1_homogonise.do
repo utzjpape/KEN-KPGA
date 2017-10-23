@@ -768,6 +768,10 @@ replace ocusec=7 if e16>7000 & e16<8000
 replace ocusec=8 if e16>8000 & e16<9000
 replace ocusec=9 if e16>9000 & e16<10000
 
+*207 observations contain a sector of employment for unemployed individuals, all individuals are either seeking work or doing nothing.
+assert inlist(e03,6,7) if unemp== 1 & !mi(ocusec)
+replace ocusec = . if unemp==1
+
 lab var ocusec "Sector of occupation"
 
 lab def ocusec 1 "Agriculture" 2 "Mining" 3 "Manufacturing" 4 "Electricity/water" 5 "Construction" 6 "Trade/Restaurant/Tourism" 7 "Transport/Comms" 8 "Finance" 9 "Social Services" 
@@ -1341,6 +1345,12 @@ gen shock_prise = 		(q03==1 & q01==109)
 gen shock_lstockdeath = 		(q03==1 & q01==103)
 gen shock_crop = 		(q03==1 & q01==102)
 gen shock_famdeath = 	(q03==1 & q01==115)
+
+*the timespan of relevant shocks is set to five years
+replace q08_ye = 5 if q08_ye>5 & !mi(q08_ye)
+replace q08_mo = 12 if q08_mo>5 & !mi(q08_mo)
+replace q08_mo = 0 if q08_ye==5
+
 collapse (max) shock_drought shock_prise shock_lstockdeath shock_crop shock_famdeath , by(clid hhid)
 label var shock_drought "HH shock -  Drought or floods"
 label var shock_prise "HH shock -  Large rise in food prices"
@@ -1433,6 +1443,7 @@ drop rururb
 sort kihbs county resid clid hhid
 *dropping vars that aren't in the 2015 dataset
 drop prov district doi weight_hh weight_pop uhhid fao_adq fpl absl hcl filter
+
 
 *temporary poverty status 15/16
 replace poor=1 if (assetindex<5 & kihbs==2015)

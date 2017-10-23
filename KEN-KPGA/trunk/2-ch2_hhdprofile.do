@@ -86,6 +86,4 @@ putexcel J3=matrix(hcount_tot_2015) using "${gsdOutput}/ch2_headprofile_wald.xls
 
 putexcel A3=("HH size") A4=("Dependency ratio") A5=("Share of children (0-4)") A6=("Share of children (5-14)") A7=("Share of males (15-65)") A8=("Share of females (15-65)") A9=("Members - no edu (15+)") A10=("Ave. years sch. (15+)") A11=(">=1 member is literate (15+)") A12=(">=1 member is wage employed") A13=("Diversified HH (1+ Sector)") A14=("Imp. drinking water")  A15=("Improved sanitation")  A16=("Main source light (electricity)")  A17=("HH electricity access")  A18=("HH has garbage collected")  A19=("Owns house")  A20=("Owns land") A21=("Area of ag. land (acres)")  A22=("HH has title")  A23=("HH owns motorcycle")  A24=("HH owns bicycle")  A25=("HH owns radio")  A26=("HH owns cell phone")  A27=("HH owns kerosene stove")  A28=("HH owns charcoal jiko")  A29=("HH owns mosquito net")  A30=("HH owns fridge") A31=("HH owns sofa")  using "${gsdOutput}/ch2_headprofile_wald.xls" ,modify
 
-*Run tabulations of those household heads missing chars
-tabout kihbs if mi(agehead) using "${gsdOutput}/ch2_headprofile_national_m.xls" [aw=wta_pop], c(mean poor) f(3 3 3) sum  clab(Headcount_rate) replace
 

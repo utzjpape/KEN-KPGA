@@ -1,3 +1,6 @@
+clear all
+cap log close
+
 use "${gsdData}/1-CleanOutput/hh.dta" ,clear
 /************************
 BASIC DESCRIPTIVE STATS
@@ -46,9 +49,11 @@ tabout province kihbs  using "${gsdOutput}/ch2_table2.xls" [aw=wta_pop], c(mean 
 
 /*3.Kernel Density plots*/
 *************************
+*The poverty lines used for generate a comparable aggregate are those created using the 2015 basket of goods and their 2005 prices.
+*
 
-gen z1 = z2_i if urban==0 & kihbs==2005
-gen z2 = z2_i if urban==1 & kihbs==2005
+gen z1 = 1584 if urban==0 & kihbs==2005
+gen z2 = 2779  if urban==1 & kihbs==2005
 gen z3 = z2_i if urban==0 & kihbs==2015
 gen z4 = z2_i if urban==1 & kihbs==2015
 
@@ -60,8 +65,8 @@ egen urban_15pline = max(z4)
 drop z1 z2 z3 z4
 
 *generating factor to "inflate" the 2005 aggregate, to allow real comparison
-*Rural Factor = 2.08 implying 108% increase.
-*Urban Factor = 2.05 implying 105% increase.
+*Rural Factor = 2.053 implying 105% increase.
+*Urban Factor = 2.157 implying 115% increase.
 gen double pfactor =.
 replace pfactor =  rural_15pline / rural_05pline if urban == 0
 replace pfactor =  urban_15pline / urban_05pline if urban == 1
@@ -172,9 +177,7 @@ tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_pop],	c(mean 
 
  /*5.Decompositions*/
 **********************
-*We have to adjust the poverty line to be fixed using the previous price factor
-gen z_i_pp_2015 = z_i
-replace z_i_pp_2015 = z_i * pfactor if kihbs==2005
+*We have to adjust the absolute poverty line to be fixed using the previous price factor
 gen z2_i_pp_2015 = z2_i
 replace z2_i_pp_2015 = z2_i * pfactor if kihbs==2005
 
@@ -375,7 +378,10 @@ save "${gsdTemp}/ch2_analysis2.dta" , replace
 *****************************
 *Sectoral decomposition using dfgtg2d (DASP command) must be done using a value for the poverty line
 *Therefore there shall be 2 datasets (urban & rural).
-*preserving datasets and declaring survey desing (dfgtg2d requires the latter or "weight not found" will be displayed)
+*preserving datasets and declaring survey desing (dfgtg2d requires the latter or "weight not found" will be displayed).
+*log file is used to output data
+log using "${gsdOutput}/sdecomp", text replace
+
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 keep if urban ==0 & kihbs==2005
 svyset clid [pweight = wta_pop]  , strata(strata)
@@ -401,6 +407,7 @@ dfgtg2d rcons rcons, alpha(0) hgroup(hhsector) pline(3252.285) file1("${gsdTemp}
 *Sectoral decomposition for urban households
 dfgtg2d rcons rcons, alpha(0) hgroup(hhsector) pline(5994.613) file1("${gsdTemp}/decomp_urb_05.dta") hsize1(hhsize) hsize2(hhsize) file2("${gsdTemp}/decomp_urb_15.dta") ref(2)
 
+log close _all
 erase "${gsdTemp}/decomp_rur_15.dta"
 erase "${gsdTemp}/decomp_rur_05.dta"
 erase "${gsdTemp}/decomp_urb_15.dta"

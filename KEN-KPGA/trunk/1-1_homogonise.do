@@ -72,7 +72,7 @@ keep clid hhid county resid eatype hhsize cycle ctry_adq
 label var cycle "2-week data collection period"
 
 *generate urban dummy and label rurural / urban classification
-gen urban= resid - 1
+gen urban= (eatype ==2)
 label var urban "Urban"
 
 gen province = . 

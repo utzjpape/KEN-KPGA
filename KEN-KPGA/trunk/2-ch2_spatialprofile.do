@@ -141,13 +141,16 @@ putexcel A19=("Coast") A20=("North Eastern") A21=("Eastern") A22=("Central") A23
 putexcel B17=matrix(rururb_2015) using "${gsdOutput}/ch2_table3.xls" ,modify
 putexcel B19=matrix(prov_2015) using "${gsdOutput}/ch2_table3.xls" ,modify
 
+save "${gsdTemp}/ch2_analysis1.dta" , replace
+use "${gsdTemp}/ch2_analysis1.dta" , clear
+
 
 /*4.Shared Prosperity*/
 ******************************
 global cons "rcons"
 
 *Total expenditure quintiles
-xtile texp_quint = rcons  , nq(5)
+egen texp_quint = xtile(rcons) , weights(wta_hh) by(kihbs) p(20(20)80)
 label var texp_quint "Total real monthly per adq expenditure quintiles"
 *bottom 40% of total expenditure (equivalent to the bottom 2 quintiles)
 
@@ -161,19 +164,19 @@ tab b40 texp_quint [aw=wta_pop]
 tab t60 texp_quint [aw=wta_pop]
 
 *Bottom 40%
-tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_pop] if b40==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) replace
-tabout urban kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_pop] if b40==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) append
-tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_pop] if b40==1, c(mean $cons) f(3 3 3 3) sum  clab(B40_Cons) append
+tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) replace
+tabout urban kihbs using "${gsdOutput}/ch2_table4.xls"[aw=wta_hh]if b40==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) append
+tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==1, c(mean $cons) f(3 3 3 3) sum  clab(B40_Cons) append
 
 *Top60%
-tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_pop] if b40==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
-tabout urban kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_pop] if b40==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
-tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_pop] if b40==0, c(mean $cons) f(3 3 3 3) sum  clab(T60_Cons)append
+tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
+tabout urban kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
+tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==0, c(mean $cons) f(3 3 3 3) sum  clab(T60_Cons)append
 
 *Total population
-tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_pop], c(mean $cons) f(3 3 3) sum  clab(All_Cons) append
-tabout urban kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_pop], c(mean $cons) f(3 3 3) sum  clab(All_Cons) append
-tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_pop],	c(mean $cons) f(3 3 3 3) sum  clab(All_Cons) append
+tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh], c(mean $cons) f(3 3 3) sum  clab(All_Cons) append
+tabout urban kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh], c(mean $cons) f(3 3 3) sum  clab(All_Cons) append
+tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh],	c(mean $cons) f(3 3 3 3) sum  clab(All_Cons) append
 
  /*5.Decompositions*/
 **********************
@@ -250,8 +253,32 @@ putexcel B10=matrix(urban) using "${gsdOutput}/ch2_table6.xls" ,modify
 putexcel B15=matrix(prov_2005) using "${gsdOutput}/ch2_table6.xls" ,modify
 putexcel B25=matrix(prov_2015) using "${gsdOutput}/ch2_table6.xls" ,modify
 
-save "${gsdTemp}/ch2_analysis1.dta" , replace
-use "${gsdTemp}/ch2_analysis1.dta" , clear
+
+levelsof kihbs , local(years)
+foreach year of local years {
+	ineqdeco y2_i if kihbs == `year' [aw = wta_pop]  , bygroup(b40)
+	matrix b40_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1)]
+	
+	ineqdeco y2_i if kihbs == `year' & urban == 1 [aw = wta_pop]  , bygroup(b40)
+	matrix b40_urban_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1)]
+	
+	ineqdeco y2_i if kihbs == `year' & urban == 0 [aw = wta_pop]  , bygroup(b40)
+	matrix b40_rural_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1)]
+}
+matrix ineqdeco_2005 = [b40_ge1_2005 \ b40_urban_ge1_2005 \ b40_rural_ge1_2005]
+matrix ineqdeco_2015 = [b40_ge1_2015 \ b40_urban_ge1_2015 \ b40_rural_ge1_2015]
+
+
+putexcel B1=("2005") B2=("Between Group") C2=("Within Group") D2=("Total pop.") A3=("Kenya") A5=("Urban") A6=("Rural") B8=("2015")  B9=("Between Group") C9=("Within Group") D9=("Total pop.") A10=("Kenya") A12=("Urban") A13=("Rural")  using "${gsdOutput}/ch2_table6decomp.xls" , replace
+putexcel B3=matrix(b40_ge1_2005) using "${gsdOutput}/ch2_table6decomp.xls" , modify
+putexcel B5=matrix(b40_urban_ge1_2005) using "${gsdOutput}/ch2_table6decomp.xls" , modify
+putexcel B6=matrix(b40_rural_ge1_2005) using "${gsdOutput}/ch2_table6decomp.xls" , modify
+putexcel B10=matrix(b40_ge1_2015) using "${gsdOutput}/ch2_table6decomp.xls" , modify
+putexcel B12=matrix(b40_urban_ge1_2015) using "${gsdOutput}/ch2_table6decomp.xls" , modify
+putexcel B13=matrix(b40_rural_ge1_2015) using "${gsdOutput}/ch2_table6decomp.xls" , modify
+
+save "${gsdTemp}/ch2_analysis2.dta" , replace
+use "${gsdTemp}/ch2_analysis2.dta" , clear
 
 /*6.Growth Incidence curve*/
 *****************************
@@ -340,13 +367,13 @@ foreach x in 05 15 {
 }
 }
 forvalues i = 1/8 {
-	local mean_change_prov`i' = (100 * (mean2015_prov`i' / mean2005_prov`i')) - 100
+	local mean_change_prov`i' = ((mean2015_prov`i' / mean2005_prov`i')-1) * 100
 }
 /*** Generating graph ***/
 
-local mean_change1 = (100 * (mean2015_total / mean2005_total)) - 100
-local mean_change2 = (100 * (mean2015_rural / mean2005_rural)) - 100
-local mean_change3 = (100 * (mean2015_urban / mean2005_urban)) - 100
+local mean_change1 = ((mean2015_total / mean2005_total)-1)*100
+local mean_change2 = ((mean2015_rural / mean2005_rural)-1)*100 
+local mean_change3 = ((mean2015_urban / mean2005_urban)-1)*100
 
 
 
@@ -372,7 +399,7 @@ graph combine gic1 gic2 gic3, iscale(*0.9) title("2005-2015")
 graph save "${gsdOutput}/GIC_provinces.gph", replace
 
 drop pctile* schange* change* x pfactor
-save "${gsdTemp}/ch2_analysis2.dta" , replace
+save "${gsdTemp}/ch2_analysis3.dta" , replace
 
 /*6.Sectoral decompoosition*/
 *****************************
@@ -382,7 +409,7 @@ save "${gsdTemp}/ch2_analysis2.dta" , replace
 *log file is used to output data
 log using "${gsdOutput}/sdecomp", text replace
 
-use "${gsdTemp}/ch2_analysis2.dta" , clear
+use "${gsdTemp}/ch2_analysis3.dta" , clear
 keep if urban ==0 & kihbs==2005
 svyset clid [pweight = wta_pop]  , strata(strata)
 save "${gsdTemp}/decomp_rur_05.dta" , replace
@@ -400,7 +427,7 @@ keep if urban ==1 & kihbs==2015
 svyset clid [pweight = wta_pop]  , strata(strata)
 save "${gsdTemp}/decomp_urb_15.dta" , replace
 
-use "${gsdTemp}/ch2_analysis2.dta" , clear
+use "${gsdTemp}/ch2_analysis3.dta" , clear
 *Sectoral decomposition for rural households
 dfgtg2d rcons rcons, alpha(0) hgroup(hhsector) pline(3252.285) file1("${gsdTemp}/decomp_rur_05.dta") hsize1(hhsize) file2("${gsdTemp}/decomp_rur_15.dta") hsize2(hhsize) ref(2)
 

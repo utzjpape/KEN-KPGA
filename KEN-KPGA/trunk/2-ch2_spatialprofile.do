@@ -2,12 +2,18 @@ clear all
 cap log close
 
 use "${gsdData}/1-CleanOutput/hh.dta" ,clear
+*replacing 2005 poverty line with comparable
+replace z2_i = 1584 if urban == 0 & kihbs==2005
+replace z2_i = 2779 if urban == 1 & kihbs==2005
+
 /************************
 BASIC DESCRIPTIVE STATS
 ************************/
 
 /*1.Poverty Incidence*/
 *********************
+*recalculate the poverty dummy as the line for 2005 has changed
+replace poor = (y2_i<z2_i) if kihbs==2005
 
 *Kenya/provinces
 tabout province kihbs  using "${gsdOutput}/ch2_table1.xls" [aw=wta_pop], c(mean poor) f(3 3 3 3) sum clab(Poverty) replace 
@@ -98,17 +104,17 @@ graph save "${gsdOutput}/cons_distr.gph", replace
 
 global cons "y2_i"
 
-povdeco $cons if kihbs==2005 [aw=wta_pop], varpline(z2_i)
-matrix national_2005 = [`r(fgt0)'*100, `r(fgt1)'*100, `r(fgt2)'*100]
-povdeco $cons if kihbs==2015 [aw=wta_pop], varpline(z2_i)
-matrix national_2015 = [`r(fgt0)'*100, `r(fgt1)'*100, `r(fgt2)'*100]
+povdeco $cons if kihbs==2005 [aw=wta_pop], varpl(z2_i)
+matrix national_2005 = [$S_FGT0*100, $S_FGT1*100, $S_FGT2*100]
+povdeco $cons if kihbs==2015 [aw=wta_pop], varpl(z2_i)
+matrix national_2015 = [$S_FGT0*100, $S_FGT1*100, $S_FGT2*100]
 
 
 *rural / urban fgt^0, fgt^1 & fgt^2 for 2005 / 2015
 foreach var in 2005 2015 	{
 	forvalues i = 0 / 1	{
-	povdeco $cons if kihbs==`var' & urban==`i' [aw=wta_pop], varpline(z2_i)
-	matrix rururb_`i'_`var' = [`r(fgt0)'*100, `r(fgt1)'*100, `r(fgt2)'*100]
+	povdeco $cons if kihbs==`var' & urban==`i' [aw=wta_pop], varpl(z2_i)
+	matrix rururb_`i'_`var' = [$S_FGT0*100, $S_FGT1*100, $S_FGT2*100]
 }
 }
 matrix rururb_2005= [rururb_0_2005 \rururb_1_2005]
@@ -117,29 +123,30 @@ matrix rururb_2015= [rururb_0_2015 \ rururb_1_2015]
 *provincial fgt^0, fgt^1 & fgt^2 for 2005 / 2015
 foreach var in 2005 2015 	{
 	forvalues i = 1 / 8	{
-	povdeco $cons if kihbs==`var' & province==`i' [aw=wta_pop], varpline(z2_i)
-	matrix prov_`i'_`var' = [`r(fgt0)'*100, `r(fgt1)'*100, `r(fgt2)'*100]
+	povdeco $cons if kihbs==`var' & province==`i' [aw=wta_pop], varpl(z2_i)
+	matrix prov_`i'_`var' = [$S_FGT0*100, $S_FGT1*100, $S_FGT2*100]
 }
 }
 matrix prov_2005= [prov_1_2005 \ prov_2_2005 \ prov_3_2005 \ prov_4_2005 \ prov_5_2005 \ prov_6_2005 \ prov_7_2005 \ prov_8_2005 ]
 matrix prov_2015= [prov_1_2015 \ prov_2_2015 \ prov_3_2015 \ prov_4_2015 \ prov_5_2015 \ prov_6_2015 \ prov_7_2015 \ prov_8_2015 ]
 
-putexcel B1=("FGT^0") C1=("FGT^1") D1=("FGT^2") using "${gsdOutput}/ch2_table3.xls" ,replace
-putexcel B3=matrix(national_2005) using "${gsdOutput}/ch2_table3.xls" ,modify
-putexcel B16=matrix(national_2015) using "${gsdOutput}/ch2_table3.xls" ,modify
+putexcel set "${gsdOutput}/ch2_table3.xls" , replace
+putexcel A2=("2005") A3=("Kenya") A4=("Rural") A5=("Urban")
+putexcel B1=("FGT^0") C1=("FGT^1") D1=("FGT^2")
 
+putexcel B3=matrix(national_2005)
+putexcel B16=matrix(national_2015)
 
 *2005 matrices
-putexcel A2=("2005") A3=("Kenya") A4=("Rural") A5=("Urban") using "${gsdOutput}/ch2_table3.xls" , modify
-putexcel A6=("Coast") A7=("North Eastern") A8=("Eastern") A9=("Central") A10=("Rift Valley") A11=("Western") A12=("Nyanza") A13=("Nairobi") using "${gsdOutput}/ch2_table3.xls" ,modify
-putexcel B4=matrix(rururb_2005) using "${gsdOutput}/ch2_table3.xls" ,modify
-putexcel B6=matrix(prov_2005) using "${gsdOutput}/ch2_table3.xls" ,modify
+putexcel A6=("Coast") A7=("North Eastern") A8=("Eastern") A9=("Central") A10=("Rift Valley") A11=("Western") A12=("Nyanza") A13=("Nairobi")
+putexcel B4=matrix(rururb_2005)
+putexcel B6=matrix(prov_2005)
 
 *2015 matrices
-putexcel A15=("2005") A16=("Kenya") A17=("Rural") A18=("Urban") using "${gsdOutput}/ch2_table3.xls" , modify
-putexcel A19=("Coast") A20=("North Eastern") A21=("Eastern") A22=("Central") A23=("Rift Valley") A24=("Western") A25=("Nyanza") A26=("Nairobi") using "${gsdOutput}/ch2_table3.xls" ,modify
-putexcel B17=matrix(rururb_2015) using "${gsdOutput}/ch2_table3.xls" ,modify
-putexcel B19=matrix(prov_2015) using "${gsdOutput}/ch2_table3.xls" ,modify
+putexcel A15=("2005") A16=("Kenya") A17=("Rural") A18=("Urban")
+putexcel A19=("Coast") A20=("North Eastern") A21=("Eastern") A22=("Central") A23=("Rift Valley") A24=("Western") A25=("Nyanza") A26=("Nairobi")
+putexcel B17=matrix(rururb_2015)
+putexcel B19=matrix(prov_2015)
 
 save "${gsdTemp}/ch2_analysis1.dta" , replace
 use "${gsdTemp}/ch2_analysis1.dta" , clear
@@ -159,9 +166,6 @@ gen t60=cond(texp_quint>=3,1,0)
 
 label var b40 "Bottom 40 percent"
 label var t60 "Top 60 percent"
-
-tab b40 texp_quint [aw=wta_pop]
-tab t60 texp_quint [aw=wta_pop]
 
 *Bottom 40%
 tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) replace
@@ -194,20 +198,21 @@ drdecomp $cons [aw=wta_pop], by(kihbs) varpl(z2_i_pp_2015)
 matrix b = [r(b)]
 matselrc b nat_drdecomp ,  r(1/3,) c(3/3)
 
-putexcel A2=("Growth") A3=("Distribution") A4=("Total change in p.p.") B1=("National")  C1=("Rural")  D1=("Urban")  E1=("Coast")  F1=("North Eastern") G1=("Eastern")  H1=("Central")  I1=("Rift Valley") J1=("Western") K1=("Nyanza") L1=("Nairobi") using "${gsdOutput}/ch2_table5.xls" ,replace
-putexcel B2=matrix(nat_drdecomp) using "${gsdOutput}/ch2_table5.xls" ,modify
+putexcel set "${gsdOutput}/ch2_table5.xls" , replace
 
+putexcel A2=("Growth") A3=("Distribution") A4=("Total change in p.p.") B1=("National")  C1=("Rural")  D1=("Urban")  E1=("Coast")  F1=("North Eastern") G1=("Eastern")  H1=("Central")  I1=("Rift Valley") J1=("Western") K1=("Nyanza") L1=("Nairobi")
+putexcel B2=matrix(nat_drdecomp)
 *Rural
 drdecomp $cons [aw=wta_pop] if urban==0, by(kihbs) varpl(z2_i_pp_2015)
 matrix b = [r(b)]
 matselrc b rur_drdecomp ,  r(1/3,) c(3/3)
-putexcel C2=matrix(rur_drdecomp) using "${gsdOutput}/ch2_table5.xls" ,modify
+putexcel C2=matrix(rur_drdecomp)
 
 *Urban
 drdecomp $cons [aw=wta_pop] if urban==1, by(kihbs) varpl(z2_i_pp_2015)
 matrix b = [r(b)]
 matselrc b urb_drdecomp ,  r(1/3,) c(3/3)
-putexcel D2=matrix(urb_drdecomp) using "${gsdOutput}/ch2_table5.xls" ,modify
+putexcel D2=matrix(urb_drdecomp)
 
 *Provincial decompositions
 forvalues i = 1 / 8 { 
@@ -215,7 +220,7 @@ forvalues i = 1 / 8 {
 	matrix b = [r(b)]
 matselrc b prov_`i'_drdecomp ,  r(1/3,) c(3/3)
 }
-putexcel E2=matrix(prov_1_drdecomp) F2=matrix(prov_2_drdecomp) G2=matrix(prov_3_drdecomp) H2=matrix(prov_4_drdecomp) I2=matrix(prov_5_drdecomp) J2=matrix(prov_6_drdecomp) K2=matrix(prov_7_drdecomp) L2=matrix(prov_8_drdecomp) using "${gsdOutput}/ch2_table5.xls" ,modify
+putexcel E2=matrix(prov_1_drdecomp) F2=matrix(prov_2_drdecomp) G2=matrix(prov_3_drdecomp) H2=matrix(prov_4_drdecomp) I2=matrix(prov_5_drdecomp) J2=matrix(prov_6_drdecomp) K2=matrix(prov_7_drdecomp) L2=matrix(prov_8_drdecomp)
 
 /*6.Inequality*/
 ******************
@@ -245,13 +250,14 @@ matrix urban = [urban_2005 \ urban_2015]
 matrix prov = [prov_2005 \ prov_2015]
 
 
-putexcel A2=("2005") A3=("2015") A1=("National") A5=("Rural")  A6=("2005") A7=("2015") A9=("Urban") A13=("Province") A10=("2005") A11=("2015") A14=("2005") A15=("Coast") A16=("North Eastern") A17=("Eastern") A18=("Central") A19=("Rift Valley") A20=("Western") A21=("Nyanza") A22=("Nairobi") A24=("2015") A25=("Coast") A26=("North Eastern") A27=("Eastern") A28=("Central") A29=("Rift Valley") A30=("Western") A31=("Nyanza") A32=("Nairobi") B1=("p90p10") C1=("p75p25") D1=("gini") E1=("Theil") using "${gsdOutput}/ch2_table6.xls" ,replace
+putexcel set "${gsdOutput}/ch2_table6.xls" , replace
+putexcel A2=("2005") A3=("2015") A1=("National") A5=("Rural")  A6=("2005") A7=("2015") A9=("Urban") A13=("Province") A10=("2005") A11=("2015") A14=("2005") A15=("Coast") A16=("North Eastern") A17=("Eastern") A18=("Central") A19=("Rift Valley") A20=("Western") A21=("Nyanza") A22=("Nairobi") A24=("2015") A25=("Coast") A26=("North Eastern") A27=("Eastern") A28=("Central") A29=("Rift Valley") A30=("Western") A31=("Nyanza") A32=("Nairobi") B1=("p90p10") C1=("p75p25") D1=("gini") E1=("Theil")
 
-putexcel B2=matrix(total) using "${gsdOutput}/ch2_table6.xls" ,modify
-putexcel B6=matrix(rural) using "${gsdOutput}/ch2_table6.xls" ,modify
-putexcel B10=matrix(urban) using "${gsdOutput}/ch2_table6.xls" ,modify
-putexcel B15=matrix(prov_2005) using "${gsdOutput}/ch2_table6.xls" ,modify
-putexcel B25=matrix(prov_2015) using "${gsdOutput}/ch2_table6.xls" ,modify
+putexcel B2=matrix(total)
+putexcel B6=matrix(rural)
+putexcel B10=matrix(urban)
+putexcel B15=matrix(prov_2005)
+putexcel B25=matrix(prov_2015)
 
 
 levelsof kihbs , local(years)
@@ -268,14 +274,15 @@ foreach year of local years {
 matrix ineqdeco_2005 = [b40_ge1_2005 \ b40_urban_ge1_2005 \ b40_rural_ge1_2005]
 matrix ineqdeco_2015 = [b40_ge1_2015 \ b40_urban_ge1_2015 \ b40_rural_ge1_2015]
 
+putexcel set "${gsdOutput}/ch2_table6_decomp.xls" , replace
+putexcel B1=("2005") B2=("Between Group") C2=("Within Group") D2=("Total pop.") A3=("Kenya") A5=("Urban") A6=("Rural") B8=("2015")  B9=("Between Group") C9=("Within Group") D9=("Total pop.") A10=("Kenya") A12=("Urban") A13=("Rural")
 
-putexcel B1=("2005") B2=("Between Group") C2=("Within Group") D2=("Total pop.") A3=("Kenya") A5=("Urban") A6=("Rural") B8=("2015")  B9=("Between Group") C9=("Within Group") D9=("Total pop.") A10=("Kenya") A12=("Urban") A13=("Rural")  using "${gsdOutput}/ch2_table6decomp.xls" , replace
-putexcel B3=matrix(b40_ge1_2005) using "${gsdOutput}/ch2_table6decomp.xls" , modify
-putexcel B5=matrix(b40_urban_ge1_2005) using "${gsdOutput}/ch2_table6decomp.xls" , modify
-putexcel B6=matrix(b40_rural_ge1_2005) using "${gsdOutput}/ch2_table6decomp.xls" , modify
-putexcel B10=matrix(b40_ge1_2015) using "${gsdOutput}/ch2_table6decomp.xls" , modify
-putexcel B12=matrix(b40_urban_ge1_2015) using "${gsdOutput}/ch2_table6decomp.xls" , modify
-putexcel B13=matrix(b40_rural_ge1_2015) using "${gsdOutput}/ch2_table6decomp.xls" , modify
+putexcel B3=matrix(b40_ge1_2005)
+putexcel B5=matrix(b40_urban_ge1_2005)
+putexcel B6=matrix(b40_rural_ge1_2005)
+putexcel B10=matrix(b40_ge1_2015)
+putexcel B12=matrix(b40_urban_ge1_2015)
+putexcel B13=matrix(b40_rural_ge1_2015)
 
 save "${gsdTemp}/ch2_analysis2.dta" , replace
 use "${gsdTemp}/ch2_analysis2.dta" , clear
@@ -387,17 +394,16 @@ graph combine gic1 gic2 gic3, iscale(*0.9) title("2005-2015")
 graph save "${gsdOutput}/GIC_nat_rur_urb.gph", replace
 
 *Provincial level GICs 
-run "${l_sdDo}/provincial_gic.do"
-
-
+run "${gsdDo}/provincial_gic.do"
 save "${gsdTemp}/ch2_analysis3.dta" , replace
-
+use "${gsdTemp}/ch2_analysis3.dta" , clear
 /*6.Sectoral decompoosition*/
 *****************************
 *Sectoral decomposition using dfgtg2d (DASP command) must be done using a value for the poverty line
 *Therefore there shall be 2 datasets (urban & rural).
 *preserving datasets and declaring survey desing (dfgtg2d requires the latter or "weight not found" will be displayed).
 *log file is used to output data
+log close _all
 log using "${gsdOutput}/sdecomp", text replace
 
 use "${gsdTemp}/ch2_analysis3.dta" , clear

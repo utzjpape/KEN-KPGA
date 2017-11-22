@@ -386,19 +386,10 @@ foreach s in total rural urban  {
 graph combine gic1 gic2 gic3, iscale(*0.9) title("2005-2015")
 graph save "${gsdOutput}/GIC_nat_rur_urb.gph", replace
 
-*Provincial level GICs
-local i = 4
-local k = 1
-local provinces "Coast North_Eastern Eastern Central Rift_valley Western Nyanza Nairobi"
+*Provincial level GICs 
+run "${l_sdDo}/provincial_gic.do"
 
-foreach s of local provinces  {
-        line schange`i' x, lcolor(navy) lpattern(solid) yline(`mean_change_prov`k'') subtitle("Growth incidence, `s'")         xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("% change cons per adq", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`i', replace)
-		local i = `i' + 1
-}
-graph combine gic1 gic2 gic3, iscale(*0.9) title("2005-2015")
-graph save "${gsdOutput}/GIC_provinces.gph", replace
 
-drop pctile* schange* change* x pfactor
 save "${gsdTemp}/ch2_analysis3.dta" , replace
 
 /*6.Sectoral decompoosition*/

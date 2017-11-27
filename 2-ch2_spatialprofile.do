@@ -157,25 +157,36 @@ use "${gsdTemp}/ch2_analysis1.dta" , clear
 global cons "rcons"
 
 *Total expenditure quintiles
-egen texp_quint = xtile(rcons) , weights(wta_hh) by(kihbs) p(20(20)80)
-label var texp_quint "Total real monthly per adq expenditure quintiles"
+egen texp_nat_quint = xtile(rcons) , weights(wta_hh) by(kihbs) p(20(20)80)
+egen texp_rurb_quint = xtile(rcons) , weights(wta_hh) by(kihbs urban) p(20(20)80)
+egen texp_prov_quint = xtile(rcons) , weights(wta_hh) by(kihbs province) p(20(20)80)
+
+
+label var texp_nat_quint "Total real monthly per adq expenditure quintiles (National)"
+label var texp_rurb_quint "Total real monthly per adq expenditure quintiles (Rural / Urban)"
+label var texp_prov_quint "Total real monthly per adq expenditure quintiles (Provincial)"
+
 *bottom 40% of total expenditure (equivalent to the bottom 2 quintiles)
 
-gen b40=cond(texp_quint<3,1,0)
-gen t60=cond(texp_quint>=3,1,0)
+gen b40_nat=cond(texp_nat_quint<3,1,0)
+gen b40_rurb=cond(texp_rurb_quint<3,1,0)
+gen b40_prov=cond(texp_prov_quint<3,1,0)
 
-label var b40 "Bottom 40 percent"
-label var t60 "Top 60 percent"
+
+label var b40_nat "Bottom 40 percent (Nationally)"
+label var b40_rurb "Bottom 40 percent (Rural / Urban)"
+label var b40_prov "Bottom 40 percent (Provincially)"
+
 
 *Bottom 40%
-tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) replace
-tabout urban kihbs using "${gsdOutput}/ch2_table4.xls"[aw=wta_hh]if b40==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) append
-tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==1, c(mean $cons) f(3 3 3 3) sum  clab(B40_Cons) append
+tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40_nat==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) replace
+tabout urban kihbs using "${gsdOutput}/ch2_table4.xls"[aw=wta_hh]if b40_rurb==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) append
+tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40_prov==1, c(mean $cons) f(3 3 3 3) sum  clab(B40_Cons) append
 
 *Top60%
-tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
-tabout urban kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
-tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40==0, c(mean $cons) f(3 3 3 3) sum  clab(T60_Cons)append
+tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40_nat==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
+tabout urban kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40_rurb==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
+tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40_prov==0, c(mean $cons) f(3 3 3 3) sum  clab(T60_Cons)append
 
 *Total population
 tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh], c(mean $cons) f(3 3 3) sum  clab(All_Cons) append
@@ -399,14 +410,13 @@ save "${gsdTemp}/ch2_analysis3.dta" , replace
 use "${gsdTemp}/ch2_analysis3.dta" , clear
 /*6.Sectoral decompoosition*/
 *****************************
-*Sectoral decomposition using dfgtg2d (DASP command) must be done using a value for the poverty line
-*Therefore there shall be 2 datasets (urban & rural).
-*preserving datasets and declaring survey desing (dfgtg2d requires the latter or "weight not found" will be displayed).
+*Sectoral decomposition using sedecomposition command and 2 seperate datasets (one for each year) for rural and for urban.
+*seperate datasets are saved along with the survey design declared.
 *log file is used to output data
-log close _all
-log using "${gsdOutput}/sdecomp", text replace
 
 use "${gsdTemp}/ch2_analysis3.dta" , clear
+log close _all
+log using "${gsdOutput}/sdecomp", text replace
 keep if urban ==0 & kihbs==2005
 svyset clid [pweight = wta_pop]  , strata(strata)
 save "${gsdTemp}/decomp_rur_05.dta" , replace
@@ -426,10 +436,12 @@ save "${gsdTemp}/decomp_urb_15.dta" , replace
 
 use "${gsdTemp}/ch2_analysis3.dta" , clear
 *Sectoral decomposition for rural households
-dfgtg2d rcons rcons, alpha(0) hgroup(hhsector) pline(3252.285) file1("${gsdTemp}/decomp_rur_05.dta") hsize1(hhsize) file2("${gsdTemp}/decomp_rur_15.dta") hsize2(hhsize) ref(2)
+use "${gsdTemp}/decomp_rur_05.dta" , clear
+sedecomposition using "${gsdTemp}/decomp_rur_15.dta" , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
 *Sectoral decomposition for urban households
-dfgtg2d rcons rcons, alpha(0) hgroup(hhsector) pline(5994.613) file1("${gsdTemp}/decomp_urb_05.dta") hsize1(hhsize) hsize2(hhsize) file2("${gsdTemp}/decomp_urb_15.dta") ref(2)
+use "${gsdTemp}/decomp_urb_05.dta" , clear
+sedecomposition using "${gsdTemp}/decomp_urb_15.dta" , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
 log close _all
 erase "${gsdTemp}/decomp_rur_15.dta"

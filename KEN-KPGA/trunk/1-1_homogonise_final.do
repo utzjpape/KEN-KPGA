@@ -66,10 +66,17 @@ save "${gsdData}/1-CleanTemp/poverty05.dta", replace
 **********************************
 *2015 household identification
 **********************************
-use "${gsdDataRaw}/KIHBS15_full/hh.dta", clear
+use "${gsdDataRaw}/KIHBS15/hh.dta", clear
 
-keep clid hhid county resid eatype hhsize cycle ctry_adq
+keep clid hhid county resid eatype hhsize cycle ctry_adq iday
 label var cycle "2-week data collection period"
+
+*interview day to interview month in cmc (as in 2005)
+gen year=year(iday)
+gen month= month(iday)
+gen doi = (year - 1900)*12 + month
+label var doi "Date of interview (CMC)"
+drop year month iday
 
 *generate urban dummy and label rurural / urban classification
 gen urban= (eatype ==2)
@@ -99,7 +106,7 @@ save "${gsdData}/1-CleanTemp/section_a.dta", replace
 *missings for some users
 ****************************************
 use "${gsdData}/1-CleanTemp/section_a.dta" , clear
-merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15_full/poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
+merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
 
 save "${gsdData}/1-CleanTemp/hhpoverty.dta" , replace
 
@@ -245,7 +252,7 @@ save "${gsdData}/1-CleanTemp/demo05.dta", replace
 **********************************
 *2015 HH composition
 **********************************
-use "${gsdDataRaw}/KIHBS15_full/hhm.dta" , clear
+use "${gsdDataRaw}/KIHBS15/hhm.dta" , clear
 keep clid hhid b*
 
 ren b05_yy age
@@ -435,7 +442,7 @@ save "${gsdData}/1-CleanTemp/hheadchars05.dta", replace
 **********************************
 *2015 HH head characteristics
 **********************************
-use "${gsdDataRaw}/KIHBS15_full/hhm.dta", clear
+use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
 *generate a dummy for each hh if spouse is present
 gen zx = (b03==2)
 bys clid hhid: egen spouse = max(zx)
@@ -579,7 +586,7 @@ save "${gsdData}/1-CleanTemp/hhedhead05.dta", replace
 **********************************
 *2015 education
 **********************************
-use "${gsdDataRaw}/KIHBS15_full/hhm.dta", clear
+use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
 
 keep clid hhid b* c*
 merge 1:1 clid hhid b01 using "${gsdData}/1-CleanTemp/demo15.dta" , assert(match) nogen keepusing(age famrel)
@@ -842,7 +849,7 @@ save "${gsdData}/1-CleanTemp/hheadlabor05.dta", replace
 **********************************
 * 5. 2015 Labor vars
 **********************************
-use "${gsdDataRaw}/KIHBS15_full/hhm.dta", clear
+use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
 merge 1:1 clid hhid b01 using "${gsdData}/1-CleanTemp/demo15.dta" , assert(match) keepusing(age famrel) nogen
 
 * individuals not eligible for employment module need to be dropped (e02 = filter);
@@ -864,7 +871,7 @@ gen unempl = .
 *UNEMPLOYED
 *Inactive & does not have a defined return date & no activity to return to.
 *Inactive & does not have a defined return date Or inactive and no activity to return to.
-replace unempl = 1 if (active_7d==0 & !inlist(d07,1,2,3)
+replace unempl = 1 if (active_7d==0 & !inlist(d07,1,2,3))
 replace unempl = 1 if (active_7d==0 & d04_1=="G" )
 *Active in the last 7d OR Inactive with defined return date 
 replace unempl = 0 if active_7d==1
@@ -1024,7 +1031,7 @@ save "${gsdData}/1-CleanTemp/housing05.dta", replace
 **********************************
 *2015 Housing Characteristics
 **********************************
-use "${gsdDataRaw}/KIHBS15_full/hh.dta", clear
+use "${gsdDataRaw}/KIHBS15/hh.dta", clear
 
 *set max number of rooms in dwelling to 20
 egen rooms = rsum(i12_1 i12_2)
@@ -1073,7 +1080,7 @@ save "${gsdData}/1-CleanTemp/housing2_05.dta", replace
 **********************************
 *2015 Water and Sanitation 
 **********************************
-use "${gsdDataRaw}/KIHBS15_full/hh.dta", clear
+use "${gsdDataRaw}/KIHBS15/hh.dta", clear
 *Improved water sources are as follows:
 	*Any water piped into hh (1,2,3,4)
 	*Protected well (5)
@@ -1146,9 +1153,9 @@ save "${gsdData}/1-CleanTemp/land05.dta", replace
 **********************************
 *2015 Land ownership  
 **********************************
-use  "${gsdDataRaw}/KIHBS15_full/k1.dta", clear
+use  "${gsdDataRaw}/KIHBS15/k1.dta", clear
 *merge full set of households and module filter(k01)
-merge m:1 clid hhid using "${gsdDataRaw}/KIHBS15_full/hh.dta" , keepusing(clid hhid k01) keep(using match)
+merge m:1 clid hhid using "${gsdDataRaw}/KIHBS15/hh.dta" , keepusing(clid hhid k01) keep(using match)
 
 recode k02 .=0
 duplicates tag clid hhid k02, gen(tag)
@@ -1229,7 +1236,7 @@ save "${gsdData}/1-CleanTemp/transfers05.dta", replace
  **********************************
 *2015 Transfers
 **********************************
- use "${gsdDataRaw}/KIHBS15_full/hh.dta", clear
+ use "${gsdDataRaw}/KIHBS15/hh.dta", clear
 *keep only households that received transfers
 egen osum = rsum(o02_a o02_b o02_c o02_d o02_e o02_f o02_g o02_h o11_a o11_b o11_c o11_d o11_e o12_a o12_b o12_c o12_d o12_e o10_a o10_b o10_c o10_d o10_e)
 assert osum==0 if o01==2
@@ -1316,7 +1323,7 @@ label var wash_machine "HH owns a washing machine"
 
 save "${gsdData}/1-CleanTemp/assets05.dta", replace
 
-use  "${gsdDataRaw}/KIHBS15_full/assets.dta",clear
+use  "${gsdDataRaw}/KIHBS15/assets.dta",clear
 *creating one single variable "computer" to combine "Laptop" , "Tablet" & "Desktop"
 gen computer = (inlist(1,laptop,tablet,desktop))
 label var computer "HH owns a computer"
@@ -1344,7 +1351,7 @@ save "${gsdData}/1-CleanTemp/shocks05.dta" , replace
 
 
 *2015 - Section Q
-use "${gsdDataRaw}/KIHBS15_full/hhshocks.dta" , clear
+use "${gsdDataRaw}/KIHBS15/hhshocks.dta" , clear
 gen shock_drought = 	(q03==1 & q01==101)
 gen shock_prise = 		(q03==1 & q01==109)
 gen shock_lstockdeath = 		(q03==1 & q01==103)
@@ -1436,7 +1443,7 @@ save "${gsdData}/1-CleanOutput/kibhs15_16.dta", replace
 *appending 2 datasets
 **********************************
 use "${gsdData}/1-CleanOutput/kibhs15_16.dta" , clear
-*merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15_full/assetindex.dta", assert(match) keep(match) keepusing(assetindex) nogen
+*merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15/assetindex.dta", assert(match) keep(match) keepusing(assetindex) nogen
 append using "${gsdData}/1-CleanOutput/kibhs05_06.dta"
 *dropping households not used in 05 pov. estimation from 05 sample.
 keep if filter == 1 | kihbs==2015

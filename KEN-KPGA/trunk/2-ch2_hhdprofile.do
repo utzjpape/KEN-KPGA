@@ -1,6 +1,10 @@
-*Do-file calculates household head poverty profile and runs Wald test on differneces in attributes of poor vs. non poor.
 
+*Do-file calculates household head poverty profile and runs Wald test on differneces in attributes of poor vs. non poor.
 use "${gsdData}/1-CleanOutput/hh.dta" , clear
+merge m:1 clid using "${gsdTemp}/labour15_weight" , keep(match master) nogen keepusing(weight)
+
+svyset clid [pw=wta_hh] , strata(strata)
+
 *Distribution of poor and distribution of population are calculated as proportions of those where values are not missing. 
 
 *Age of household head groups. (13 - 24 , 25-59, 60+)
@@ -20,42 +24,40 @@ egen shama15_65 = rsum(shama15_24 shama25_65)
 egen shafe15_65 = rsum(shafe15_24 shafe25_65)
 
 *National numbers
-tabout   kihbs using "${gsdOutput}/ch2_headprofile_national.xls" [aw=wta_pop], c(mean poor) f(3 3 3) sum  clab(Headcount_rate) replace
-tabout   kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_national.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_poor) append
-tabout   kihbs using "${gsdOutput}/ch2_headprofile_national.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_population) append
+tabout   kihbs using "${gsdOutput}/ch2_headprofile_national.xls" ,svy c(mean poor se poor) sum f(3 3 3 3)  clab(Headcount_rate SE) sebnone replace
+tabout   kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_national.xls" [aw=wta_hh],c(col) f(1)  clab(Distribution_of_poor) append
+tabout   kihbs using "${gsdOutput}/ch2_headprofile_national.xls" [aw=wta_hh],c(col) f(1)  clab(Distribution_of_population) append
 
 *Household - Head Age Group
-tabout  hhage_grp kihbs using "${gsdOutput}/ch2_headprofile_agegrp.xls" [aw=wta_pop], c(mean poor) f(3 3 3) sum  clab(Headcount_rate) replace
-tabout  hhage_grp kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_agegrp.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_poor) append
-tabout  hhage_grp kihbs using "${gsdOutput}/ch2_headprofile_agegrp.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_population) append
+tabout  hhage_grp kihbs using "${gsdOutput}/ch2_headprofile_agegrp.xls" [aw=wta_hh],svy c(mean poor se poor) sum f(3 3 3 3)  clab(Headcount_rate SE) sebnone replace
+tabout  hhage_grp kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_agegrp.xls" [aw=wta_hh],c(col) f(1)  clab(Distribution_of_poor) append
+tabout  hhage_grp kihbs using "${gsdOutput}/ch2_headprofile_agegrp.xls" [aw=wta_hh],c(col) f(1)  clab(Distribution_of_population) append
 
 *Gender of Household - Head
-tabout  malehead kihbs using "${gsdOutput}/ch2_headprofile_malehead.xls" [aw=wta_pop], c(mean poor) f(3 3 3) sum  clab(Headcount_rate) replace
-tabout  malehead kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_malehead.xls" [aw=wta_pop], c(col) f(1) clab(Distribution_of_poor) append
-tabout  malehead kihbs using "${gsdOutput}/ch2_headprofile_malehead.xls" [aw=wta_pop], c(col) f(1) clab(Distribution_of_population) append
+tabout  malehead kihbs using "${gsdOutput}/ch2_headprofile_malehead.xls" [aw=wta_hh], svy c(mean poor se poor) sum f(3 3 3 3)  clab(Headcount_rate SE) sebnone replace
+tabout  malehead kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_malehead.xls" [aw=wta_hh], c(col) f(1) clab(Distribution_of_poor) append
+tabout  malehead kihbs using "${gsdOutput}/ch2_headprofile_malehead.xls" [aw=wta_hh], c(col) f(1) clab(Distribution_of_population) append
 
 *Marital Status of Household - Head
 *Marhead is calculated excluding the 77 households in 2005 data where marital status is missing (marhead == 6)
-tabout  marhead kihbs if inrange(marhead,1,5) using "${gsdOutput}/ch2_headprofile_marhead.xls" [aw=wta_pop], c(mean poor) f(3 3 3) sum  clab(Headcount_rate) replace
-tabout  marhead kihbs if poor==1 & inrange(marhead,1,5)  using "${gsdOutput}/ch2_headprofile_marhead.xls" [aw=wta_pop], c(col) f(1) clab(Distribution_of_poor) append
-tabout  marhead kihbs if inrange(marhead,1,5) using "${gsdOutput}/ch2_headprofile_marhead.xls" [aw=wta_pop], c(col) f(1) clab(Distribution_of_population) append
+tabout  marhead kihbs if inrange(marhead,1,5) using "${gsdOutput}/ch2_headprofile_marhead.xls" [aw=wta_hh], svy c(mean poor se poor) sum f(3 3 3 3)  clab(Headcount_rate SE) sebnone replace
+tabout  marhead kihbs if poor==1 & inrange(marhead,1,5)  using "${gsdOutput}/ch2_headprofile_marhead.xls" [aw=wta_hh], c(col) f(1) clab(Distribution_of_poor) append
+tabout  marhead kihbs if inrange(marhead,1,5) using "${gsdOutput}/ch2_headprofile_marhead.xls" [aw=wta_hh], c(col) f(1) clab(Distribution_of_population) append
 
 *Education Status of Household - Head
-tabout  hhedu kihbs using "${gsdOutput}/ch2_headprofile_hhedu.xls" [aw=wta_pop], c(mean poor) f(3 3 3) sum  clab(HHedu Headcount_rate) replace
-tabout  hhedu kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_hhedu.xls" [aw=wta_pop], c(col) f(1) clab(Distribution_of_poor) append
-tabout  hhedu kihbs using "${gsdOutput}/ch2_headprofile_hhedu.xls" [aw=wta_pop], c(col) f(1) clab(Distribution_of_population) append
+tabout  hhedu kihbs using "${gsdOutput}/ch2_headprofile_hhedu.xls" [aw=wta_hh], svy c(mean poor se poor) sum f(3 3 3 3)  clab(Headcount_rate SE) sebnone replace
+tabout  hhedu kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_hhedu.xls" [aw=wta_hh], c(col) f(1) clab(Distribution_of_poor) append
+tabout  hhedu kihbs using "${gsdOutput}/ch2_headprofile_hhedu.xls" [aw=wta_hh], c(col) f(1) clab(Distribution_of_population) append
 
 *Unemployment Status of Household - Head
-tabout  hhunemp kihbs using "${gsdOutput}/ch2_headprofile_hhemploy.xls" [aw=wta_pop], c(mean poor) f(3 3 3) sum  clab(Headcount_rate) replace
-tabout  hhunemp kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_hhemploy.xls" [aw=wta_pop], c(col) f(1) clab(Distribution_of_poor) append
-tabout  hhunemp kihbs using "${gsdOutput}/ch2_headprofile_hhemploy.xls" [aw=wta_pop], c(col) f(1) clab(Distribution_of_population) append
+tabout  hhunemp kihbs using "${gsdOutput}/ch2_headprofile_hhemploy.xls" [aw=wta_hh], svy c(mean poor se poor) sum f(3 3 3 3)  clab(Headcount_rate SE) sebnone replace
+tabout  hhunemp kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_hhemploy.xls" [aw=wta_hh], c(col) f(1) clab(Distribution_of_poor) append
+tabout  hhunemp kihbs using "${gsdOutput}/ch2_headprofile_hhemploy.xls" [aw=wta_hh], c(col) f(1) clab(Distribution_of_population) append
 
 *Employment Sector of Household Head
-tabout  hhsector kihbs using "${gsdOutput}/ch2_headprofile_hhsector.xls" [aw=wta_pop], c(mean poor) f(3 3 3) sum  clab(HHsector Headcount_rate) replace
-tabout  hhsector kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_hhsector.xls" [aw=wta_pop], c(col) f(1) clab(Distribution_of_poor) append
-tabout  hhsector kihbs using "${gsdOutput}/ch2_headprofile_hhsector.xls" [aw=wta_pop], c(col) f(1) clab(Distribution_of_population) append
-
-svyset clid [pweight=wta_pop] , strata(strat)
+tabout  hhsector kihbs using "${gsdOutput}/ch2_headprofile_hhsector.xls" [aw=wta_hh], svy c(mean poor se poor) sum f(3 3 3 3)  clab(Headcount_rate SE) sebnone replace
+tabout  hhsector kihbs if poor==1 using "${gsdOutput}/ch2_headprofile_hhsector.xls" [aw=wta_hh], c(col) f(1) clab(Distribution_of_poor) append
+tabout  hhsector kihbs using "${gsdOutput}/ch2_headprofile_hhsector.xls" [aw=wta_hh], c(col) f(1) clab(Distribution_of_population) append
 
 *Table showing ownership of assets / access to utilities given non-poor vs. poor plus testing if difference is statistcally significant
 foreach year in 2005 2015 {

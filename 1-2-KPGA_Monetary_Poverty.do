@@ -126,7 +126,7 @@ la var pgi "Poverty Gap Index 2015"
 
 *2005
 replace pgi = (z2_i - y2_i)/z2_i if !mi(y2_i) & y2_i < z2_i & kihbs==2005
-*CHECK: pgi for 2005 calculated here is very high (35.5%, and in the wbopendata it is 11.7%...) ??
+replace pgi = 0 if !mi(y2_i) & y2_i > z2_i & kihbs==2005
 
 qui tabout eatype using "${gsdOutput}/Monetary_Poverty_source.xls" if kihbs==2015, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2015 Poverty Gap Index, by type of area) append
 qui tabout province using "${gsdOutput}/Monetary_Poverty_source.xls" if kihbs==2015, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2015 Poverty Gap Index, by province) append

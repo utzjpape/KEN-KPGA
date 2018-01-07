@@ -105,12 +105,22 @@ qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs
 	*Urban is low even when adding peri-urban areas 7.4%
 qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty headcount ratio, by province) append
 
-*Poverty Headcount ratio 2005
+*Poverty Headcount ratio 2005 ???
 *Calculate 1.90 poverty line for 2005
-*CHECK: using 2005 PPP conversion factor for Kenya (29.524 in WB open data)
+*CHECK: using 2005 PPP conversion factor for Kenya (29.524 in WB open data) gives a poverty rate that is higher (45.8) than in WB open data ((33.6)
 gen pline190_05 = 29.524 * 1.9 * (365/12)
 label var pline190_05 "$1.90 a day poverty line (2005 PPP)"	
 replace poor190 = (y2_i < pline190_05) if kihbs==2005
+
+/*CHECK: using the 2011 PPP conversion factor from 1-1_homogenize gives a poverty rate (16.6) that is much too low...
+	*Step 1: Take the 2011 PPP conversion factor and multiply by 1.90 *(365/12)
+	gen pline190_2011 = 35.4296 * 1.9 * (365/12)
+	*Step 2. Adjust for prices (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI (55.527))
+	gen double pline190_05 = pline190_2011 * (55.527/121.17)
+	drop pline190_2011
+
+label var pline190_05 "$1.90 a day poverty line (2011 ppp adjusted to 2005 prices)"	
+replace poor190 = (y2_i < pline190_05) if kihbs==2005*/
 
 qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2005, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2005 Poverty headcount ratio, by type of area) append
 qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if kihbs==2005, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2005 Poverty headcount ratio, by province) append
@@ -156,6 +166,11 @@ label var poor125 "Extreme poor under $1.25 a day poverty line (line = pline125_
 order poor125 , after(pline125_05)
 
 qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2005, svy sum c(mean poor125 se lb ub) sebnone f(3) h2(2005 Extreme poverty rate, by type of area) append
+
+*Poverty headcount by hhh gender
+qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio by gender of the household head) replace
+
+*Poverty headcount by youth/children
 
 *Inequality (GINI)
 fastgini y2_i [pweight=wta_pop] if kihbs==2015
@@ -221,8 +236,8 @@ order id, first
 sort id
 keep id countryname year poverty
 
-	*Kenya headcount ratio 2015 = 20.9; 2005 = 46.6 as calculated in KGAP
-	replace poverty = 46.6 if id == 82005
+	*Kenya headcount ratio 2015 = 20.9; 2005 = 45.8 as calculated in KGAP
+	replace poverty = 45.8 if id == 82005
 		*CHECK: Why is the poverty rate in WBopendata for Kenya 2005 33.6, whereas in the dataset here it is 46.6 ??
 	replace poverty = 20.9 if id == 82015
 

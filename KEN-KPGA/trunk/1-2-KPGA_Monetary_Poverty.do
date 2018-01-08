@@ -93,7 +93,7 @@ save "${gsdTemp}/WB_clean_all.dta", replace
 
 
 *MONETARY POVERTY
-	
+	set more off
 use "${gsdData}/hh.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
@@ -103,7 +103,7 @@ qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs
 *CHECK: the urban poverty headcount very low at 4%
 	qui tabout resid using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty headcount ratio, by type of area (with peri-urban as urban)) append
 	*Urban is low even when adding peri-urban areas 7.4%
-qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty headcount ratio, by province) append
+qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty headcount ratio, by province) replace
 
 *Poverty Headcount ratio 2005 ???
 *Calculate 1.90 poverty line for 2005
@@ -173,28 +173,51 @@ qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if 
 *Poverty headcount by youth/children
 
 *Inequality (GINI)
+*2015
 fastgini y2_i [pweight=wta_pop] if kihbs==2015
 return list 
-gen gini_overall=r(gini)
-qui tabout gini_overall using "${gsdOutput}/Monetary_Poverty_area_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient) append
+gen gini_overall_15=r(gini)
+qui tabout gini_overall_15 using "${gsdOutput}/Monetary_Poverty_area_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2015) append
 
 levelsof province, local(province) 
 foreach i of local province {
 	fastgini y2_i [pweight=wta_pop] if province==`i' & kihbs==2015
 	return list 
-	gen gini_`i'=r(gini)
-    qui tabout gini_`i' using "${gsdOutput}/Monetary_Poverty_province_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient for province `i') append
+	gen gini_15_`i'=r(gini)
+    qui tabout gini_15_`i' using "${gsdOutput}/Monetary_Poverty_province_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2015 for province `i') append
 	}
 	
 levelsof eatype, local(type) 
 foreach i of local type {
 	fastgini y2_i [pweight=wta_pop] if eatype==`i' & kihbs==2015
 	return list 
-	gen gini_ea_`i'=r(gini)
-    qui tabout gini_ea_`i' using "${gsdOutput}/Monetary_Poverty_area_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient for area type `i') append
+	gen gini_ea_15_`i'=r(gini)
+    qui tabout gini_ea_15_`i' using "${gsdOutput}/Monetary_Poverty_area_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2015 for area type `i') append
 	}
 
+*2005
+fastgini y2_i [pweight=wta_pop] if kihbs==2005
+return list 
+gen gini_overall_05=r(gini)
+qui tabout gini_overall_05 using "${gsdOutput}/Monetary_Poverty_area_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005) append
+
+levelsof province, local(province) 
+foreach i of local province {
+	fastgini y2_i [pweight=wta_pop] if province==`i' & kihbs==2005
+	return list 
+	gen gini_05_`i'=r(gini)
+    qui tabout gini_05_`i' using "${gsdOutput}/Monetary_Poverty_province_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005 for province `i') append
+	}
 	
+levelsof eatype, local(type) 
+foreach i of local type {
+	fastgini y2_i [pweight=wta_pop] if eatype==`i' & kihbs==2005
+	return list 
+	gen gini_ea_05_`i'=r(gini)
+    qui tabout gini_ea_05_`i' using "${gsdOutput}/Monetary_Poverty_area_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005 for area type `i') append
+	}
+
+
 *INTERNATIONAL COMPARISON OF ELASTICITY OF POVERTY REDUCTION
 
 *A) import the gdp data and merge with poverty data

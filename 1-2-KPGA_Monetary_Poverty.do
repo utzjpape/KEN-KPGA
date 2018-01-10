@@ -31,7 +31,9 @@ if "${gsdData}"=="" {
 	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SE.PRM.NENR - Net enrolment rate, primary, both sexes (%)) clear long
 	save "${gsdTemp}/WB_data_enrollment_primary.dta", replace 
    	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SE.PRM.CUAT.ZS - Completed primary education, (%) of population aged 25+) clear long
-	save "${gsdTemp}/WB_data_attainment_primary.dta", replace 
+	save "${gsdTemp}/WB_data_attainment_primary.dta", replace 	
+	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SE.ADT.LITR.ZS - Adult literacy rate, population 15+ years, both sexes (%)) clear long
+	save "${gsdTemp}/WB_data_adult_literacy_rate.dta", replace
 	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SH.H2O.SAFE.ZS - Access to an improved water source, (%) of population) clear long
 	save "${gsdTemp}/WB_data_improved_water.dta", replace
 	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SH.STA.ACSN - Access to improved sanitation facilities, (%) of population) clear long
@@ -44,7 +46,7 @@ if "${gsdData}"=="" {
 *B) process the data
 
 *for each variable obtain the latest figures and year available
-foreach indicator in poverty gap gini population enrollment_primary attainment_primary improved_water improved_sanitation access_electricity{
+foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity{
 	use "${gsdTemp}/WB_data_`indicator'.dta", clear
 
 		if "`indicator'" == "poverty" {
@@ -65,6 +67,9 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 		else if "`indicator'" == "attainment_primary" {
 		rename se_prm_cuat_zs `indicator' 
 		}	
+		else if "`indicator'" == "adult_literacy_rate" {
+		rename se_adt_litr_zs `indicator' 
+		}
 		else if "`indicator'" == "improved_water" {
 		rename sh_h2o_safe_zs `indicator' 
 		}	
@@ -86,7 +91,7 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 
 *integrate the final dataset
 use "${gsdTemp}/WB_clean_poverty.dta", clear
-foreach indicator in gap gini population enrollment_primary attainment_primary improved_water improved_sanitation access_electricity gini{
+foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini{
 	merge 1:1 countryname using "${gsdTemp}/WB_clean_`indicator'.dta", nogen
 	}
 
@@ -100,11 +105,7 @@ use "${gsdData}/hh.dta", clear
 svyset clid [pweight=wta_pop], strata(strata)
 
 *Poverty Headcount ratio 2015
-qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty headcount ratio, by type of area) replace
-*CHECK: the urban poverty headcount very low at 4%
-	qui tabout resid using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty headcount ratio, by type of area (with peri-urban as urban)) append
-	*Urban is low even when adding peri-urban areas 7.4%
-qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty headcount ratio, by province) replace
+qui tabout malehead using "${gsdOutput}/Monetary_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty headcount ratio, by gender of hh head) replace
 
 *Poverty Headcount ratio 2005 
 *Calculate 1.90 poverty line for 2005
@@ -117,8 +118,7 @@ qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if
 label var pline190 "$1.90 a day poverty line (2011 ppp adjusted to prices at kihbs year)"	
 replace poor190 = (y2_i < pline190) if kihbs==2005
 
-qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2005, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2005 Poverty headcount ratio, by type of area) append
-qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if kihbs==2005, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2005 Poverty headcount ratio, by province) append
+qui tabout malehead using "${gsdOutput}/Monetary_Poverty_source.xls" if kihbs==2005, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2005 Poverty headcount ratio, by gender of hh head) append
 
 *Poverty Gap
 *CHECK: using per adult equivalent real tc (y2_1), not real hh tc (hhtexpdr). y2_i was used to calculate poor190 in 1-1_homogenise 
@@ -126,86 +126,44 @@ qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if
 gen pgi = (pline190 - y2_i)/pline190 if !mi(y2_i) & y2_i < pline190 & kihbs==2015
 replace pgi = 0 if y2_i>pline190 & !mi(y2_i) & kihbs==2015
 la var pgi "Poverty Gap Index 2015"
+qui tabout malehead using "${gsdOutput}/Monetary_Poverty_source.xls" if kihbs==2015, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2015 Poverty Gap Index, by gender of hh head) append
+
 
 *2005
 replace pgi = (z2_i - y2_i)/z2_i if !mi(y2_i) & y2_i < z2_i & kihbs==2005
 replace pgi = 0 if !mi(y2_i) & y2_i > z2_i & kihbs==2005
-
-qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2015, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2015 Poverty Gap Index, by type of area) append
-qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if kihbs==2015, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2015 Poverty Gap Index, by province) append
-qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2005, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2005 Poverty Gap Index, by type of area) append
-qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if kihbs==2005, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2005 Poverty Gap Index, by province) append
+qui tabout malehead using "${gsdOutput}/Monetary_Poverty_source.xls" if kihbs==2005, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2005 Poverty Gap Index, by gender of hh head) append
 
 *Extreme Poverty 
-*Calculating $1.25 a day poverty line (monthly) for 2015
+*Calculating $1.25 a day poverty line (monthly) for 2015 and 2005
 	*Step 1: Take the 2011 PPP conversion factor and multiply by 1.25 *(365/12)
 	gen pline125_2011 = 35.4296 * 1.25 * (365/12)
-	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI (165.296))
-	gen double pline125 = pline125_2011 * (165.296/121.17)
+	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI for 2015(165.296) and 2005(79.8))
+	gen double pline125 = pline125_2011 * (165.296/121.17) if kihbs==2015
+	replace pline125 = pline125_2011 * (79.8/121.17) if kihbs==2005
 	drop pline125_2011
-	label var pline125 "$1.25 a day poverty line (2011 ppp adjusted to 2016 prices)"	
+	label var pline125 "$1.25 a day poverty line (2011 ppp adjusted to prices at kihbs year)"	
 
 gen poor125 = (y2_i < pline125) if kihbs==2015
+replace poor125 = (y2_i < pline125) if kihbs==2005
 label var poor125 "Extreme poor under $1.25 a day poverty line (line = pline125)"
-order poor125 , after(pline125)
+order poor125, after(pline125)
 
-qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2015, svy sum c(mean poor125 se lb ub) sebnone f(3) h2(2015 Extreme poverty rate, by type of area) append
-
-*Calculating $1.25 a day poverty line (monthly) for 2005
-*CHECK: using 2005 PPP conversion factor for Kenya (29.524 in WB open data)
-gen pline125_05 = 29.524 * 1.25 * (365/12)
-label var pline125_05 "$1.25 a day poverty line (2005 PPP)"	
-
-replace poor125 = (y2_i < pline125_05) if kihbs==2005
-label var poor125 "Extreme poor under $1.25 a day poverty line (line = pline125_05)"
-order poor125 , after(pline125_05)
-
-qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2005, svy sum c(mean poor125 se lb ub) sebnone f(3) h2(2005 Extreme poverty rate, by type of area) append
+qui tabout malehead using "${gsdOutput}/Monetary_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor125 se lb ub) sebnone f(3) h2(2015 Extreme poverty rate, by gender of hh head) append
+qui tabout malehead using "${gsdOutput}/Monetary_Poverty_source.xls" if kihbs==2005, svy sum c(mean poor125 se lb ub) sebnone f(3) h2(2005 Extreme poverty rate, by gender of hh head) append
 
 *Inequality (GINI)
 *2015
 fastgini y2_i [pweight=wta_pop] if kihbs==2015
 return list 
 gen gini_overall_15=r(gini)
-qui tabout gini_overall_15 using "${gsdOutput}/Monetary_Poverty_area_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2015) append
-
-levelsof province, local(province) 
-foreach i of local province {
-	fastgini y2_i [pweight=wta_pop] if province==`i' & kihbs==2015
-	return list 
-	gen gini_15_`i'=r(gini)
-    qui tabout gini_15_`i' using "${gsdOutput}/Monetary_Poverty_province_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2015 for province `i') append
-	}
-	
-levelsof eatype, local(type) 
-foreach i of local type {
-	fastgini y2_i [pweight=wta_pop] if eatype==`i' & kihbs==2015
-	return list 
-	gen gini_ea_15_`i'=r(gini)
-    qui tabout gini_ea_15_`i' using "${gsdOutput}/Monetary_Poverty_area_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2015 for area type `i') append
-	}
+qui tabout gini_overall_15 using "${gsdOutput}/Monetary_Poverty_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2015) append
 
 *2005
 fastgini y2_i [pweight=wta_pop] if kihbs==2005
 return list 
 gen gini_overall_05=r(gini)
-qui tabout gini_overall_05 using "${gsdOutput}/Monetary_Poverty_area_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005) append
-
-levelsof province, local(province) 
-foreach i of local province {
-	fastgini y2_i [pweight=wta_pop] if province==`i' & kihbs==2005
-	return list 
-	gen gini_05_`i'=r(gini)
-    qui tabout gini_05_`i' using "${gsdOutput}/Monetary_Poverty_province_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005 for province `i') append
-	}
-	
-levelsof eatype, local(type) 
-foreach i of local type {
-	fastgini y2_i [pweight=wta_pop] if eatype==`i' & kihbs==2005
-	return list 
-	gen gini_ea_05_`i'=r(gini)
-    qui tabout gini_ea_05_`i' using "${gsdOutput}/Monetary_Poverty_area_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005 for area type `i') append
-	}
+qui tabout gini_overall_05 using "${gsdOutput}/Monetary_Poverty_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005) append
 
 
 *MULTIDIMENSIONAL POVERTY
@@ -214,14 +172,11 @@ use "${gsdData}/hh.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
 
-*Poverty headcount by hhh gender
-qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio by gender of the household head) replace
-
 *Poverty headcount by youth/children
 
-*Literacy, adult school attainment
-tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean literacy se lb ub) sebnone f(3) h2(Literacy) append
-tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean aveyrsch se lb ub) sebnone f(3) h2(Adult educational attainment) append
+*Literacy, adult educational attainment
+tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean literacy se lb ub) sebnone f(3) h2(Literacy) replace
+tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean aveyrsch se lb ub) sebnone f(3) h2(Adult s attainment) append
 
 *Enrollment rates, enrollment rates for girls
 
@@ -272,9 +227,8 @@ order id, first
 sort id
 keep id countryname year poverty
 
-	*Kenya headcount ratio 2015 = 20.9; 2005 = 45.8 as calculated in KGAP
-	replace poverty = 45.8 if id == 82005
-		*CHECK: Why is the poverty rate in WBopendata for Kenya 2005 33.6, whereas in the dataset here it is 46.6 ??
+	*Kenya headcount ratio 2015 = 20.9; 2005 = 33.6 
+	replace poverty = 33.6 if id == 82005
 	replace poverty = 20.9 if id == 82015
 
 save "WB_gdp_poverty.dta", replace

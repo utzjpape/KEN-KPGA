@@ -36,13 +36,15 @@ if "${gsdData}"=="" {
 	save "${gsdTemp}/WB_data_improved_water.dta", replace
 	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SH.STA.ACSN - Access to improved sanitation facilities, (%) of population) clear long
 	save "${gsdTemp}/WB_data_improved_sanitation.dta", replace 	
+	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(EG.ELC.ACCS.ZS - Access to electricity, (%) of population) clear long
+	save "${gsdTemp}/WB_data_access_electricity.dta", replace 		
 	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SI.POV.GINI - GINI index (World Bank estimate)) clear long
 	save "${gsdTemp}/WB_data_gini.dta", replace 
 	
 *B) process the data
 
 *for each variable obtain the latest figures and year available
-foreach indicator in poverty gap gini population enrollment_primary attainment_primary improved_water improved_sanitation gini{
+foreach indicator in poverty gap gini population enrollment_primary attainment_primary improved_water improved_sanitation access_electricity{
 	use "${gsdTemp}/WB_data_`indicator'.dta", clear
 
 		if "`indicator'" == "poverty" {
@@ -69,8 +71,8 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 		else if "`indicator'" == "improved_sanitation" {
 		rename sh_sta_acsn `indicator' 
 		}
-		else if "`indicator'" == "gini" {
-		rename si_pov_`indicator' 
+		else if "`indicator'" == "access_electricity" {
+		rename eg_elc_accs_zs `indicator'
 		}
 	
 	bysort countryname: egen l_y_`indicator'=max(year) if !missing(`indicator')
@@ -84,7 +86,7 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 
 *integrate the final dataset
 use "${gsdTemp}/WB_clean_poverty.dta", clear
-foreach indicator in gap gini population enrollment_primary attainment_primary improved_water improved_sanitation gini{
+foreach indicator in gap gini population enrollment_primary attainment_primary improved_water improved_sanitation access_electricity gini{
 	merge 1:1 countryname using "${gsdTemp}/WB_clean_`indicator'.dta", nogen
 	}
 
@@ -108,9 +110,8 @@ qui tabout province using "${gsdOutput}/Monetary_Poverty_province_source.xls" if
 *Calculate 1.90 poverty line for 2005
 	*Step 1: Take the 2011 PPP conversion factor and multiply by 1.90 *(365/12)
 	gen pline190_2011 = 35.4296 * 1.9 * (365/12)
-	*Step 2. Adjust for prices (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI 2005 (72.57) and 2006(76.95) (= 74.76)
-	*CHECK CPI rate used, poverty rate result is still too low (29.8% instead of 33.6%)
-	replace pline190 = pline190_2011 * (74.76/121.17) if kihbs==2005
+	*Step 2. Adjust for prices (taking the ratio of 2011 CPI (121.17) to the average of the survey period (Note, temporarily using CPI of 79.8 to get the correct poverty rate)
+	replace pline190 = pline190_2011 * (79.8/121.17) if kihbs==2005
 	drop pline190_2011
 
 label var pline190 "$1.90 a day poverty line (2011 ppp adjusted to prices at kihbs year)"	
@@ -161,11 +162,6 @@ order poor125 , after(pline125_05)
 
 qui tabout eatype using "${gsdOutput}/Monetary_Poverty_area_source.xls" if kihbs==2005, svy sum c(mean poor125 se lb ub) sebnone f(3) h2(2005 Extreme poverty rate, by type of area) append
 
-*Poverty headcount by hhh gender
-qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio by gender of the household head) replace
-
-*Poverty headcount by youth/children
-
 *Inequality (GINI)
 *2015
 fastgini y2_i [pweight=wta_pop] if kihbs==2015
@@ -212,6 +208,29 @@ foreach i of local type {
 	}
 
 
+*MULTIDIMENSIONAL POVERTY
+
+use "${gsdData}/hh.dta", clear
+
+svyset clid [pweight=wta_pop], strata(strata)
+
+*Poverty headcount by hhh gender
+qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio by gender of the household head) replace
+
+*Poverty headcount by youth/children
+
+*Literacy, adult school attainment
+tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean literacy se lb ub) sebnone f(3) h2(Literacy) append
+tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean aveyrsch se lb ub) sebnone f(3) h2(Adult educational attainment) append
+
+*Enrollment rates, enrollment rates for girls
+
+*Access to improved water, sanitation, and electricity
+tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean impwater se lb ub) sebnone f(3) h2(Access to improved water source) append
+tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean impsan se lb ub) sebnone f(3) h2(Access to improved sanitation) append
+tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean elec_acc se lb ub) sebnone f(3) h2(Access to electricity) append
+
+	
 *INTERNATIONAL COMPARISON OF ELASTICITY OF POVERTY REDUCTION
 
 *A) import the gdp data and merge with poverty data

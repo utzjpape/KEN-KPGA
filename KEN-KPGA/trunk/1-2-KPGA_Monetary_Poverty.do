@@ -20,33 +20,35 @@ if "${gsdData}"=="" {
 
 	*sourcing from WB Open data to Temp in dta file 
 	*CHECK: several sub-Saharan Africa groupings in country list, I chose Sub-Saharan Africa (all income levels)
-	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
+	wbopendata, language(en - English) indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
 	save "${gsdTemp}/WB_data_poverty.dta", replace
-	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SI.POV.GAPS - Poverty gap at $1.90 a day (2011 PPP) (%)) clear long
+	wbopendata, language(en - English) indicator(SI.POV.GAPS - Poverty gap at $1.90 a day (2011 PPP) (%)) clear long
 	save "${gsdTemp}/WB_data_gap.dta", replace
-	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SI.POV.GINI - GINI index (World Bank estimate)) clear long
+	wbopendata, language(en - English) indicator(SI.POV.GINI - GINI index (World Bank estimate)) clear long
 	save "${gsdTemp}/WB_data_gini.dta", replace
-	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SP.POP.TOTL - Population, total) clear long
+	wbopendata, language(en - English) indicator(SP.POP.TOTL - Population, total) clear long
 	save "${gsdTemp}/WB_data_population.dta", replace
-	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SE.PRM.NENR - Net enrolment rate, primary, both sexes (%)) clear long
+	wbopendata, language(en - English) indicator(SE.PRM.NENR - Net enrolment rate, primary, both sexes (%)) clear long
 	save "${gsdTemp}/WB_data_enrollment_primary.dta", replace 
-   	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SE.PRM.CUAT.ZS - Completed primary education, (%) of population aged 25+) clear long
+   	wbopendata, language(en - English) indicator(SE.PRM.CUAT.ZS - Completed primary education, (%) of population aged 25+) clear long
 	save "${gsdTemp}/WB_data_attainment_primary.dta", replace 	
-	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SE.ADT.LITR.ZS - Adult literacy rate, population 15+ years, both sexes (%)) clear long
+	wbopendata, language(en - English) indicator(SE.ADT.LITR.ZS - Adult literacy rate, population 15+ years, both sexes (%)) clear long
 	save "${gsdTemp}/WB_data_adult_literacy_rate.dta", replace
-	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SH.H2O.SAFE.ZS - Access to an improved water source, (%) of population) clear long
+	wbopendata, language(en - English) indicator(SH.H2O.SAFE.ZS - Access to an improved water source, (%) of population) clear long
 	save "${gsdTemp}/WB_data_improved_water.dta", replace
-	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SH.STA.ACSN - Access to improved sanitation facilities, (%) of population) clear long
+	wbopendata, language(en - English) indicator(SH.STA.ACSN - Access to improved sanitation facilities, (%) of population) clear long
 	save "${gsdTemp}/WB_data_improved_sanitation.dta", replace 	
-	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(EG.ELC.ACCS.ZS - Access to electricity, (%) of population) clear long
+	wbopendata, language(en - English) indicator(EG.ELC.ACCS.ZS - Access to electricity, (%) of population) clear long
 	save "${gsdTemp}/WB_data_access_electricity.dta", replace 		
-	wbopendata, language(en - English) country(GHA;ZAF;RWA;UGA;TZA;BDI;SSF) indicator(SI.POV.GINI - GINI index (World Bank estimate)) clear long
+	wbopendata, language(en - English) indicator(SI.POV.GINI - GINI index (World Bank estimate)) clear long
 	save "${gsdTemp}/WB_data_gini.dta", replace 
-	
+	wbopendata, language(en - English) indicator(NY.GDP.PCAP.CD - GDP per capita (current $)) clear long
+	save "${gsdTemp}/WB_data_gdppc.dta", replace
+
 *B) process the data
 
 *for each variable obtain the latest figures and year available
-foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity{
+foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gdppc{
 	use "${gsdTemp}/WB_data_`indicator'.dta", clear
 
 		if "`indicator'" == "poverty" {
@@ -79,7 +81,11 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 		else if "`indicator'" == "access_electricity" {
 		rename eg_elc_accs_zs `indicator'
 		}
+		else if "`indicator'" == "gdppc" {
+		rename ny_gdp_pcap_cd `indicator'
+		}
 	
+	keep if regioncode == "SSF" | countrycode=="SSF"
 	bysort countryname: egen l_y_`indicator'=max(year) if !missing(`indicator')
 	keep if year==l_y_`indicator'
 	keep countryname countrycode l_y_`indicator' `indicator' 
@@ -91,7 +97,7 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 
 *integrate the final dataset
 use "${gsdTemp}/WB_clean_poverty.dta", clear
-foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini{
+foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini gdppc{
 	merge 1:1 countryname using "${gsdTemp}/WB_clean_`indicator'.dta", nogen
 	}
 
@@ -171,6 +177,10 @@ qui tabout gini_overall_05 using "${gsdOutput}/Monetary_Poverty_source.xls" , sv
 use "${gsdData}/hh.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
+
+*Poverty headcount by gender of household head
+svy: reg poor190 malehead if kihbs==2015
+*export difference and p level to excel
 
 *Poverty headcount by youth/children
 
@@ -266,6 +276,6 @@ drop apcgdp20052011 apcgdp20062011 apcgdp20072011 apcgdp20052012 apcgdp20062012 
 gen elasticity_pov_gdp = apcpov / apcgdp
 label var elasticity_pov_gdp "Elasticity of poverty reduction to GDP growth
 
-keep countryname elasticity_pov_gdp
+keep countryname apcpov apcgdp elasticity_pov_gdp
 export excel using "${gsdOutput}/Country_Comparison_source.xls", firstrow(variables) sheet("Elasticity_Comparison_source", replace) 
 save "${gsdTemp}/WB_gdp_poverty.dta", replace

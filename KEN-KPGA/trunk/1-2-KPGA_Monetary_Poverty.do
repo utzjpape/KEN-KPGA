@@ -120,25 +120,23 @@ svyset clid [pweight=wta_pop], strata(strata)
 *Calculate 1.90 poverty line for 2005
 	*Step 1: Take the 2011 PPP conversion factor and multiply by 1.90 *(365/12)
 	gen pline190_2011 = 35.4296 * 1.9 * (365/12)
-	*Step 2. Adjust for prices (taking the ratio of 2011 CPI (114.022 from povcalnet) to 2006 CPI (63.5526)
-	replace pline190 = pline190_2011 * (63.5526/114.022) if kihbs==2005
+	*Step 2. Adjust for prices (taking the ratio of 2011 CPI (121.17) to 2005/06 survey average (80.41)
+	replace pline190 = pline190_2011 * (80.41/121.17) if kihbs==2005
 	drop pline190_2011
 
 label var pline190 "$1.90 a day poverty line (2011 ppp adjusted to prices at kihbs year)"	
 replace poor190 = (y2_i < pline190) if kihbs==2005
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio, by kihbs year) replace
-	*poverty rate for 2005 should be 33.6%
 
 *Poverty Gap
 gen pgi = (pline190 - y2_i)/pline190 if !mi(y2_i) & y2_i < pline190 & kihbs==2015
 replace pgi = 0 if y2_i>pline190 & !mi(y2_i) & kihbs==2015
 la var pgi "Poverty Gap Index 2015"
-replace pgi = (z2_i - y2_i)/z2_i if !mi(y2_i) & y2_i < z2_i & kihbs==2005
-replace pgi = 0 if !mi(y2_i) & y2_i > z2_i & kihbs==2005
+replace pgi = (pline190 - y2_i)/pline190 if !mi(y2_i) & y2_i < pline190 & kihbs==2005
+replace pgi = 0 if !mi(y2_i) & y2_i > pline190 & kihbs==2005
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi se lb ub) sebnone f(3) h2(Poverty Gap Index, by kihbs year) append
-	*Note poverty gap for 2005 is not correct
 	
 *Extreme Poverty 
 *Calculating $1.25 a day poverty line (monthly) for 2015 and 2005
@@ -146,7 +144,7 @@ qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mea
 	gen pline125_2011 = 35.4296 * 1.25 * (365/12)
 	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI for 2015(165.296) and 2005(79.8))
 	gen double pline125 = pline125_2011 * (165.296/121.17) if kihbs==2015
-	replace pline125 = pline125_2011 * (79.8/121.17) if kihbs==2005
+	replace pline125 = pline125_2011 * (80.41/121.17) if kihbs==2005
 	drop pline125_2011
 	label var pline125 "$1.25 a day poverty line (2011 ppp adjusted to prices at kihbs year)"	
 

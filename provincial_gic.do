@@ -59,5 +59,5 @@ foreach s of local provinces  {
 graph combine gic1 gic2 gic3 gic4 gic5 gic6 gic7 gic8, iscale(*0.9) title("Provincial GICs 2005-2015")
 graph save "${gsdOutput}/GIC_provinces.gph", replace
 
-drop pctile* schange* change* x pfactor
+drop pctile* schange* change* x 
 save "${gsdTemp}/ch2_analysis2.dta" , replace

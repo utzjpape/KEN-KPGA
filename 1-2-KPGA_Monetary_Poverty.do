@@ -107,6 +107,28 @@ foreach indicator in gap gini population enrollment_primary attainment_primary a
 	merge 1:1 countryname using "${gsdTemp}/WB_clean_`indicator'.dta", nogen
 	}
 
+*Add in data from World Bank Poverty & Equity Dataset for the LMIC poverty line at $3.20 USD
+gen poverty_320 = .
+gen l_y_poverty_320 = .
+replace poverty_320 = 34.9 if countrycode=="GHA"
+replace l_y_poverty_320 = 2012 if countrycode=="GHA"
+replace poverty_320 = 35.9 if countrycode=="ZAF"
+replace l_y_poverty_320 = 2011 if countrycode=="ZAF"
+
+gen povertygap_320 = .
+replace povertygap_320 = 12.3 if countrycode=="GHA"
+replace povertygap_320 = 13.8 if countrycode=="ZAF"
+
+set obs 50
+replace countryname = "Lower Middle Income Countries" in 50
+replace countrycode = "LMIC" in 50
+replace poverty = 15.5 in 50
+replace l_y_poverty = 2013 in 50
+replace poverty_320 = 46.7 in 50
+replace l_y_poverty_320 = 2013 in 50
+replace gap = 3.8 in 50
+replace povertygap_320 = 15.1 in 50
+
 export excel using "${gsdOutput}/Country_Comparison_source.xls", sheetreplace firstrow(variables) sheet("Country_Comparison")
 save "${gsdTemp}/WB_clean_all.dta", replace 
 
@@ -130,11 +152,9 @@ replace poor190 = (y2_i < pline190) if kihbs==2005
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio, by kihbs year) replace
 
 *Poverty Gap
-gen pgi = (pline190 - y2_i)/pline190 if !mi(y2_i) & y2_i < pline190 & kihbs==2015
-replace pgi = 0 if y2_i>pline190 & !mi(y2_i) & kihbs==2015
-la var pgi "Poverty Gap Index 2015"
-replace pgi = (pline190 - y2_i)/pline190 if !mi(y2_i) & y2_i < pline190 & kihbs==2005
-replace pgi = 0 if !mi(y2_i) & y2_i > pline190 & kihbs==2005
+gen pgi = (pline190 - y2_i)/pline190 if !mi(y2_i) & y2_i < pline190 
+replace pgi = 0 if y2_i>pline190 & !mi(y2_i) 
+la var pgi "Poverty Gap Index"
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi se lb ub) sebnone f(3) h2(Poverty Gap Index, by kihbs year) append
 	
@@ -148,8 +168,7 @@ qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mea
 	drop pline125_2011
 	label var pline125 "$1.25 a day poverty line (2011 ppp adjusted to prices at kihbs year)"	
 
-gen poor125 = (y2_i < pline125) if kihbs==2015
-replace poor125 = (y2_i < pline125) if kihbs==2005
+gen poor125 = (y2_i < pline125)
 label var poor125 "Extreme poor under $1.25 a day poverty line (line = pline125)"
 order poor125, after(pline125)
 
@@ -168,6 +187,27 @@ fastgini y2_i [pweight=wta_pop] if kihbs==2005
 return list 
 gen gini_overall_05=r(gini)
 qui tabout gini_overall_05 using "${gsdOutput}/Monetary_Poverty_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005) append
+
+*Poverty at Lower Middle Income Class line of $3.20 USD PPP / day 
+*Calculate the 3.20 poverty line for 2005
+	gen pline320_2011 = 35.4296 * 3.20 * (365/12)
+	gen double pline320 = pline320_2011 * (165.296/121.17) if kihbs==2015
+	replace pline320 = pline320_2011 * (80.41/121.17) if kihbs==2005
+	drop pline320_2011
+	label var pline320 "LMIC poverty line $3.20 (2011 ppp adjusted to prices at kihbs year)"	
+
+gen poor320 = (y2_i < pline320)
+label var poor320 "Poor under $3.20 a day LMIC poverty line (line = pline320)"
+order poor320, after(pline320)
+
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320 se lb ub) sebnone f(3) h2(Poverty rate at LMIC line of $3.20 USD PPP / day, by kihbs year) append
+
+*Poverty gap at LMIC line
+gen pgi_320 = (pline320 - y2_i)/pline320 if !mi(y2_i) & y2_i < pline320 
+replace pgi_320 = 0 if y2_i>pline320 & !mi(y2_i) 
+la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
+
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
 
 
 *MULTIDIMENSIONAL POVERTY
@@ -373,6 +413,8 @@ drop _merge id
 *B) calculate annualized percentage change in poverty and GDP
 *poverty
 drop if poverty==.
+	*drop South Africa poverty rate in 2008 per country economist suggestion
+	drop if countryname=="South Africa" & year==2008
 reshape wide poverty gdp, i(countryname) j(year)
 
 forvalues x = 2005/2007 {

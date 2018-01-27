@@ -10,7 +10,9 @@ if "${gsdData}"=="" {
 	error 1
 	}
 
+**********************************
 *INTERNATIONAL COMPARISON
+**********************************
 
 *A) import the data
 
@@ -137,8 +139,98 @@ replace povertygap_320 = 15.1 in 50
 export excel using "${gsdOutput}/Country_Comparison_source.xls", sheetreplace firstrow(variables) sheet("Country_Comparison")
 save "${gsdTemp}/WB_clean_all.dta", replace 
 
+**********************************
+*ELASTICITY OF POVERTY REDUCTION
+**********************************
 
+*A) import the gdp data and merge with poverty data
+wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;BDI;SSF) year(2005:2015) indicator(NY.GDP.MKTP.KD - GDP at market prices (constant 2005 US$)) clear long
+save "WB_data_gdp.dta", replace
+
+*create ID to merge with poverty data
+gen idcode = 1 if countrycode == "BDI"
+	replace idcode = 2 if countrycode == "GHA"
+	replace idcode = 3 if countrycode == "RWA"
+	replace idcode = 4 if countrycode == "SSF"
+	replace idcode = 5 if countrycode == "TZA"
+	replace idcode = 6 if countrycode == "UGA"
+	replace idcode = 7 if countrycode == "ZAF"
+	replace idcode = 8 if countrycode == "KEN"
+gen id = string(idcode) + string(year)
+destring id, replace
+sort id
+rename ny_gdp_mktp_kd gdp
+keep id countryname year gdp
+save "WB_clean_gdp.dta", replace
+
+wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;BDI;SSF) year(2005:2015) indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
+rename si_pov_dday poverty
+
+*create ID to merge with gdp data
+gen idcode = 1 if countrycode == "BDI"
+	replace idcode = 2 if countrycode == "GHA"
+	replace idcode = 3 if countrycode == "RWA"
+	replace idcode = 4 if countrycode == "SSF"
+	replace idcode = 5 if countrycode == "TZA"
+	replace idcode = 6 if countrycode == "UGA"
+	replace idcode = 7 if countrycode == "ZAF"
+	replace idcode = 8 if countrycode == "KEN"
+
+gen id = string(idcode) + string(year)
+destring id, replace
+order id, first
+sort id
+keep id countryname year poverty
+
+	*Kenya headcount ratio 2015 = 20.9; 2005 = 33.6 
+	replace poverty = 33.6 if id == 82005
+	replace poverty = 20.9 if id == 82015
+
+save "WB_gdp_poverty.dta", replace
+
+merge 1:1 id using "WB_clean_gdp.dta"
+drop _merge id
+
+*B) calculate annualized percentage change in poverty and GDP
+*poverty
+drop if poverty==.
+	*drop South Africa poverty rate in 2008 per country economist suggestion
+	drop if countryname=="South Africa" & year==2008
+reshape wide poverty gdp, i(countryname) j(year)
+
+forvalues x = 2005/2007 {
+foreach i of numlist 2011/2013 2015 {
+	gen apcpov`x'`i' = (poverty`i' / poverty`x' - 1) / (`i' - `x') * 100
+	}
+	}
+	
+egen apcpov	= rowmean(apcpov20052011 apcpov20062011 apcpov20072011 apcpov20052012 apcpov20062012 apcpov20072012 apcpov20052013 apcpov20062013 apcpov20072013 apcpov20052015 apcpov20062015 apcpov20072015)
+label var apcpov "Annualized percentage change in poverty rate"
+drop apcpov20052011 apcpov20062011 apcpov20072011 apcpov20052012 apcpov20062012 apcpov20072012 apcpov20052013 apcpov20062013 apcpov20072013
+
+*GDP
+forvalues x = 2005/2007 {
+foreach i of numlist 2011/2013 2015 {
+	gen apcgdp`x'`i' = (gdp`i' / gdp`x' - 1) / (`i' - `x') * 100
+	}
+	}
+
+egen apcgdp = rowmean(apcgdp20052011 apcgdp20062011 apcgdp20072011 apcgdp20052012 apcgdp20062012 apcgdp20072012 apcgdp20052013 apcgdp20062013 apcgdp20072013 apcgdp20052015 apcgdp20062015 apcgdp20072015)
+label var apcgdp "Annualized percentage change in GDP"
+drop apcgdp20052011 apcgdp20062011 apcgdp20072011 apcgdp20052012 apcgdp20062012 apcgdp20072012 apcgdp20052013 apcgdp20062013 apcgdp20072013
+
+*C) calculate elasticity of poverty reduction to GDP and export
+gen elasticity_pov_gdp = apcpov / apcgdp
+label var elasticity_pov_gdp "Elasticity of poverty reduction to GDP growth
+
+keep countryname apcpov apcgdp elasticity_pov_gdp
+export excel using "${gsdOutput}/Country_Comparison_source.xls", firstrow(variables) sheet("Elasticity_Comparison_source", replace) 
+save "${gsdTemp}/WB_gdp_poverty.dta", replace
+
+**********************************
 *MONETARY POVERTY
+**********************************
+
 use "${gsdData}/hh.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
@@ -214,8 +306,9 @@ la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
 
-
+**********************************
 *MULTIDIMENSIONAL POVERTY
+**********************************
 
 use "${gsdData}/hh.dta", clear
 
@@ -535,88 +628,3 @@ qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy s
 
 *Health indicators kihbs 2015
 
-*INTERNATIONAL COMPARISON OF ELASTICITY OF POVERTY REDUCTION
-
-*A) import the gdp data and merge with poverty data
-wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;BDI;SSF) year(2005:2015) indicator(NY.GDP.MKTP.KD - GDP at market prices (constant 2005 US$)) clear long
-save "WB_data_gdp.dta", replace
-
-*create ID to merge with poverty data
-gen idcode = 1 if countrycode == "BDI"
-	replace idcode = 2 if countrycode == "GHA"
-	replace idcode = 3 if countrycode == "RWA"
-	replace idcode = 4 if countrycode == "SSF"
-	replace idcode = 5 if countrycode == "TZA"
-	replace idcode = 6 if countrycode == "UGA"
-	replace idcode = 7 if countrycode == "ZAF"
-	replace idcode = 8 if countrycode == "KEN"
-gen id = string(idcode) + string(year)
-destring id, replace
-sort id
-rename ny_gdp_mktp_kd gdp
-keep id countryname year gdp
-save "WB_clean_gdp.dta", replace
-
-wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;BDI;SSF) year(2005:2015) indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
-rename si_pov_dday poverty
-
-*create ID to merge with gdp data
-gen idcode = 1 if countrycode == "BDI"
-	replace idcode = 2 if countrycode == "GHA"
-	replace idcode = 3 if countrycode == "RWA"
-	replace idcode = 4 if countrycode == "SSF"
-	replace idcode = 5 if countrycode == "TZA"
-	replace idcode = 6 if countrycode == "UGA"
-	replace idcode = 7 if countrycode == "ZAF"
-	replace idcode = 8 if countrycode == "KEN"
-
-gen id = string(idcode) + string(year)
-destring id, replace
-order id, first
-sort id
-keep id countryname year poverty
-
-	*Kenya headcount ratio 2015 = 20.9; 2005 = 33.6 
-	replace poverty = 33.6 if id == 82005
-	replace poverty = 20.9 if id == 82015
-
-save "WB_gdp_poverty.dta", replace
-
-merge 1:1 id using "WB_clean_gdp.dta"
-drop _merge id
-
-*B) calculate annualized percentage change in poverty and GDP
-*poverty
-drop if poverty==.
-	*drop South Africa poverty rate in 2008 per country economist suggestion
-	drop if countryname=="South Africa" & year==2008
-reshape wide poverty gdp, i(countryname) j(year)
-
-forvalues x = 2005/2007 {
-foreach i of numlist 2011/2013 2015 {
-	gen apcpov`x'`i' = (poverty`i' / poverty`x' - 1) / (`i' - `x') * 100
-	}
-	}
-	
-egen apcpov	= rowmean(apcpov20052011 apcpov20062011 apcpov20072011 apcpov20052012 apcpov20062012 apcpov20072012 apcpov20052013 apcpov20062013 apcpov20072013 apcpov20052015 apcpov20062015 apcpov20072015)
-label var apcpov "Annualized percentage change in poverty rate"
-drop apcpov20052011 apcpov20062011 apcpov20072011 apcpov20052012 apcpov20062012 apcpov20072012 apcpov20052013 apcpov20062013 apcpov20072013
-
-*GDP
-forvalues x = 2005/2007 {
-foreach i of numlist 2011/2013 2015 {
-	gen apcgdp`x'`i' = (gdp`i' / gdp`x' - 1) / (`i' - `x') * 100
-	}
-	}
-
-egen apcgdp = rowmean(apcgdp20052011 apcgdp20062011 apcgdp20072011 apcgdp20052012 apcgdp20062012 apcgdp20072012 apcgdp20052013 apcgdp20062013 apcgdp20072013 apcgdp20052015 apcgdp20062015 apcgdp20072015)
-label var apcgdp "Annualized percentage change in GDP"
-drop apcgdp20052011 apcgdp20062011 apcgdp20072011 apcgdp20052012 apcgdp20062012 apcgdp20072012 apcgdp20052013 apcgdp20062013 apcgdp20072013
-
-*C) calculate elasticity of poverty reduction to GDP and export
-gen elasticity_pov_gdp = apcpov / apcgdp
-label var elasticity_pov_gdp "Elasticity of poverty reduction to GDP growth
-
-keep countryname apcpov apcgdp elasticity_pov_gdp
-export excel using "${gsdOutput}/Country_Comparison_source.xls", firstrow(variables) sheet("Elasticity_Comparison_source", replace) 
-save "${gsdTemp}/WB_gdp_poverty.dta", replace

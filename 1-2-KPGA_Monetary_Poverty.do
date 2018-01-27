@@ -28,7 +28,7 @@ if "${gsdData}"=="" {
 	save "${gsdTemp}/WB_data_gini.dta", replace
 	wbopendata, language(en - English) indicator(SP.POP.TOTL - Population, total) clear long
 	save "${gsdTemp}/WB_data_population.dta", replace
-	wbopendata, language(en - English) indicator(SE.PRM.NENR - Net enrolment rate, primary, both sexes (%)) clear long
+	wbopendata, language(en - English) indicator(SE.PRM.NENR - Net enrollment rate, primary, both sexes (%)) clear long
 	save "${gsdTemp}/WB_data_enrollment_primary.dta", replace 
    	wbopendata, language(en - English) indicator(SE.PRM.CUAT.ZS - Completed primary education, (%) of population aged 25+) clear long
 	save "${gsdTemp}/WB_data_attainment_primary.dta", replace 	
@@ -44,6 +44,8 @@ if "${gsdData}"=="" {
 	save "${gsdTemp}/WB_data_gini.dta", replace 
 	wbopendata, language(en - English) indicator(NY.GDP.PCAP.CD - GDP per capita (current $)) clear long
 	save "${gsdTemp}/WB_data_gdppc.dta", replace
+	wbopendata, language(en - English) indicator(SE.PRM.NENR.FE - Net enrollment rate, primary, female (%)) clear long
+	save "${gsdTemp}/WB_data_enrollment_primaryfe.dta", replace 
 	wbopendata, language(en - English) indicator(SE.SEC.CUAT.LO.ZS - Completed lower secondary education, (%) of population aged 25+) clear long
 	save "${gsdTemp}/WB_data_attainment_secondary.dta", replace 
 
@@ -51,7 +53,7 @@ if "${gsdData}"=="" {
 *B) process the data
 
 *for each variable obtain the latest figures and year available
-foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gdppc attainment_secondary {
+foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gdppc enrollment_primaryfe attainment_secondary {
 	use "${gsdTemp}/WB_data_`indicator'.dta", clear
 
 		if "`indicator'" == "poverty" {
@@ -87,13 +89,16 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 		else if "`indicator'" == "gdppc" {
 		rename ny_gdp_pcap_cd `indicator'
 		}
+		else if "`indicator'" == "enrollment_primaryfe" {
+		rename se_prm_nenr_fe `indicator'		
+		}
 		else if "`indicator'" == "attainment_secondary" {
 		rename se_sec_cuat_lo_zs `indicator' 
 		}
 	
 	keep if regioncode == "SSF" | countrycode=="SSF"
 	bysort countryname: egen l_y_`indicator'=max(year) if !missing(`indicator')
-	keep if year==l_y_`indicator'
+	keep if year==l_y_`indicator' & year > 2005
 	keep countryname countrycode l_y_`indicator' `indicator' 
 
 	save "${gsdTemp}/WB_clean_`indicator'.dta", replace 
@@ -103,7 +108,7 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 
 *integrate the final dataset
 use "${gsdTemp}/WB_clean_poverty.dta", clear
-foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini gdppc attainment_secondary{
+foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini gdppc enrollment_primaryfe attainment_secondary{
 	merge 1:1 countryname using "${gsdTemp}/WB_clean_`indicator'.dta", nogen
 	}
 
@@ -224,9 +229,9 @@ qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy s
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean impsan se lb ub) sebnone f(3) h2(Access to improved sanitation, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean elec_acc se lb ub) sebnone f(3) h2(Access to electricity, by kihbs year) append
 
-*Education indicators kihbs 2015
+*Education indicators KIHBS 2015
 *Use household member dataset and parts of 1-1_homogenize for cleaning
-use "${gsdData}/hhm.dta", clear
+use "${gsdData}/KIHBS15/hhm.dta", clear
 
 *Cleaning code from 1-1_homogenise, with some changes to create necessary education indicators
 ren b05_yy age
@@ -295,12 +300,12 @@ replace literacy = . if age < 15
 
 *Adult educational attainment, age 25+
 gen complete_primary = . 
-replace complete_primary = 1 if inrange(c10_l,2,7)
-replace complete_primary = 0 if inlist(c10_l,1,8,96)
+replace complete_primary = 1 if inrange(yrsch,8,19)
+replace complete_primary = 0 if inrange(yrsch,0,7)
 
 gen complete_secondary = . 
-replace complete_secondary = 1 if inrange(c10_l,4,7)
-replace complete_secondary = 0 if inlist(c10_l,1,2,3,8,96)
+replace complete_secondary = 1 if inrange(yrsch,14,19)
+replace complete_secondary = 0 if inrange(yrsch,0,13)
 
 replace complete_primary = . if age < 25 
 replace complete_secondary = . if age < 25
@@ -348,15 +353,185 @@ save "${gsdTemp}/edu_indicators_15.dta", replace
 use "${gsdData}/hh.dta", clear
 drop if kihbs==2005
 merge 1:1 clid hhid using "${gsdTemp}/edu_indicators_15.dta", keep(match master) nogen
+save "${gsdTemp}/edu_indicators_15.dta", replace
+
+*Education indicators KIHBS 2005
+*Use parts of 1-1_homogenize for cleaning
+use "${gsdData}/KIHBS05/Section B Household member Information.dta", clear
+
+egen uhhid=concat(id_clust id_hh)
+label var uhhid "Unique HH id"
+
+*drop visitors
+drop if (b07==77)
+
+*relpacing dont know / not stated codes as missing (.z) - 139 observations
+replace b05a = .z if inlist(b05a,98,99)
+gen age=b05a
+label var age "Age"
+assert age!=.
+
+gen hhsizec 	= 1 if !mi(age)
+*generate dependats dummy (<15 OR >65)
+gen depen 	= (inrange(age, 0, 14) | (age>=66)) & !mi(age)
+*female working age
+gen female	= ((b04 == 2) & inrange(age, 15, 65))
+
+*generate age categories
+gen nfe0_4 	= (inrange(age, 0, 4) 	& (b04 == 2))
+gen nma0_4 	= (inrange(age, 0, 4) 	& (b04 == 1))
+gen nfe5_14	= (inrange(age, 5, 14) 	& (b04 == 2))
+gen nma5_14	= (inrange(age, 5, 14) 	& (b04 == 1))
+gen nfe15_24 	= (inrange(age, 15, 24) & (b04 == 2))
+gen nma15_24 	= (inrange(age, 15, 24) & (b04 == 1))
+gen nfe25_65 	= (inrange(age, 25, 65) & (b04 == 2))
+gen nma25_65 	= (inrange(age, 25, 65) & (b04 == 1))
+gen nfe66plus 	= ((age>=66) 		& (b04 == 2)) & !mi(age)
+gen nma66plus 	= ((age>=66) 		& (b04 == 1)) & !mi(age)
+
+gen n0_4 	= (inrange(age, 0, 4))
+gen n5_14	= (inrange(age, 5, 14))
+gen n15_24 	= (inrange(age, 15, 24))
+gen n25_65 	= (inrange(age, 25, 65))
+gen n66plus 	= (age>=66) & !mi(age)
+
+* check that every individual belongs to exactly one age-sex category
+egen tot = rowtotal(n0_4 n5_14 n15_24 n25_65 n66plus)
+assert tot == 1 if !mi(age)
+drop tot
+
+egen tot = rowtotal(nfe* nma*)
+assert tot == 1 if !mi(age)
+drop tot
+
+*recode relationship with household head to ensure compatability with 2005
+recode b03 (1 = 1) (2 = 2) (3 4 = 3) (5 = 4) (6 = 5) (7 = 6) (8 = 7) (9 10 = 8) , gen(famrel)
+label define lfamrel 1"Head" 2"Spouse" 3"Son / Daughter"  4"Father / Mother" 5"Sister / Brother" 6"Grandchild" 7"Other Relative"  8"Other non-relative" , modify
+label values famrel lfamrel
+label var famrel "Relationship to hh head"
+
+*labelling sex
+label define lsex 1"Male" 2"Female" , modify
+label values b04 lsex
+
+keep uhhid b_id famrel b04 age
+order uhhid b_id famrel b04 age
+sort uhhid b_id
+
+save "${gsdTemp}/demo05.dta", replace
+
+use "${gsdData}/KIHBS05/Section C education.dta", clear
+
+*gen unique hh id using cluster and house #
+egen uhhid=concat(id_clust id_hh)
+label var uhhid "Unique HH id"
+
+isid uhhid b_id
+sort uhhid b_id
+*26 observations have no demographic data and education data. 6,740 have demographic data and no education data.
+merge 1:1 uhhid b_id using "${gsdTemp}/demo05.dta", keep(match) nogen
+
+*Years of schooling
+gen yrsch = c04a
+*according to skip pattern c04a is missing if individual never attended school
+*replacing incorrect filter (no --> yes) when respondent has years of schooling.
+replace c03 = 1 if !mi(c04a) & c03==2
+assert yrsch == . if c03==2
+replace yrsch = 0 if c03 == 2
+
+*no grade completed is coded as 20
+replace yrsch = 0 if c04a == 20
+replace yrsch = . if (c04a == 21)
+*replace yrsch as zero for those individuals that are currently attending STD 1
+replace yrsch = 0 if (c12 == 1 & yrsch==.)
+tab yrsch, m
+tab c03 c04a if yrsch== ., m
+lab var yrsch "Years of schooling"
+
+*Literacy
+gen literacy = .
+*Can read a whole sentence & Can write in any language
+replace literacy = 1 if (c24==3 & c25==1)
+*Cannot read at all, cannot read part of a sentence, no sentence in required language
+replace literacy = 0 if (inlist(c24, 1, 2, 4,9) | (c25==2))
+tab literacy, m
+tab c24 c25 if literacy ==., m
+
+*Age 15+
+replace literacy = . if age < 15 
+
+*Adult educational attainment, age 25+
+gen complete_primary = . 
+replace complete_primary = 1 if inrange(yrsch,8,19)
+replace complete_primary = 0 if inrange(yrsch,0,7)
+
+gen complete_secondary = . 
+replace complete_secondary = 1 if inrange(yrsch,14,19)
+replace complete_secondary = 0 if inrange(yrsch,0,13)
+
+replace complete_primary = . if age < 25 
+replace complete_secondary = . if age < 25
+
+*Enrollment rates
+*Primary School Age (6, 13)
+gen pschool_age = inrange(age,6,13) if !missing(age)
+la var pschool_age "Aged 6 to 13"
+*Secondary School Age (14, 17)
+gen sschool_age = inrange(age,14,17) if !missing(age)
+la var sschool_age "Aged 14 to 17"
+
+*Primary school enrollment rate
+recode c10 (2 = 0)
+gen inschool_primaryage = .
+replace inschool_primaryage = 1 if pschool_age ==1 & c10 == 1
+replace inschool_primaryage = 0 if pschool_age ==1 & c10 == 0
+
+*Secondary school enrollment rate
+gen inschool_secondaryage = .
+replace inschool_secondaryage = 1 if sschool_age ==1 & c10 == 1
+replace inschool_secondaryage = 0 if sschool_age ==1 & c10 == 0
+
+*Enrollment rate for girls
+codebook b04
+gen girls_inschool_primaryage = .
+replace girls_inschool_primaryage = 1 if b04 == 2 & inschool_primaryage == 1
+replace girls_inschool_primaryage = 0 if b04 == 2 & inschool_primaryage == 0
+gen girls_inschool_secondaryage = .
+replace girls_inschool_secondaryage = 1 if b04 == 2 & inschool_secondaryage == 1
+replace girls_inschool_secondaryage = 0 if b04 == 2 & inschool_secondaryage == 0
+
+*Collapse education variables to HH level
+collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pinschool_primaryage = inschool_primaryage pinschool_secondaryage = inschool_secondaryage pgirls_inschool_primaryage = girls_inschool_primaryage pgirls_inschool_secondaryage = girls_inschool_secondaryage, by(id_clust id_hh)
+la var pliteracy "Proportion literate in HH, age 15+" 
+la var pcomplete_primary "Proportion completed primary schooling in HH, age 25+"
+la var pcomplete_secondary "Proportion completed secondary schooling in HH, age 25+"
+la var pinschool_primaryage "Proportion of children in school, primary aged 6-13 years"
+la var pinschool_secondaryage "Proportion of children in school, secondary aged 14-17 years"
+la var pgirls_inschool_primaryage "Proportion of girls in school, primary aged 6-13 years"
+la var pgirls_inschool_secondaryage "Proportion of girls in school, secondary aged 14-17 years"
+
+*Merge weights from hh dataset for kihbs==2005
+ren (id_clust id_hh) (clid hhid)
+save "${gsdTemp}/edu_indicators_05.dta", replace
+
+use "${gsdData}/hh.dta", clear
+drop if kihbs==2015
+merge 1:1 clid hhid using "${gsdTemp}/edu_indicators_05.dta", keep(match master) nogen
+save "${gsdTemp}/edu_indicators_05.dta", replace
+
+*Append with kihbs15 education indicators
+append using "${gsdTemp}/edu_indicators_15.dta"
+save "${gsdTemp}/edu_indicators.dta", replace
+
 svyset clid [pweight=wta_pop], strata(strata)
 
-qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean literacy se lb ub) sebnone f(3) h2(Literacy, population 15+ years, by poor190) append
-qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pcomplete_primary se lb ub) sebnone f(3) h2(Completed primary education, population aged 25+, by poor190) append
-qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pcomplete_secondary se lb ub) sebnone f(3) h2(Completed secondary education, population aged 25+, by poor190) append
-qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pinschool_primaryage se lb ub) sebnone f(3) h2(Children in school, primary aged 6-13 years, by poor190) append
-qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pinschool_secondaryage se lb ub) sebnone f(3) h2(Children in school, secondary aged 14-17 years, by poor190) append
-qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pgirls_inschool_primaryage se lb ub) sebnone f(3) h2(Girls in school, primary aged 6-13 years, by poor190) append
-qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pgirls_inschool_secondaryage se lb ub) sebnone f(3) h2(Girls in school, secondary aged 14-17 years, by poor190) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pliteracy se lb ub) sebnone f(3) h2(Literacy, population 15+ years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pcomplete_primary se lb ub) sebnone f(3) h2(Completed primary education, population aged 25+, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pcomplete_secondary se lb ub) sebnone f(3) h2(Completed secondary education, population aged 25+, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pinschool_primaryage se lb ub) sebnone f(3) h2(Children in school, primary aged 6-13 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pinschool_secondaryage se lb ub) sebnone f(3) h2(Children in school, secondary aged 14-17 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pgirls_inschool_primaryage se lb ub) sebnone f(3) h2(Girls in school, primary aged 6-13 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pgirls_inschool_secondaryage se lb ub) sebnone f(3) h2(Girls in school, secondary aged 14-17 years, by kihbs year) append
 
 *Health indicators kihbs 2015
 

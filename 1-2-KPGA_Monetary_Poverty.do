@@ -588,11 +588,13 @@ gen sschool_age = inrange(age,14,17) if !missing(age)
 la var sschool_age "Aged 14 to 17"
 
 *Primary school enrollment rate
-recode c10 (2 = 0)
-codebook c12
+recode c03 c10 (2 = 0)
+codebook c12 c04a
 gen primary_enrollment = .
 replace primary_enrollment = 1 if pschool_age == 1 & inrange(c12,1,8)
 replace primary_enrollment = 0 if pschool_age == 1 & c10 == 0
+replace primary_enrollment = 0 if pschool_age == 1 & c03 == 0 
+replace primary_enrollment = 0 if pschool_age == 1 & c04a == 20
 *CHECK: primary school aged children enrolled in higher schooling or other do not count in prm school enrollment rate
 replace primary_enrollment = 0 if pschool_age == 1 & inrange(c12,9,23)  
 

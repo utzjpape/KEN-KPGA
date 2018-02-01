@@ -21,7 +21,6 @@ if "${gsdData}"=="" {
 	*ssc install wbopendata
 
 	*sourcing from WB Open data to Temp in dta file 
-	*CHECK: several sub-Saharan Africa groupings in country list, I chose Sub-Saharan Africa (all income levels)
 	wbopendata, language(en - English) indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
 	save "${gsdTemp}/WB_data_poverty.dta", replace
 	wbopendata, language(en - English) indicator(SI.POV.GAPS - Poverty gap at $1.90 a day (2011 PPP) (%)) clear long
@@ -54,12 +53,15 @@ if "${gsdData}"=="" {
 	save "${gsdTemp}/WB_data_enrollment_secondary.dta", replace 
 	wbopendata, language(en - English) indicator(SE.SEC.NENR.FE - Net enrolment rate, secondary, female (%)) clear long
 	save "${gsdTemp}/WB_data_enrollment_secondaryfe.dta", replace 
-
+	wbopendata, language(en - English) indicator(SE.PRM.NENR.MA  - Net enrolment rate, primary, male (%)) clear long
+	save "${gsdTemp}/WB_data_enrollment_primaryma.dta", replace 
+	wbopendata, language(en - English) indicator(SE.SEC.NENR.MA - Net enrolment rate, secondary, male (%)) clear long
+	save "${gsdTemp}/WB_data_enrollment_secondaryma.dta", replace 
 	
 *B) process the data
 
 *for each variable obtain the latest figures and year available
-foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe {
+foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma {
 	use "${gsdTemp}/WB_data_`indicator'.dta", clear
 
 		if "`indicator'" == "poverty" {
@@ -107,6 +109,13 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 		else if "`indicator'" == "enrollment_secondaryfe" {
 		rename se_sec_nenr_fe `indicator'
 		}
+		else if "`indicator'" == "enrollment_primaryma" {
+		rename se_prm_nenr_ma `indicator'
+		}
+		else if "`indicator'" == "enrollment_secondaryma" {
+		rename se_sec_nenr_ma `indicator'
+		}
+		
 	
 	keep if regioncode == "SSF" | countrycode=="SSF"
 	bysort countryname: egen l_y_`indicator'=max(year) if !missing(`indicator')
@@ -120,7 +129,7 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 
 *integrate the final dataset
 use "${gsdTemp}/WB_clean_poverty.dta", clear
-foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe {
+foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma {
 	merge 1:1 countryname using "${gsdTemp}/WB_clean_`indicator'.dta", nogen
 	}
 
@@ -344,7 +353,7 @@ drop if age<3 | inlist(c01,2,9)
 
 *In order to maintain data structure one variable will be created for the highest level ed. completed.
 gen yrsch = .
-*pre-priamry
+*pre-primary
 replace yrsch = 0 if c10_l==1
 *Primary
 replace yrsch = 1 if c10_l==2 & c10_g==1
@@ -426,8 +435,8 @@ codebook c06_l
 recode c03 (2 = 0)
 gen primary_enrollment = . 
 replace primary_enrollment = 1 if pschool_age == 1 & c06_l == 2
-*CHECK: what to do with pschool aged children who are in schooling above primary - missing, 0, or 1 ?
 replace primary_enrollment = 0 if pschool_age == 1 & inlist(c06_l,1,8,96)
+*CHECK: what to do with pschool aged children who are in schooling above primary?
 replace primary_enrollment = 0 if pschool_age == 1 & c03 == 0
 
 *Secondary school enrollment rate
@@ -436,17 +445,23 @@ replace secondary_enrollment = 1 if sschool_age ==1 & inrange(c06_l,4,7)
 *CHECK: secondary school aged children enrolled in primary school do not count in sec school enrollment rate
 replace secondary_enrollment = 0 if sschool_age ==1 & inlist(c06_l,1,2,3,8,96)
 
-*Enrollment rate for girls
+*Enrollment rate by gender
 codebook b04
 gen girls_primary_enrollment = .
 replace girls_primary_enrollment = 1 if b04 == 2 & primary_enrollment == 1
 replace girls_primary_enrollment = 0 if b04 == 2 & primary_enrollment == 0
+gen boys_primary_enrollment = .
+replace boys_primary_enrollment = 1 if b04 == 1 & primary_enrollment == 1
+replace boys_primary_enrollment = 0 if b04 == 1 & primary_enrollment == 0
 gen girls_secondary_enrollment = .
 replace girls_secondary_enrollment = 1 if b04 == 2 & secondary_enrollment == 1
 replace girls_secondary_enrollment = 0 if b04 == 2 & secondary_enrollment == 0
+gen boys_secondary_enrollment = .
+replace boys_secondary_enrollment = 1 if b04 == 1 & secondary_enrollment == 1
+replace boys_secondary_enrollment = 0 if b04 == 1 & secondary_enrollment == 0
 
 *Collapse education variables to HH level
-collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pprimary_enrollment = primary_enrollment psecondary_enrollment = secondary_enrollment pgirls_primary_enrollment = girls_primary_enrollment pgirls_secondary_enrollment = girls_secondary_enrollment, by(clid hhid)
+collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pprimary_enrollment = primary_enrollment psecondary_enrollment = secondary_enrollment pgirls_primary_enrollment = girls_primary_enrollment pgirls_secondary_enrollment = girls_secondary_enrollment pboys_primary_enrollment = boys_primary_enrollment pboys_secondary_enrollment = boys_secondary_enrollment, by(clid hhid)
 la var pliteracy "Proportion literate in HH, age 15+" 
 la var pcomplete_primary "Proportion completed primary schooling in HH, age 25+"
 la var pcomplete_secondary "Proportion completed secondary schooling in HH, age 25+"
@@ -454,6 +469,8 @@ la var pprimary_enrollment "Proportion of children in primary school, primary ag
 la var psecondary_enrollment "Proportion of children in secondary school, secondary aged 14-17 years"
 la var pgirls_primary_enrollment "Proportion of girls in primary school, primary aged 6-13 years"
 la var pgirls_secondary_enrollment "Proportion of girls in secondary school, secondary aged 14-17 years"
+la var pboys_primary_enrollment "Proportion of boys in primary school, primary aged 6-13 years"
+la var pboys_secondary_enrollment "Proportion of boys in secondary school, secondary aged 14-17 years"
 save "${gsdTemp}/edu_indicators_15.dta", replace
 
 *Merge weights from hh dataset for kihbs==2015
@@ -606,17 +623,23 @@ replace secondary_enrollment = 0 if sschool_age ==1 & c10 == 0
 replace secondary_enrollment = 0 if sschool_age == 1 & inrange(c12,1,8)
 replace secondary_enrollment = 0 if sschool_age == 1 & inrange(c12,15,23)
 
-*Enrollment rate for girls
+*Enrollment rate by gender
 codebook b04
 gen girls_primary_enrollment = .
 replace girls_primary_enrollment = 1 if b04 == 2 & primary_enrollment == 1
 replace girls_primary_enrollment = 0 if b04 == 2 & primary_enrollment == 0
+gen boys_primary_enrollment = .
+replace boys_primary_enrollment = 1 if b04 == 1 & primary_enrollment == 1
+replace boys_primary_enrollment = 0 if b04 == 1 & primary_enrollment == 0
 gen girls_secondary_enrollment = .
 replace girls_secondary_enrollment = 1 if b04 == 2 & secondary_enrollment == 1
 replace girls_secondary_enrollment = 0 if b04 == 2 & secondary_enrollment == 0
+gen boys_secondary_enrollment = .
+replace boys_secondary_enrollment = 1 if b04 == 1 & secondary_enrollment == 1
+replace boys_secondary_enrollment = 0 if b04 == 1 & secondary_enrollment == 0
 
 *Collapse education variables to HH level
-collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pprimary_enrollment = primary_enrollment psecondary_enrollment = secondary_enrollment pgirls_primary_enrollment = girls_primary_enrollment pgirls_secondary_enrollment = girls_secondary_enrollment, by(id_clust id_hh)
+collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pprimary_enrollment = primary_enrollment psecondary_enrollment = secondary_enrollment pgirls_primary_enrollment = girls_primary_enrollment pgirls_secondary_enrollment = girls_secondary_enrollment pboys_primary_enrollment = boys_primary_enrollment pboys_secondary_enrollment = boys_secondary_enrollment, by(id_clust id_hh)
 la var pliteracy "Proportion literate in HH, age 15+" 
 la var pcomplete_primary "Proportion completed primary schooling in HH, age 25+"
 la var pcomplete_secondary "Proportion completed secondary schooling in HH, age 25+"
@@ -624,6 +647,8 @@ la var pprimary_enrollment "Proportion of children in primary school, primary ag
 la var psecondary_enrollment "Proportion of children in secondary school, secondary aged 14-17 years"
 la var pgirls_primary_enrollment "Proportion of girls in primary school, primary aged 6-13 years"
 la var pgirls_secondary_enrollment "Proportion of girls in secondary school, secondary aged 14-17 years"
+la var pboys_primary_enrollment "Proportion of boys in primary school, primary aged 6-13 years"
+la var pboys_secondary_enrollment "Proportion of boys in secondary school, secondary aged 14-17 years"
 
 *Merge weights from hh dataset for kihbs==2005
 ren (id_clust id_hh) (clid hhid)
@@ -647,6 +672,9 @@ qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy s
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean psecondary_enrollment se lb ub) sebnone f(3) h2(Children in secondary school, secondary aged 14-17 years, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pgirls_primary_enrollment se lb ub) sebnone f(3) h2(Girls in primary school, primary aged 6-13 years, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pgirls_secondary_enrollment se lb ub) sebnone f(3) h2(Girls in secondary school, secondary aged 14-17 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pboys_primary_enrollment se lb ub) sebnone f(3) h2(Boys in primary school, primary aged 6-13 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pboys_secondary_enrollment se lb ub) sebnone f(3) h2(Boys in secondary school, secondary aged 14-17 years, by kihbs year) append
+
 
 *Health indicators kihbs 2015
 

@@ -224,8 +224,39 @@ gen boys_secondary_enrollment = .
 replace boys_secondary_enrollment = 1 if b04 == 1 & secondary_enrollment == 1
 replace boys_secondary_enrollment = 0 if b04 == 1 & secondary_enrollment == 0
 
-*Collapse education variables to HH level
-collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pprimary_enrollment = primary_enrollment psecondary_enrollment = secondary_enrollment pgirls_primary_enrollment = girls_primary_enrollment pgirls_secondary_enrollment = girls_secondary_enrollment pboys_primary_enrollment = boys_primary_enrollment pboys_secondary_enrollment = boys_secondary_enrollment, by(clid hhid)
+*Health indicators KIHBS 2015
+
+*Formal health care use
+codebook e07 e08_1 e08_2 e10 e11_1 e11_2 e14 e17
+recode e07 e10 e14 e17 (2 = 0)
+
+gen used_formalhc = . 
+replace used_formalhc = 0 if e10 == 0
+*Formal health care use for promotive/preventive services
+*CHECK: Formal heatlh care = Govt. Hospital, Govt. Health Center, Govt. Dispensary, Faith Based Hospital, FHOK/FPAK Health Center/Clinic, Private Hospital/Clinic, Nursing/Maternity Home, Mobile Clinic, Pharmacy/Chemist, Community Health Worker
+replace used_formalhc = 1 if e10 == 1 & inrange(e11_1,1,10) | inrange(e11_2,1,10) 
+*Informal health care use for promotive/preventative services
+*CHECK: Informal health care = Shop/Kiosk (?), Traditional Healer, Herablist, Other
+replace used_formalhc = 0 if e10 == 1 & inrange(e11_1,11,96) & e11_2 == .
+replace used_formalhc = 0 if e10 == 1 & inrange(e11_1,11,96) & inrange(e11_2,11,96)
+*Formal health care use for illness
+replace used_formalhc = 1 if e07 == 1 & inrange(e08_1,1,10) | inrange(e08_2,1,10)
+*Informal health care use for illness
+replace used_formalhc = 0 if e07 == 1 & inrange(e08_1,11,96) & e08_2 == .
+replace used_formalhc = 0 if e07 == 1 & inrange(e08_1,11,96) & inrange(e08_2,11,96)
+
+*Inpatient visits
+gen inpatient_visit = .
+replace inpatient_visit = 1 if e14 == 1
+replace inpatient_visit = 0 if e14 == 0
+
+*Health insurance
+gen health_insurance = . 
+replace health_insurance = 1 if e17 == 1
+replace health_insurance = 0 if e17 == 0
+
+*Collapse variables to HH level
+collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pprimary_enrollment = primary_enrollment psecondary_enrollment = secondary_enrollment pgirls_primary_enrollment = girls_primary_enrollment pgirls_secondary_enrollment = girls_secondary_enrollment pboys_primary_enrollment = boys_primary_enrollment pboys_secondary_enrollment = boys_secondary_enrollment pused_formalhc = used_formalhc pinpatient_visit = inpatient_visit phealth_insurance = health_insurance, by(clid hhid)
 la var pliteracy "Proportion literate in HH, age 15+" 
 la var pcomplete_primary "Proportion completed primary schooling in HH, age 25+"
 la var pcomplete_secondary "Proportion completed secondary schooling in HH, age 25+"
@@ -235,13 +266,17 @@ la var pgirls_primary_enrollment "Proportion of girls in primary school, primary
 la var pgirls_secondary_enrollment "Proportion of girls in secondary school, secondary aged 14-17 years"
 la var pboys_primary_enrollment "Proportion of boys in primary school, primary aged 6-13 years"
 la var pboys_secondary_enrollment "Proportion of boys in secondary school, secondary aged 14-17 years"
-save "${gsdTemp}/edu_indicators_15.dta", replace
+la var pused_formalhc "Proportion of hh members who used formal health care in past 4 weeks"
+la var pinpatient_visit "Proportion of hh members who had an inpatient visit in past 12 months"
+la var phealth_insurance "Proportion of hh members covered by health insurance in past 12 months"
+
+save "${gsdTemp}/eduhealth_indicators_15.dta", replace
 
 *Merge weights from hh dataset for kihbs==2015
 use "${gsdData}/hh.dta", clear
 drop if kihbs==2005
-merge 1:1 clid hhid using "${gsdTemp}/edu_indicators_15.dta", keep(match master) nogen
-save "${gsdTemp}/edu_indicators_15.dta", replace
+merge 1:1 clid hhid using "${gsdTemp}/eduhealth_indicators_15.dta", keep(match master) nogen
+save "${gsdTemp}/eduhealth_indicators_15.dta", replace
 
 *Education indicators KIHBS 2005
 *Use parts of 1-1_homogenize for cleaning
@@ -373,17 +408,15 @@ recode c03 c10 (2 = 0)
 codebook c12 c04a
 gen primary_enrollment = .
 replace primary_enrollment = 1 if pschool_age == 1 & inrange(c12,1,8)
+replace primary_enrollment = 0 if pschool_age == 1 & inrange(c12,9,23)  
 replace primary_enrollment = 0 if pschool_age == 1 & c10 == 0
 replace primary_enrollment = 0 if pschool_age == 1 & c03 == 0 
 replace primary_enrollment = 0 if pschool_age == 1 & c04a == 20
-*CHECK: primary school aged children enrolled in higher schooling or other do not count in prm school enrollment rate
-replace primary_enrollment = 0 if pschool_age == 1 & inrange(c12,9,23)  
 
 *Secondary school enrollment rate
 gen secondary_enrollment = .
 replace secondary_enrollment = 1 if sschool_age ==1 & inrange(c12,9,14)
 replace secondary_enrollment = 0 if sschool_age ==1 & c10 == 0
-*CHECK: secondary school aged children enrolled in primary school or higher than sec school do not count in sec school enrollment rate
 replace secondary_enrollment = 0 if sschool_age == 1 & inrange(c12,1,8)
 replace secondary_enrollment = 0 if sschool_age == 1 & inrange(c12,15,23)
 
@@ -414,18 +447,65 @@ la var pgirls_secondary_enrollment "Proportion of girls in secondary school, sec
 la var pboys_primary_enrollment "Proportion of boys in primary school, primary aged 6-13 years"
 la var pboys_secondary_enrollment "Proportion of boys in secondary school, secondary aged 14-17 years"
 
-*Merge weights from hh dataset for kihbs==2005
 ren (id_clust id_hh) (clid hhid)
 save "${gsdTemp}/edu_indicators_05.dta", replace
 
+*Health indicators KIHBS 2005
+use "${gsdData}/KIHBS05/Section D Health.dta", clear
+
+*gen unique hh id using cluster and house #
+egen uhhid=concat(id_clust id_hh)
+label var uhhid "Unique HH id"
+
+isid uhhid b_id
+sort uhhid b_id
+
+*Formal health care use
+codebook d08 d09_1 d09_2 d11 d12_1 d12_2 d13
+recode d08 d11 d13 (2 = 0)
+
+gen used_formalhc = . 
+replace used_formalhc = 0 if d11 == 0
+*Formal health care use for promotive/preventive services
+*CHECK: Formal heatlh care = referal hospital, district/provincial hospital, public dispensary, public health center, private dispensary/hospital, private clinic, missionary hosp./disp, pharmacy/chemist
+replace used_formalhc = 1 if d11 == 1 & inlist(d12_1,1,2,3,4,5,6,8,9) | inlist(d12_2,1,2,3,4,5,6,8,9) 
+*Informal health care use for promotive/preventative services
+*CHECK: Informal health care = traditional healer, kiosk (?), faith healer, herbalist, other
+replace used_formalhc = 0 if d11 == 1 & inlist(d12_1,7,10,11,12,13) & d12_2 == .
+replace used_formalhc = 0 if d11 == 1 & inlist(d12_1,7,10,11,12,13) & inlist(d12_2,7,10,11,12,13)
+*Formal health care use for illness
+replace used_formalhc = 1 if d08 == 1 & inlist(d09_1,1,2,3,4,5,6,8,9) | inlist(d09_2,1,2,3,4,5,6,8,9) 
+*Informal health care use for illness
+replace used_formalhc = 0 if d08 == 1 & inlist(d09_1,7,10,11,12,13) & d09_2 == .
+replace used_formalhc = 0 if d08 == 1 & inlist(d09_1,7,10,11,12,13) & inlist(d09_2,7,10,11,12,13)
+
+*Inpatient visits
+gen inpatient_visit = .
+replace inpatient_visit = 1 if d13 == 1
+replace inpatient_visit = 0 if d13 == 0
+
+*Health insurance - no health insurance Q in KIHBS05 (=0 for tabout)
+gen health_insurance = 0
+
+*Collapse health variables to HH level
+collapse (mean) pused_formalhc = used_formalhc pinpatient_visit = inpatient_visit phealth_insurance = health_insurance, by(id_clust id_hh)
+la var pused_formalhc "Proportion of hh members who used formal health care in past 4 weeks"
+la var pinpatient_visit "Proportion of hh members who had an inpatient visit in past 12 months"
+la var phealth_insurance "Proportion of hh members covered by health insurance in past 12 months"
+
+ren (id_clust id_hh) (clid hhid)
+save "${gsdTemp}/health_indicators_05.dta", replace
+
+*Merge weights from hh dataset for kihbs==2005
 use "${gsdData}/hh.dta", clear
 drop if kihbs==2015
 merge 1:1 clid hhid using "${gsdTemp}/edu_indicators_05.dta", keep(match master) nogen
-save "${gsdTemp}/edu_indicators_05.dta", replace
+merge 1:1 clid hhid using "${gsdTemp}/health_indicators_05.dta", keep(match master) nogen
+save "${gsdTemp}/eduhealth_indicators_05.dta", replace
 
-*Append with kihbs15 education indicators
-append using "${gsdTemp}/edu_indicators_15.dta"
-save "${gsdTemp}/edu_indicators.dta", replace
+*Append with kihbs15 education/health indicators
+append using "${gsdTemp}/eduhealth_indicators_15.dta"
+save "${gsdTemp}/eduhealth_indicators.dta", replace
 
 svyset clid [pweight=wta_pop], strata(strata)
 
@@ -438,7 +518,13 @@ qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy s
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pgirls_secondary_enrollment se lb ub) sebnone f(3) h2(Girls in secondary school, secondary aged 14-17 years, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pboys_primary_enrollment se lb ub) sebnone f(3) h2(Boys in primary school, primary aged 6-13 years, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pboys_secondary_enrollment se lb ub) sebnone f(3) h2(Boys in secondary school, secondary aged 14-17 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pused_formalhc se lb ub) sebnone f(3) h2(Used formal health care in past 4 weeks, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pinpatient_visit se lb ub) sebnone f(3) h2(Had an inpatient visit in past 12 months, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean phealth_insurance se lb ub) sebnone f(3) h2(Covered by health insurance in past 12 months, by kihbs year) append
 
 
-*Health indicators kihbs 2015
+*Health indicators to add:
+*N1.  Children aged 0 – 59 months stunted (haz < -2 s.d. from the median of the WHO child growth standards)
+*N2.  Adults aged 18+ years malnourished (BMI < 18.5)
+
 

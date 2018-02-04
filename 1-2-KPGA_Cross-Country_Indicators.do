@@ -56,12 +56,15 @@ if "${gsdData}"=="" {
 	wbopendata, language(en - English) indicator(SE.PRM.NENR.MA  - Net enrolment rate, primary, male (%)) clear long
 	save "${gsdTemp}/WB_data_enrollment_primaryma.dta", replace 
 	wbopendata, language(en - English) indicator(SE.SEC.NENR.MA - Net enrolment rate, secondary, male (%)) clear long
-	save "${gsdTemp}/WB_data_enrollment_secondaryma.dta", replace 
+	save "${gsdTemp}/WB_data_enrollment_secondaryma.dta", replace 	
+	wbopendata, language(en - English) indicator(SH.STA.STNT.ZS - Prevalence of stunting, height for age (% of children under 5)) clear long
+	save "${gsdTemp}/WB_data_stunting.dta", replace 
+	
 	
 *B) process the data
 
 *for each variable obtain the latest figures and year available
-foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma {
+foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma stunting {
 	use "${gsdTemp}/WB_data_`indicator'.dta", clear
 
 		if "`indicator'" == "poverty" {
@@ -115,8 +118,11 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 		else if "`indicator'" == "enrollment_secondaryma" {
 		rename se_sec_nenr_ma `indicator'
 		}
+		else if "`indicator'" == "stunting" {
+		rename sh_sta_stnt_zs `indicator'
+		}
 		
-	
+
 	keep if regioncode == "SSF" | countrycode=="SSF"
 	bysort countryname: egen l_y_`indicator'=max(year) if !missing(`indicator')
 	keep if year==l_y_`indicator' & year > 2005
@@ -129,7 +135,7 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 
 *integrate the final dataset
 use "${gsdTemp}/WB_clean_poverty.dta", clear
-foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma {
+foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma stunting{
 	merge 1:1 countryname using "${gsdTemp}/WB_clean_`indicator'.dta", nogen
 	}
 

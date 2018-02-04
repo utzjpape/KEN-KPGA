@@ -112,8 +112,8 @@ use "${gsdData}/KIHBS15/hhm.dta", clear
 *Cleaning code from 1-1_homogenise, with some changes to create necessary education indicators
 ren b05_yy age
 assert !mi(age)
-*drop observations where age <3 OR age filter is either no or don't know. 
-drop if age<3 | inlist(c01,2,9)
+*drop observations where age filter is either no or don't know. 
+drop if inlist(c01,2,9)
 
 *In order to maintain data structure one variable will be created for the highest level ed. completed.
 gen yrsch = .
@@ -255,8 +255,72 @@ gen health_insurance = .
 replace health_insurance = 1 if e17 == 1
 replace health_insurance = 0 if e17 == 0
 
+*Children aged 6 – 59 months stunted (haz < -2 s.d. from the median of the WHO child growth standards)
+*CHECK: Using code from WHO macro - http://www.who.int/childgrowth/software/en/
+codebook f21 f22 f23
+
+	gen age_months = age*12 + b05_mm if b05_mm!=.	
+	replace age_months = age*12 if b05_mm==.
+	gen _agedays=age_months*30.4375
+	replace _agedays=round(_agedays,1)
+	gen __000001 = . 
+	replace __000001 = 1 if b04 == 1
+	replace __000001 = 2 if b04 == 2
+*CHECK: Assume "length" is when child is measured lying down (f23==2) and "height" is when child is measured standing (f23==1)
+	gen lorh = . 
+	replace lorh = 1 if f23 == 2
+	replace lorh = 2 if f23 == 1
+
+	gen lenhei2 = f22
+	gen uselgth=-99
+	replace uselgth=-99 if lenhei2==.
+	replace lenhei2= f22+.7 if (lorh==2 & _agedays<731) 
+	replace lenhei2= f22-.7 if (lorh==1 & _agedays>=731)
+	replace uselgth=1 if (lorh==2 & _agedays<731)
+	replace uselgth=2 if (lorh==1 & _agedays>=731)
+	replace uselgth=1 if (lorh==1 & _agedays<731)
+	replace uselgth=2 if (lorh==2 & _agedays>=731)
+	
+	* 	if missing the recumbent indicator but have age, we assume they have it right.
+	replace uselgth=1 if (lorh==. &  _agedays<731)
+	replace uselgth=2 if (lorh==. &  _agedays>=731)
+	replace lenhei2= f22 if (lorh==1 & _agedays==.) 
+	replace lenhei2= f22 if (lorh==2 & _agedays==.) 
+	replace uselgth=1 if (lorh==1 & _agedays==.)
+	replace uselgth=2 if (lorh==2 & _agedays==.)
+	
+	* 	if age missing & indicator missing, use length of child to figure.
+
+	replace uselgth=1 if (lorh==. & _agedays==. &  lenhei2<87)
+	replace uselgth=2 if (lorh==. & _agedays==. &  lenhei2>=87)
+
+	macro def under5 "if _agedays >= 61*30.4375"
+	macro def over6mo "if _agedays <= 6*30.4375"
+	
+	sort __000001 _agedays	
+	merge __000001 _agedays using "${gsdDo}/igrowup_stata/lenanthro.dta"
+	
+	gen double _zlen=(((lenhei2/m)^l)-1)/(s*l)
+	replace _zlen =. $under5
+	replace _zlen =. $over6mo
+	keep if _merge~=2
+	drop l m s loh _merge 
+
+gen stunted = .
+replace stunted = 1 if _zlen < -2 
+replace stunted = 0 if _zlen >= -2 & _zlen!=.
+
+*Adults aged 18+ years malnourished (BMI < 18.5)
+
+	gen double _cbmi= f21*10000/(lenhei2*lenhei2) 
+	lab var _cbmi "Calculated bmi=weight / squared(_clenhei)"
+
+gen malnourished = .
+replace malnourished = 1 if _cbmi < 18.5 & age >= 18 
+replace malnourished = 0 if _cbmi >= 18.5 & age >= 18 & _cbmi!=.
+
 *Collapse variables to HH level
-collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pprimary_enrollment = primary_enrollment psecondary_enrollment = secondary_enrollment pgirls_primary_enrollment = girls_primary_enrollment pgirls_secondary_enrollment = girls_secondary_enrollment pboys_primary_enrollment = boys_primary_enrollment pboys_secondary_enrollment = boys_secondary_enrollment pused_formalhc = used_formalhc pinpatient_visit = inpatient_visit phealth_insurance = health_insurance, by(clid hhid)
+collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pprimary_enrollment = primary_enrollment psecondary_enrollment = secondary_enrollment pgirls_primary_enrollment = girls_primary_enrollment pgirls_secondary_enrollment = girls_secondary_enrollment pboys_primary_enrollment = boys_primary_enrollment pboys_secondary_enrollment = boys_secondary_enrollment pused_formalhc = used_formalhc pinpatient_visit = inpatient_visit phealth_insurance = health_insurance pstunted = stunted pmalnourished = malnourished, by(clid hhid)
 la var pliteracy "Proportion literate in HH, age 15+" 
 la var pcomplete_primary "Proportion completed primary schooling in HH, age 25+"
 la var pcomplete_secondary "Proportion completed secondary schooling in HH, age 25+"
@@ -269,6 +333,8 @@ la var pboys_secondary_enrollment "Proportion of boys in secondary school, secon
 la var pused_formalhc "Proportion of hh members who used formal health care in past 4 weeks"
 la var pinpatient_visit "Proportion of hh members who had an inpatient visit in past 12 months"
 la var phealth_insurance "Proportion of hh members covered by health insurance in past 12 months"
+la var pstunted "Proportion of children aged 6 - 59 months stunted"
+la var pmalnourished "Proportion of adults aged 18+ malnourished"
 
 save "${gsdTemp}/eduhealth_indicators_15.dta", replace
 
@@ -318,7 +384,7 @@ gen n15_24 	= (inrange(age, 15, 24))
 gen n25_65 	= (inrange(age, 25, 65))
 gen n66plus 	= (age>=66) & !mi(age)
 
-* check that every individual belongs to exactly one age-sex category
+*check that every individual belongs to exactly one age-sex category
 egen tot = rowtotal(n0_4 n5_14 n15_24 n25_65 n66plus)
 assert tot == 1 if !mi(age)
 drop tot
@@ -522,9 +588,8 @@ qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy s
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pinpatient_visit se lb ub) sebnone f(3) h2(Had an inpatient visit in past 12 months, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean phealth_insurance se lb ub) sebnone f(3) h2(Covered by health insurance in past 12 months, by kihbs year) append
 
-
-*Health indicators to add:
-*N1.  Children aged 0 – 59 months stunted (haz < -2 s.d. from the median of the WHO child growth standards)
-*N2.  Adults aged 18+ years malnourished (BMI < 18.5)
+qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pstunted se lb ub) sebnone f(3) h2(Children aged 6 - 59 months stunted, by poor190) append
+qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pmalnourished se lb ub) sebnone f(3) h2(Adults aged 18+ malnourished, by poor190) append
+ 
 
 

@@ -104,7 +104,7 @@ qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if 
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean impwater se lb ub) sebnone f(3) h2(Access to improved water source, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean impsan se lb ub) sebnone f(3) h2(Access to improved sanitation, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean elec_acc se lb ub) sebnone f(3) h2(Access to electricity, by kihbs year) append
-
+	
 *Education indicators KIHBS 2015
 *Use household member dataset and parts of 1-1_homogenize for cleaning
 use "${gsdData}/KIHBS15/hhm.dta", clear
@@ -403,8 +403,8 @@ label var famrel "Relationship to hh head"
 label define lsex 1"Male" 2"Female" , modify
 label values b04 lsex
 
-keep uhhid b_id famrel b04 age
-order uhhid b_id famrel b04 age
+keep uhhid b_id famrel b04 age b05b
+order uhhid b_id famrel b04 age b05b
 sort uhhid b_id
 
 save "${gsdTemp}/demo05.dta", replace
@@ -550,7 +550,7 @@ gen inpatient_visit = .
 replace inpatient_visit = 1 if d13 == 1
 replace inpatient_visit = 0 if d13 == 0
 
-*Health insurance - no health insurance Q in KIHBS05 (=0 for tabout)
+*Health insurance - no health insurance Q in KIHBS05 (=0 for tabout purposes)
 gen health_insurance = 0
 
 *Collapse health variables to HH level
@@ -562,11 +562,87 @@ la var phealth_insurance "Proportion of hh members covered by health insurance i
 ren (id_clust id_hh) (clid hhid)
 save "${gsdTemp}/health_indicators_05.dta", replace
 
+*Children aged 6 – 59 months stunted (haz < -2 s.d. from the median of the WHO child growth standards)
+
+use "${gsdData}/KIHBS05/Section F Child health.dta", clear
+
+*gen unique hh id using cluster and house #
+egen uhhid=concat(id_clust id_hh)
+label var uhhid "Unique HH id"
+
+isid uhhid b_id
+sort uhhid b_id
+merge 1:1 uhhid b_id using "${gsdTemp}/demo05.dta", keep(match) nogen
+
+*CHECK: Using code from WHO macro - http://www.who.int/childgrowth/software/en/
+*Calculate age in days		
+	gen age_months = age*12 + b05b if inrange(b05b,1,11)  & age < 6
+	gen _agedays=age_months*30.4375
+	replace _agedays=round(_agedays,1)
+	gen __000001 = . 
+	replace __000001 = 1 if b04 == 1
+	replace __000001 = 2 if b04 == 2
+*CHECK: Assume "length" is when child is measured lying down (f29==2) and "height" is when child is measured standing (f29==1)
+	gen lorh = . 
+	replace lorh = 1 if f29 == 2
+	replace lorh = 2 if f29 == 1
+
+	gen lenhei2 = f30
+	gen uselgth=-99
+	replace uselgth=-99 if lenhei2==.
+	replace lenhei2= f30+.7 if (lorh==2 & _agedays<731) 
+	replace lenhei2= f30-.7 if (lorh==1 & _agedays>=731)
+	replace uselgth=1 if (lorh==2 & _agedays<731)
+	replace uselgth=2 if (lorh==1 & _agedays>=731)
+	replace uselgth=1 if (lorh==1 & _agedays<731)
+	replace uselgth=2 if (lorh==2 & _agedays>=731)
+	
+	* 	if missing the recumbent indicator but have age, we assume they have it right.
+	replace uselgth=1 if (lorh==. &  _agedays<731)
+	replace uselgth=2 if (lorh==. &  _agedays>=731)
+	replace lenhei2= f30 if (lorh==1 & _agedays==.) 
+	replace lenhei2= f30 if (lorh==2 & _agedays==.) 
+	replace uselgth=1 if (lorh==1 & _agedays==.)
+	replace uselgth=2 if (lorh==2 & _agedays==.)
+	
+	* 	if age missing & indicator missing, use length of child to figure.
+
+	replace uselgth=1 if (lorh==. & _agedays==. &  lenhei2<87)
+	replace uselgth=2 if (lorh==. & _agedays==. &  lenhei2>=87)
+
+	macro def under5 "if _agedays >= 61*30.4375"
+	macro def over6mo "if _agedays <= 6*30.4375"
+	
+	sort __000001 _agedays	
+	merge __000001 _agedays using "${gsdDo}/igrowup_stata/lenanthro.dta"
+	
+	gen double _zlen=(((lenhei2/m)^l)-1)/(s*l)
+	replace _zlen =. $under5
+	replace _zlen =. $over6mo
+	keep if _merge~=2
+	drop l m s loh _merge 
+
+gen stunted = .
+replace stunted = 1 if _zlen < -2 
+replace stunted = 0 if _zlen >= -2 & _zlen!=.
+
+*Adults aged 18+ years malnourished - no data in KIHBS05 (=0 for tabout purposes)
+gen malnourished = 0
+
+*Collapse health variables to HH level
+collapse (mean) pstunted = stunted pmalnourished = malnourished, by(id_clust id_hh)
+la var pstunted "Proportion of children 6 - 59 months stunted"
+la var pmalnourished "Proportion of adults aged 18+ malnourished"
+
+ren (id_clust id_hh) (clid hhid)
+save "${gsdTemp}/childhealth_indicators_05.dta", replace
+
 *Merge weights from hh dataset for kihbs==2005
 use "${gsdData}/hh.dta", clear
 drop if kihbs==2015
 merge 1:1 clid hhid using "${gsdTemp}/edu_indicators_05.dta", keep(match master) nogen
 merge 1:1 clid hhid using "${gsdTemp}/health_indicators_05.dta", keep(match master) nogen
+merge 1:1 clid hhid using "${gsdTemp}/childhealth_indicators_05.dta", keep(match master) nogen
 save "${gsdTemp}/eduhealth_indicators_05.dta", replace
 
 *Append with kihbs15 education/health indicators
@@ -587,9 +663,68 @@ qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy s
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pused_formalhc se lb ub) sebnone f(3) h2(Used formal health care in past 4 weeks, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pinpatient_visit se lb ub) sebnone f(3) h2(Had an inpatient visit in past 12 months, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean phealth_insurance se lb ub) sebnone f(3) h2(Covered by health insurance in past 12 months, by kihbs year) append
-
-qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pstunted se lb ub) sebnone f(3) h2(Children aged 6 - 59 months stunted, by poor190) append
-qui tabout poor190 using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pmalnourished se lb ub) sebnone f(3) h2(Adults aged 18+ malnourished, by poor190) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pstunted se lb ub) sebnone f(3) h2(Children aged 6 - 59 months stunted, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pmalnourished se lb ub) sebnone f(3) h2(Adults aged 18+ malnourished, by kihbs year) append
  
+*Other indicators for Multidimensional Poverty Index (MPI)
 
+*Access to water source on premise & sanitation not shared with other households
+use "${gsdData}/KIHBS15/hh.dta", clear
+
+gen water_onpremise = .
+	replace water_onpremise = 1 if j05 == 0
+	replace water_onpremise = 0 if j05 > 0 & !missing(j05)
+
+codebook j11
+gen san_notshared = .
+	replace san_notshared = 1 if j11 == 2
+	replace san_notshared = 0 if j11 == 1 & !missing(j11)
+	
+keep clid hhid water_onpremise san_notshared
+save "${gsdTemp}/wash_indicators_15.dta", replace
+use "${gsdData}/hh.dta", clear
+drop if kihbs==2005
+merge 1:1 clid hhid using "${gsdTemp}/wash_indicators_15.dta", assert(match) nogen
+save "${gsdTemp}/wash_indicators_15.dta", replace
+
+svyset clid [pweight=wta_pop], strata(strata)
+
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean water_onpremise se lb ub) sebnone f(3) h2(Water source on premise, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean san_notshared se lb ub) sebnone f(3) h2(Sanitation not shared with other households, by kihbs year) append
+
+*Security
+use "${gsdData}/KIHBS15/qb.dta", clear
+
+codebook qb02
+tab qb03
+
+gen dom_violence = .
+	replace dom_violence = 1 if qb02 == 9
+	replace dom_violence = 0 if qb02 != 9 & !missing(qb02)
+	
+gen crime = .
+	replace crime = 1 if qb02 == 5
+	replace crime = 0 if qb02 != 5 & !missing(qb02)
+
+collapse (max) dom_violence crime, by(clid hhid)
+
+save "${gsdTemp}/security_indicators_15.dta", replace
+use "${gsdData}/hh.dta", clear
+drop if kihbs==2005
+merge 1:1 clid hhid using "${gsdTemp}/security_indicators_15.dta", keep(match master) nogen
+save "${gsdTemp}/security_indicators_15.dta", replace
+
+svyset clid [pweight=wta_pop], strata(strata)
+
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean dom_violence se lb ub) sebnone f(3) h2(Experienced domestic violence in past two years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean crime se lb ub) sebnone f(3) h2(Experienced crime in past two years, by kihbs year) append
+
+*Multidimensional Poverty Index (MPI) for 2015
+use "${gsdData}/hh.dta", clear
+drop if kihbs==2005
+merge 1:1 clid hhid using "${gsdTemp}/eduhealth_indicators_15.dta", keep(match master) nogen
+merge 1:1 clid hhid using "${gsdTemp}/wash_indicators_15.dta", keep(match master) nogen
+merge 1:1 clid hhid using "${gsdTemp}/security_indicators_15.dta", keep(match master) nogen
+keep clid hhid wta_hh wta_pop wta_adq poor190 pcomplete_primary pprimary_enrollment pused_formalhc pinpatient_visit phealth_insurance pstunted pmalnourished impwater impsan elec_acc water_onpremise san_notshared dom_violence crime 
+save "${gsdTemp}/mpi_15.dta", replace
 

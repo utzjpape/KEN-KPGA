@@ -157,22 +157,22 @@ replace yrsch = 0 if inlist(c10_l,8,96)
 *certain respondents do not have a highest grade / level completed. but do have a level currently attending
 replace yrsch = 0 if c06_l==1 & mi(c10_l)
 
-gen literacy = .
+gen literacy_hhm = .
 *Can read and write
-replace literacy = 1 if (c17==1 & c18==1)
+replace literacy_hhm = 1 if (c17==1 & c18==1)
 *If either are no the respondent is deemed to be illiterate.
-replace literacy = 0 if inlist(2,c17,c18)
+replace literacy_hhm = 0 if inlist(2,c17,c18)
 *People with zero years of education are assumed to be illiterate.
-replace literacy = 0 if yrsch==0
+replace literacy_hhm = 0 if yrsch==0
 
 *Literacy question is only asked to those with primary and below level of education.
 *anything above that is assumed to be literate.
-replace literacy = 1  if inrange(yrsch,9,19)
+replace literacy_hhm = 1  if inrange(yrsch,9,19)
 *Additionally individuals that have completed primary school are deemed to be literate.
-replace literacy = 1 if c11==2 & mi(literacy)
+replace literacy_hhm = 1 if c11==2 & mi(literacy)
 
 *Age 15+
-replace literacy = . if age < 15 
+replace literacy_hhm = . if age < 15 
 
 *Adult educational attainment, age 25+
 gen complete_primary = . 
@@ -319,29 +319,26 @@ gen malnourished = .
 replace malnourished = 1 if _cbmi < 18.5 & age >= 18 
 replace malnourished = 0 if _cbmi >= 18.5 & age >= 18 & _cbmi!=.
 
-*Collapse variables to HH level
-collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pprimary_enrollment = primary_enrollment psecondary_enrollment = secondary_enrollment pgirls_primary_enrollment = girls_primary_enrollment pgirls_secondary_enrollment = girls_secondary_enrollment pboys_primary_enrollment = boys_primary_enrollment pboys_secondary_enrollment = boys_secondary_enrollment pused_formalhc = used_formalhc pinpatient_visit = inpatient_visit phealth_insurance = health_insurance pstunted = stunted pmalnourished = malnourished, by(clid hhid)
-la var pliteracy "Proportion literate in HH, age 15+" 
-la var pcomplete_primary "Proportion completed primary schooling in HH, age 25+"
-la var pcomplete_secondary "Proportion completed secondary schooling in HH, age 25+"
-la var pprimary_enrollment "Proportion of children in primary school, primary aged 6-13 years"
-la var psecondary_enrollment "Proportion of children in secondary school, secondary aged 14-17 years"
-la var pgirls_primary_enrollment "Proportion of girls in primary school, primary aged 6-13 years"
-la var pgirls_secondary_enrollment "Proportion of girls in secondary school, secondary aged 14-17 years"
-la var pboys_primary_enrollment "Proportion of boys in primary school, primary aged 6-13 years"
-la var pboys_secondary_enrollment "Proportion of boys in secondary school, secondary aged 14-17 years"
-la var pused_formalhc "Proportion of hh members who used formal health care in past 4 weeks"
-la var pinpatient_visit "Proportion of hh members who had an inpatient visit in past 12 months"
-la var phealth_insurance "Proportion of hh members covered by health insurance in past 12 months"
-la var pstunted "Proportion of children aged 6 - 59 months stunted"
-la var pmalnourished "Proportion of adults aged 18+ malnourished"
-
-save "${gsdTemp}/eduhealth_indicators_15.dta", replace
+la var literacy_hhm "Literate, age 15+" 
+la var complete_primary "Completed primary schooling, age 25+"
+la var complete_secondary "Completed secondary schooling, age 25+"
+la var primary_enrollment "Child in primary school, primary aged 6-13 years"
+la var secondary_enrollment "Child in secondary school, secondary aged 14-17 years"
+la var girls_primary_enrollment "Girl in primary school, primary aged 6-13 years"
+la var girls_secondary_enrollment "Girl in secondary school, secondary aged 14-17 years"
+la var boys_primary_enrollment "Boy in primary school, primary aged 6-13 years"
+la var boys_secondary_enrollment "Boy in secondary school, secondary aged 14-17 years"
+la var used_formalhc "Used formal health care in past 4 weeks"
+la var inpatient_visit "Had an inpatient visit in past 12 months"
+la var health_insurance "Covered by health insurance in past 12 months"
+la var stunted "Stunted, child aged 6 - 59 months"
+la var malnourished "Malnourished, adult aged 18+"
 
 *Merge weights from hh dataset for kihbs==2015
+save "${gsdTemp}/eduhealth_indicators_15.dta", replace
 use "${gsdData}/hh.dta", clear
 drop if kihbs==2005
-merge 1:1 clid hhid using "${gsdTemp}/eduhealth_indicators_15.dta", keep(match master) nogen
+merge 1:m clid hhid using "${gsdTemp}/eduhealth_indicators_15.dta", keep(match master) nogen
 save "${gsdTemp}/eduhealth_indicators_15.dta", replace
 
 *Education indicators KIHBS 2005
@@ -438,16 +435,16 @@ tab c03 c04a if yrsch== ., m
 lab var yrsch "Years of schooling"
 
 *Literacy
-gen literacy = .
+gen literacy_hhm = .
 *Can read a whole sentence & Can write in any language
-replace literacy = 1 if (c24==3 & c25==1)
+replace literacy_hhm = 1 if (c24==3 & c25==1)
 *Cannot read at all, cannot read part of a sentence, no sentence in required language
-replace literacy = 0 if (inlist(c24, 1, 2, 4,9) | (c25==2))
-tab literacy, m
-tab c24 c25 if literacy ==., m
+replace literacy_hhm = 0 if (inlist(c24, 1, 2, 4,9) | (c25==2))
+tab literacy_hhm, m
+tab c24 c25 if literacy_hhm ==., m
 
 *Age 15+
-replace literacy = . if age < 15 
+replace literacy_hhm = . if age < 15 
 
 *Adult educational attainment, age 25+
 gen complete_primary = . 
@@ -501,17 +498,15 @@ gen boys_secondary_enrollment = .
 replace boys_secondary_enrollment = 1 if b04 == 1 & secondary_enrollment == 1
 replace boys_secondary_enrollment = 0 if b04 == 1 & secondary_enrollment == 0
 
-*Collapse education variables to HH level
-collapse (mean) pliteracy = literacy pcomplete_primary = complete_primary pcomplete_secondary = complete_secondary pprimary_enrollment = primary_enrollment psecondary_enrollment = secondary_enrollment pgirls_primary_enrollment = girls_primary_enrollment pgirls_secondary_enrollment = girls_secondary_enrollment pboys_primary_enrollment = boys_primary_enrollment pboys_secondary_enrollment = boys_secondary_enrollment, by(id_clust id_hh)
-la var pliteracy "Proportion literate in HH, age 15+" 
-la var pcomplete_primary "Proportion completed primary schooling in HH, age 25+"
-la var pcomplete_secondary "Proportion completed secondary schooling in HH, age 25+"
-la var pprimary_enrollment "Proportion of children in primary school, primary aged 6-13 years"
-la var psecondary_enrollment "Proportion of children in secondary school, secondary aged 14-17 years"
-la var pgirls_primary_enrollment "Proportion of girls in primary school, primary aged 6-13 years"
-la var pgirls_secondary_enrollment "Proportion of girls in secondary school, secondary aged 14-17 years"
-la var pboys_primary_enrollment "Proportion of boys in primary school, primary aged 6-13 years"
-la var pboys_secondary_enrollment "Proportion of boys in secondary school, secondary aged 14-17 years"
+la var literacy_hhm "Literate, age 15+" 
+la var complete_primary "Completed primary schooling, age 25+"
+la var complete_secondary "Completed secondary schooling, age 25+"
+la var primary_enrollment "Child in primary school, primary aged 6-13 years"
+la var secondary_enrollment "Child in secondary school, secondary aged 14-17 years"
+la var girls_primary_enrollment "Girl in primary school, primary aged 6-13 years"
+la var girls_secondary_enrollment "Girl in secondary school, secondary aged 14-17 years"
+la var boys_primary_enrollment "Boy in primary school, primary aged 6-13 years"
+la var boys_secondary_enrollment "Boy in secondary school, secondary aged 14-17 years"
 
 ren (id_clust id_hh) (clid hhid)
 save "${gsdTemp}/edu_indicators_05.dta", replace
@@ -553,11 +548,9 @@ replace inpatient_visit = 0 if d13 == 0
 *Health insurance - no health insurance Q in KIHBS05 (=0 for tabout purposes)
 gen health_insurance = 0
 
-*Collapse health variables to HH level
-collapse (mean) pused_formalhc = used_formalhc pinpatient_visit = inpatient_visit phealth_insurance = health_insurance, by(id_clust id_hh)
-la var pused_formalhc "Proportion of hh members who used formal health care in past 4 weeks"
-la var pinpatient_visit "Proportion of hh members who had an inpatient visit in past 12 months"
-la var phealth_insurance "Proportion of hh members covered by health insurance in past 12 months"
+la var used_formalhc "Used formal health care in past 4 weeks"
+la var inpatient_visit "Had an inpatient visit in past 12 months"
+la var health_insurance "Covered by health insurance in past 12 months"
 
 ren (id_clust id_hh) (clid hhid)
 save "${gsdTemp}/health_indicators_05.dta", replace
@@ -629,10 +622,8 @@ replace stunted = 0 if _zlen >= -2 & _zlen!=.
 *Adults aged 18+ years malnourished - no data in KIHBS05 (=0 for tabout purposes)
 gen malnourished = 0
 
-*Collapse health variables to HH level
-collapse (mean) pstunted = stunted pmalnourished = malnourished, by(id_clust id_hh)
-la var pstunted "Proportion of children 6 - 59 months stunted"
-la var pmalnourished "Proportion of adults aged 18+ malnourished"
+la var stunted "Stunted, child aged 6 - 59 months"
+la var malnourished "Malnourished, adults aged 18+"
 
 ren (id_clust id_hh) (clid hhid)
 save "${gsdTemp}/childhealth_indicators_05.dta", replace
@@ -640,31 +631,31 @@ save "${gsdTemp}/childhealth_indicators_05.dta", replace
 *Merge weights from hh dataset for kihbs==2005
 use "${gsdData}/hh.dta", clear
 drop if kihbs==2015
-merge 1:1 clid hhid using "${gsdTemp}/edu_indicators_05.dta", keep(match master) nogen
-merge 1:1 clid hhid using "${gsdTemp}/health_indicators_05.dta", keep(match master) nogen
-merge 1:1 clid hhid using "${gsdTemp}/childhealth_indicators_05.dta", keep(match master) nogen
+merge 1:m clid hhid using "${gsdTemp}/edu_indicators_05.dta", nogen
+merge m:m clid hhid using "${gsdTemp}/health_indicators_05.dta", nogen
+merge m:m clid hhid using "${gsdTemp}/childhealth_indicators_05.dta", nogen 
 save "${gsdTemp}/eduhealth_indicators_05.dta", replace
 
 *Append with kihbs15 education/health indicators
 append using "${gsdTemp}/eduhealth_indicators_15.dta"
 save "${gsdTemp}/eduhealth_indicators.dta", replace
 
-svyset clid [pweight=wta_pop], strata(strata)
+svyset clid [pweight=wta_hh], strata(strata)
 
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pliteracy se lb ub) sebnone f(3) h2(Literacy, population 15+ years, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pcomplete_primary se lb ub) sebnone f(3) h2(Completed primary education, population aged 25+, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pcomplete_secondary se lb ub) sebnone f(3) h2(Completed secondary education, population aged 25+, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pprimary_enrollment se lb ub) sebnone f(3) h2(Children in primary school, primary aged 6-13 years, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean psecondary_enrollment se lb ub) sebnone f(3) h2(Children in secondary school, secondary aged 14-17 years, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pgirls_primary_enrollment se lb ub) sebnone f(3) h2(Girls in primary school, primary aged 6-13 years, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pgirls_secondary_enrollment se lb ub) sebnone f(3) h2(Girls in secondary school, secondary aged 14-17 years, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pboys_primary_enrollment se lb ub) sebnone f(3) h2(Boys in primary school, primary aged 6-13 years, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pboys_secondary_enrollment se lb ub) sebnone f(3) h2(Boys in secondary school, secondary aged 14-17 years, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pused_formalhc se lb ub) sebnone f(3) h2(Used formal health care in past 4 weeks, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pinpatient_visit se lb ub) sebnone f(3) h2(Had an inpatient visit in past 12 months, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean phealth_insurance se lb ub) sebnone f(3) h2(Covered by health insurance in past 12 months, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pstunted se lb ub) sebnone f(3) h2(Children aged 6 - 59 months stunted, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean pmalnourished se lb ub) sebnone f(3) h2(Adults aged 18+ malnourished, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean literacy_hhm se lb ub) sebnone f(3) h2(Literacy, population 15+ years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean complete_primary se lb ub) sebnone f(3) h2(Completed primary education, population aged 25+, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean complete_secondary se lb ub) sebnone f(3) h2(Completed secondary education, population aged 25+, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean primary_enrollment se lb ub) sebnone f(3) h2(Children in primary school, primary aged 6-13 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean secondary_enrollment se lb ub) sebnone f(3) h2(Children in secondary school, secondary aged 14-17 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean girls_primary_enrollment se lb ub) sebnone f(3) h2(Girls in primary school, primary aged 6-13 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean girls_secondary_enrollment se lb ub) sebnone f(3) h2(Girls in secondary school, secondary aged 14-17 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean boys_primary_enrollment se lb ub) sebnone f(3) h2(Boys in primary school, primary aged 6-13 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean boys_secondary_enrollment se lb ub) sebnone f(3) h2(Boys in secondary school, secondary aged 14-17 years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean used_formalhc se lb ub) sebnone f(3) h2(Used formal health care in past 4 weeks, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean inpatient_visit se lb ub) sebnone f(3) h2(Had an inpatient visit in past 12 months, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean health_insurance se lb ub) sebnone f(3) h2(Covered by health insurance in past 12 months, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean stunted se lb ub) sebnone f(3) h2(Children aged 6 - 59 months stunted, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean malnourished se lb ub) sebnone f(3) h2(Adults aged 18+ malnourished, by kihbs year) append
  
 *Other indicators for Multidimensional Poverty Index (MPI)
 
@@ -719,7 +710,7 @@ svyset clid [pweight=wta_pop], strata(strata)
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean dom_violence se lb ub) sebnone f(3) h2(Experienced domestic violence in past two years, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean crime se lb ub) sebnone f(3) h2(Experienced crime in past two years, by kihbs year) append
 
-*Multidimensional Poverty Index (MPI) for 2015
+/*Multidimensional Poverty Index (MPI) for 2015
 use "${gsdData}/hh.dta", clear
 drop if kihbs==2005
 merge 1:1 clid hhid using "${gsdTemp}/eduhealth_indicators_15.dta", keep(match master) nogen

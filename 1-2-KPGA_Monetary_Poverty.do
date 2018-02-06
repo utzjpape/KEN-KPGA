@@ -63,7 +63,6 @@ qui tabout gini_overall_15 using "${gsdOutput}/Monetary_Poverty_source.xls" , sv
 
 *2005
 fastgini y2_i [pweight=wta_pop] if kihbs==2005
-	*Gini is not correct, should be 0.4851
 return list 
 gen gini_overall_05=r(gini)
 qui tabout gini_overall_05 using "${gsdOutput}/Monetary_Poverty_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005) append

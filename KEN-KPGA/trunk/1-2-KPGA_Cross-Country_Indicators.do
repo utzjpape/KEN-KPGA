@@ -211,6 +211,9 @@ keep id countryname year poverty
 	replace poverty = 33.6 if id == 82005
 	replace poverty = 20.9 if id == 82015
 
+	*South Africa, drop 2008 poverty rate per country economist guidance
+	replace poverty = . if id == 
+	
 save "WB_gdp_poverty.dta", replace
 
 merge 1:1 id using "WB_clean_gdp.dta"
@@ -219,8 +222,7 @@ drop _merge id
 *B) calculate annualized percentage change in poverty and GDP
 *poverty
 drop if poverty==.
-	*drop South Africa poverty rate in 2008 per country economist suggestion
-	drop if countryname=="South Africa" & year==2008
+
 reshape wide poverty gdp, i(countryname) j(year)
 
 forvalues x = 2005/2007 {

@@ -99,7 +99,8 @@ save "${gsdTemp}/hh_15.dta", replace
 use "${gsdTemp}/hh_05.dta", clear
 
 gidecomposition using "${gsdTemp}/hh_15.dta" [aw=wta_pop], var1(y2_i) var2(y2_i)  pline1(pline190) pline2(pline190)
-
+putexcel set "${gsdOutput}/gidecomposition_source.xls", replace
+putexcel A1=matrix(r(P)), names
 
 **********************************
 *MULTIDIMENSIONAL POVERTY

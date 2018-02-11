@@ -98,12 +98,11 @@ putexcel A1=matrix(r(shapley)), names
 *MULTIDIMENSIONAL POVERTY
 **********************************
 
-use "${gsdData}/hh.dta", clear
-
 svyset clid [pweight=wta_pop], strata(strata)
 
-*Poverty headcount by gender of household head
+*Poverty by gender of household head
 qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty rate, by gender of hh head) replace 
+qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2015 Poverty gap, by gender of hh head) append  
 
 *Access to improved water, sanitation, and electricity
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean impwater se lb ub) sebnone f(3) h2(Access to improved water source, by kihbs year) append

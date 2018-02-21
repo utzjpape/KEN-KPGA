@@ -43,7 +43,7 @@ if "${gsdData}"=="" {
 	save "${gsdTemp}/WB_data_access_electricity.dta", replace 		
 	wbopendata, language(en - English) indicator(SI.POV.GINI - GINI index (World Bank estimate)) clear long
 	save "${gsdTemp}/WB_data_gini.dta", replace 
-	wbopendata, language(en - English) indicator(NY.GDP.PCAP.CD - GDP per capita (current $)) clear long
+	wbopendata, language(en - English) indicator(NY.GDP.PCAP.PP.KD - GDP per capita, PPP (constant 2011 international $)) clear long
 	save "${gsdTemp}/WB_data_gdppc.dta", replace
 	wbopendata, language(en - English) indicator(SE.PRM.NENR.FE - Net enrollment rate, primary, female (%)) clear long
 	save "${gsdTemp}/WB_data_enrollment_primaryfe.dta", replace 
@@ -98,7 +98,7 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 		rename eg_elc_accs_zs `indicator'
 		}
 		else if "`indicator'" == "gdppc" {
-		rename ny_gdp_pcap_cd `indicator'
+		rename ny_gdp_pcap_pp_kd `indicator' 
 		}
 		else if "`indicator'" == "enrollment_primaryfe" {
 		rename se_prm_nenr_fe `indicator'		
@@ -169,37 +169,35 @@ save "${gsdTemp}/WB_clean_all.dta", replace
 **********************************
 
 *A) import the gdp data and merge with poverty data
-wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;BDI;SSF) year(2005:2015) indicator(NY.GDP.MKTP.KD - GDP at market prices (constant 2005 US$)) clear long
+wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;SSF) year(2005:2015) indicator(NY.GDP.PCAP.PP.KD - GDP per capita, PPP (constant 2011 international $)) clear long
 save "WB_data_gdp.dta", replace
 
 *create ID to merge with poverty data
-gen idcode = 1 if countrycode == "BDI"
-	replace idcode = 2 if countrycode == "GHA"
-	replace idcode = 3 if countrycode == "RWA"
-	replace idcode = 4 if countrycode == "SSF"
-	replace idcode = 5 if countrycode == "TZA"
-	replace idcode = 6 if countrycode == "UGA"
-	replace idcode = 7 if countrycode == "ZAF"
-	replace idcode = 8 if countrycode == "KEN"
+gen idcode = 1 if countrycode == "GHA"
+	replace idcode = 2 if countrycode == "RWA"
+	replace idcode = 3 if countrycode == "SSF"
+	replace idcode = 4 if countrycode == "TZA"
+	replace idcode = 5 if countrycode == "UGA"
+	replace idcode = 6 if countrycode == "ZAF"
+	replace idcode = 7 if countrycode == "KEN"
 gen id = string(idcode) + string(year)
 destring id, replace
 sort id
-rename ny_gdp_mktp_kd gdp
+rename ny_gdp_pcap_pp_kd gdp
 keep id countryname year gdp
 save "WB_clean_gdp.dta", replace
 
-wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;BDI;SSF) year(2005:2015) indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
+wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;SSF) year(2005:2015) indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
 rename si_pov_dday poverty
 
 *create ID to merge with gdp data
-gen idcode = 1 if countrycode == "BDI"
-	replace idcode = 2 if countrycode == "GHA"
-	replace idcode = 3 if countrycode == "RWA"
-	replace idcode = 4 if countrycode == "SSF"
-	replace idcode = 5 if countrycode == "TZA"
-	replace idcode = 6 if countrycode == "UGA"
-	replace idcode = 7 if countrycode == "ZAF"
-	replace idcode = 8 if countrycode == "KEN"
+gen idcode = 1 if countrycode == "GHA"
+	replace idcode = 2 if countrycode == "RWA"
+	replace idcode = 3 if countrycode == "SSF"
+	replace idcode = 4 if countrycode == "TZA"
+	replace idcode = 5 if countrycode == "UGA"
+	replace idcode = 6 if countrycode == "ZAF"
+	replace idcode = 7 if countrycode == "KEN"
 
 gen id = string(idcode) + string(year)
 destring id, replace
@@ -208,11 +206,11 @@ sort id
 keep id countryname year poverty
 
 	*Kenya headcount ratio 2015 = 20.9; 2005 = 33.6 
-	replace poverty = 33.6 if id == 82005
-	replace poverty = 20.9 if id == 82015
+	replace poverty = 33.8 if id == 72005
+	replace poverty = 20.9 if id == 72015
 
 	*South Africa, drop 2008 poverty rate per country economist guidance
-	replace poverty = . if id == 
+	replace poverty = . if id == 62008
 	
 save "WB_gdp_poverty.dta", replace
 

@@ -88,11 +88,6 @@ la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
 
-*Growth inequality decomposition, Shapley value 
-drdecomp y2_i [aw=wta_pop], by(kihbs) varpl(pline190)
-putexcel set "${gsdOutput}/gidecomposition_source.xls", replace
-putexcel A1=matrix(r(shapley)), names
-
 
 **********************************
 *MULTIDIMENSIONAL POVERTY

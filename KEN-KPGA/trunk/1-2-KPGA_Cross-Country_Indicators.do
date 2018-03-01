@@ -59,12 +59,14 @@ if "${gsdData}"=="" {
 	save "${gsdTemp}/WB_data_enrollment_secondaryma.dta", replace 	
 	wbopendata, language(en - English) indicator(SH.STA.STNT.ZS - Prevalence of stunting, height for age (% of children under 5)) clear long
 	save "${gsdTemp}/WB_data_stunting.dta", replace 
+	wbopendata, language(en - English) indicator(UNDP.HDI.XD - UNDP Human Development Index (HDI)) clear long
+	save "${gsdTemp}/WB_data_hdi.dta", replace 
 	
 	
 *B) process the data
 
 *for each variable obtain the latest figures and year available
-foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma stunting {
+foreach indicator in poverty gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma stunting hdi {
 	use "${gsdTemp}/WB_data_`indicator'.dta", clear
 
 		if "`indicator'" == "poverty" {
@@ -121,6 +123,9 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 		else if "`indicator'" == "stunting" {
 		rename sh_sta_stnt_zs `indicator'
 		}
+		else if "`indicator'" == "hdi" {
+		rename undp_hdi_xd `indicator'
+		}
 		
 
 	keep if regioncode == "SSF" | countrycode=="SSF"
@@ -135,7 +140,7 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 
 *integrate the final dataset
 use "${gsdTemp}/WB_clean_poverty.dta", clear
-foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma stunting{
+foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma stunting hdi {
 	merge 1:1 countryname using "${gsdTemp}/WB_clean_`indicator'.dta", nogen
 	}
 
@@ -160,6 +165,9 @@ replace poverty_320 = 46.7 in 50
 replace l_y_poverty_320 = 2013 in 50
 replace gap = 3.8 in 50
 replace povertygap_320 = 15.1 in 50
+
+*Create log GDP per capita column for graphs
+gen log_gdppc = log(gdppc)
 
 export excel using "${gsdOutput}/Country_Comparison_source.xls", sheetreplace firstrow(variables) sheet("Country_Comparison")
 save "${gsdTemp}/WB_clean_all.dta", replace 

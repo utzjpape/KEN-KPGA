@@ -88,7 +88,41 @@ la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
 
+*Sectoral decomposition of poverty
+*Separate the cleaned dataset for the two years
+drop if kihbs==2015
+save "${gsdData}/KIHBS05/clean_hh_05.dta", replace
+use "${gsdData}/hh.dta", clear
+drop if kihbs==2005
+save "${gsdData}/KIHBS15/clean_hh_15.dta", replace
 
+use "${gsdData}/KIHBS05/clean_hh_05.dta", clear
+
+sedecomposition using "${gsdData}/KIHBS15/clean_hh_15.dta" [w=wta_pop], sector(hhsector) pline1(pline190) pline2(pline190) var1(y2_i) var2(y2_i) hc
+*Note pweights not allowed, poverty hc stats are off
+
+*Poverty trajectory 2005-2015
+use "${gsdData}/KIHBS05/clean_hh_05.dta", clear
+	
+	*Use assumptions from MPO model for pass-through rate (0.7) and GDP per capita growth
+	*Increase hh consumption expenditure 
+	gen y2_i_6 = y2_i * (1 + 0.7 * 0.036)
+	gen y2_i_7 = y2_i_6 * (1 + 0.7 * 0.041)
+	gen y2_i_8 = y2_i_7 * (1 + 0.7 * -0.024)
+	gen y2_i_9 = y2_i_8 * (1 + 0.7 * 0.006)
+	gen y2_i_10 = y2_i_9 * (1 + 0.7 * 0.056)
+	gen y2_i_11 = y2_i_10 * (1 + 0.7 * 0.033)
+	gen y2_i_12 = y2_i_11 * (1 + 0.7 * 0.018)
+	gen y2_i_13 = y2_i_12 * (1 + 0.7 * 0.031)
+	gen y2_i_14 = y2_i_13 * (1 + 0.7 * 0.026)
+	gen y2_i_15 = y2_i_14 * (1 + 0.7 * 0.030)
+	
+gen proj_poor1902 = (y2_i_15 < proj_pline190)
+svyset clid [pweight=wta_pop], strata(strata)
+svy: mean proj_poor1902
+	*in MPO it is 25.2 not 24.7
+
+	
 **********************************
 *MULTIDIMENSIONAL POVERTY
 **********************************

@@ -1,11 +1,15 @@
 *Run 00-init.do before running this do-file
-
+clear all
 set more off
 
 **********************************
 *2005 household identification
 **********************************
 use "${gsdDataRaw}/KIHBS05/consumption aggregated data.dta", clear
+order nfdrnthh , before(fpindex)
+*rent aggregate in data is nominal, household-level and annualised
+gen rent = nfdrnthh / fpindex / ctry_adq / 12
+
 drop fdbrdby-nfditexp
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -29,6 +33,22 @@ gen poor=(y2_i<z2_i)
 label var poor "Poor under pl"
 tabstat poor* [aw=wta_pop]
 tabstat poor [aw=wta_pop], by(resid)
+
+gen pline190 = .
+*2011 $1.90 a day poverty line = 2011 PPP conversion factor (private consumption) * 1.9 * (365/12)
+gen pline190_2011 = 2047.54
+*deflate 2011 line using ratio of CPI indices.
+*2011 avg. = 121.17
+*2005/06 svy. avg. = 80.41
+
+*2005/06 $1.90 a day poverty line = 
+replace pline190 = pline190_2011 * (80.41/121.17)
+drop pline190_2011
+
+*generate agg excluding rent to check robustness of $1.90 pov. calculations.
+gen agg190 = y2_i
+replace agg190 = y2_i - rent if urban == 1
+drop rent
 
 *Create additional pov / expenditure measures
 *Measure of 2x poverty line.
@@ -106,7 +126,22 @@ save "${gsdData}/1-CleanTemp/section_a.dta", replace
 *missings for some users
 ****************************************
 use "${gsdData}/1-CleanTemp/section_a.dta" , clear
+<<<<<<< .mine
 merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
+*calculating $1.90 a day poverty line (monthly)
+	*Step 1: Take the 2011 PP conversion factor and multiply by 1.90 *(365/12)
+	gen pline190_2011 = 35.4296 * 1.9 * (365/12)
+	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI (165.296))
+	gen double pline190 = pline190_2011 * (165.296/121.17)
+	drop pline190_2011
+||||||| .r1593
+merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15_full/poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
+=======
+merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
+>>>>>>> .r2057
+
+label var pline190 "$1.90 a day poverty line (2011 ppp adjusted to 2016 prices)"	
+	
 
 save "${gsdData}/1-CleanTemp/hhpoverty.dta" , replace
 
@@ -129,7 +164,7 @@ label var age "Age"
 assert age!=.
 
 gen hhsizec 	= 1 if !mi(age)
-*generate dependats dummy (<15 OR >65)
+*generate depenents dummy (<15 OR >65)
 gen depen 	= (inrange(age, 0, 14) | (age>=66)) & !mi(age)
 *female working age
 gen female	= ((b04 == 2) & inrange(age, 15, 65))
@@ -700,7 +735,7 @@ save "${gsdData}/1-CleanTemp/hhedhead15.dta", replace
 
 
 **********************************
-* 5. 2005 Labor vars
+* 5. 2005 Labour vars
 **********************************
 
 use "${gsdDataRaw}/KIHBS05/Section E Labour.dta", clear
@@ -765,15 +800,15 @@ tab empstat unemp
 
 *Sector 
 gen ocusec=.
-replace ocusec=1 if e16>1000 & e16<2000
-replace ocusec=2 if e16>2000 & e16<3000
-replace ocusec=3 if e16>3000 & e16<4000
-replace ocusec=4 if e16>4000 & e16<5000
-replace ocusec=5 if e16>5000 & e16<6000
-replace ocusec=6 if e16>6000 & e16<7000
-replace ocusec=7 if e16>7000 & e16<8000
-replace ocusec=8 if e16>8000 & e16<9000
-replace ocusec=9 if e16>9000 & e16<10000
+replace ocusec=1 if e16>=1000 & e16<2000
+replace ocusec=2 if e16>=2000 & e16<3000
+replace ocusec=3 if e16>=3000 & e16<4000
+replace ocusec=4 if e16>=4000 & e16<5000
+replace ocusec=5 if e16>=5000 & e16<6000
+replace ocusec=6 if e16>=6000 & e16<7000
+replace ocusec=7 if e16>=7000 & e16<8000
+replace ocusec=8 if e16>=8000 & e16<9000
+replace ocusec=9 if e16>=9000 & e16<10000
 
 *207 observations contain a sector of employment for unemployed individuals, all individuals are either seeking work or doing nothing.
 assert inlist(e03,6,7) if unemp== 1 & !mi(ocusec)
@@ -847,7 +882,7 @@ sort uhhid
 save "${gsdData}/1-CleanTemp/hheadlabor05.dta", replace
 
 **********************************
-* 5. 2015 Labor vars
+* 5. 2015 Labour vars
 **********************************
 use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
 merge 1:1 clid hhid b01 using "${gsdData}/1-CleanTemp/demo15.dta" , assert(match) keepusing(age famrel) nogen
@@ -877,14 +912,14 @@ replace unempl = 1 if (active_7d==0 & d04_1=="G" )
 replace unempl = 0 if active_7d==1
 replace unempl = 0 if active_7d==0 & inlist(d07,1,2,3)
 *EXCLUDED
-replace unempl = . if inlist(d13,4,5)
+replace unempl = . if inlist(d13,5,8)
 replace unempl = . if inlist(d14,2,4,8,14,15,17)
 
 *Not in the Labour force
 *persons are in the labour force if they are employed or unemployed
 gen nilf = 0 if inlist(unempl,0,1)
 *NILF if retired, homemaker, student, incapacitated
-replace nilf = 1 if inlist(d13,4,5)
+replace nilf = 1 if inlist(d13,5,8)
 replace nilf = 1 if inlist(d14,2,4,8,14,15,17)
 
 *Employment Status
@@ -906,52 +941,38 @@ lab val empstat empstat
 tab empstat unemp
 
 *Employment sectors
-*Sector 
-gen ocusec=.
-replace ocusec=1 if (d16>1000 & d16<2000)
-replace ocusec=2 if d16>2000 & d16<3000
-replace ocusec=3 if d16>3000 & d16<4000
-replace ocusec=4 if d16>4000 & d16<5000
-replace ocusec=5 if d16>5000 & d16<6000
-replace ocusec=6 if d16>6000 & d16<7000
-replace ocusec=7 if d16>7000 & d16<8000
-replace ocusec=8 if d16>8000 & d16<9000
-*creative arts & entertainment ==9000
-replace ocusec=9 if d16>=9000 & d16<10000
+gen occ_sector = .
+replace occ_sector = 1 if inrange(d16,111 , 322 )
+replace occ_sector = 2 if inrange(d16,510 , 3900 )
+replace occ_sector = 3 if inrange(d16,1010 , 3320 )
+replace occ_sector = 4 if inrange(d16,4100 , 4390 )
+replace occ_sector = 5 if inrange(d16,4610 , 4799 ) | inlist(d16,4510,4530)
+replace occ_sector = 6 if inrange(d16,9511,9529) | inlist(d16,4520,4540) | inrange(d16,4911,5320)
+replace occ_sector = 7 if inrange(d16,5510,5630)
+replace occ_sector = 8 if inrange(d16,6910,8299) | inrange(d16,9000,9329) | inrange(d16,8411,8413) | inrange(d16,8421,8423)
+replace occ_sector = 9 if inrange(d16,8510 , 8890 ) | d16==8430 
+replace occ_sector = 10 if inrange(d16,9601,9609) | inrange(d16,5811,6820) | inrange(d16,9411,9499) | inrange(d16,9700,9900)
 
-*A number of emplyment sectors are have values of d16<1000 and must be entered again:
-*100 - 199 (Agriculutre related)
-replace ocusec=1 if inrange(d16,100,199)
-*200 - 299 (Forestry related)
-replace ocusec=1 if inrange(d16,200,299)
-*300 - 399 (Fishing related)
-replace ocusec=1 if inrange(d16,300,399)
-*500 - 599 (mining related)
-replace ocusec=2 if inrange(d16,500,599)
-*600 - 699 (petroleum extraction)
-replace ocusec=3 if inrange(d16,600,699)
-*700 - 799 (mining)
-replace ocusec=2 if inrange(d16,700,799)
-*800 - 899 (mining)
-replace ocusec=2 if inrange(d16,800,899)
-*900 - 999 (support to petroleum extraction)
-replace ocusec=3 if inrange(d16,900,999)
-lab var ocusec "Sector of occupation"
+label define lsector 1	"Agriculture"	 , modify
+label define lsector 2	"Mining and Quarrying"	 , modify
+label define lsector 3	"Manufacturing"	 , modify
+label define lsector 4	"Construction"	 , modify
+label define lsector 5	"Wholesale and retail trade"	 , modify
+label define lsector 6	"Transportation & storage, Vehicle repair"	 , modify
+label define lsector 7	"Accomodation and food service activities"	 , modify
+label define lsector 8	"Professional, scientific and technical activities"	 , modify
+label define lsector 9	"Education, human health and social work"	 , modify
+label define lsector 10 "Others"	 , modify
 
-lab def ocusec 1 "Agriculture" 2 "Mining" 3 "Manufacturing" 4 "Electricity/water" 5 "Construction" 6 "Trade/Restaurant/Tourism" 7 "Transport/Comms" 8 "Finance" 9 "Social Services" 
-lab val ocusec ocusec
+label values occ_sector lsector
+gen sector =  .
+replace sector = 1 if inlist(occ_sector,1)
+replace sector = 2 if inlist(occ_sector,2,3)
+replace sector = 3 if inlist(occ_sector,5,6,7,8,9,10)
+replace sector = 4 if occ_sector==4
 
-*assert that the only observations where the sector variable is missing is where the ISIC code is missing.
-assert mi(d16) if (mi(ocusec) & unemp==0)
-
-*Sector short
-gen sector=.
-replace sector=1 if ocusec==1
-replace sector=2 if (ocusec==2 | ocusec==3)
-replace sector=3 if (inlist(ocusec,4,6,7,8,9) )
-replace sector=4 if ocusec==5
 lab var sector "Sector of occupation"
-lab def sector 1 "Agriculture" 2 "Manufacturing" 3 "Services" 4 "Construction"
+lab def sector 1 "Agriculture" 2 "Manufacturing" 3 "Services" 4 "Construction",  replace
 lab val sector sector
 
 *Labor of household for age 15+
@@ -1416,7 +1437,9 @@ merge 1:1 uhhid using "${gsdData}/1-CleanTemp/shocks05.dta", keep(match master) 
 gen kihbs = 2005
 label var kihbs "Survey year"
 ren (id_clust id_hh ) (clid hhid )
-save "${gsdData}/1-CleanOutput/kibhs05_06.dta", replace
+egen strata = group(county urban)
+
+save "${gsdData}/1-CleanOutput/kihbs05_06.dta", replace
 
 
 *Keep only those observations with household information
@@ -1437,15 +1460,40 @@ merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/shocks15.dta", keep(match mast
 *Generating survey dummy
 gen kihbs = 2015
 label var kihbs "Survey year"
-save "${gsdData}/1-CleanOutput/kibhs15_16.dta", replace
+egen strata = group(county urban)
+
+save "${gsdData}/1-CleanOutput/kihbs15_16.dta", replace
 
 **********************************
 *appending 2 datasets
 **********************************
+<<<<<<< .mine
+use "${gsdData}/1-CleanOutput/kihbs15_16.dta" , clear
+*generating $1.90 poverty dummy for 2015
+merge 1:1 clid hhid using "${gsdData}\0-RawInput\KIHBS15\nfexpcat.dta" , keepusing(nfdrent) assert(match) nogen
+gen double agg190 = y2_i if kihbs==2015
+replace agg190 =  y2_i - nfdrent if urban==1
+
+*merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15/assetindex.dta", assert(match) keep(match) keepusing(assetindex) nogen
+append using "${gsdData}/1-CleanOutput/kihbs05_06.dta"
+||||||| .r1593
+use "${gsdData}/1-CleanOutput/kibhs15_16.dta" , clear
+*merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15_full/assetindex.dta", assert(match) keep(match) keepusing(assetindex) nogen
+append using "${gsdData}/1-CleanOutput/kibhs05_06.dta"
+=======
 use "${gsdData}/1-CleanOutput/kibhs15_16.dta" , clear
 *merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15/assetindex.dta", assert(match) keep(match) keepusing(assetindex) nogen
 append using "${gsdData}/1-CleanOutput/kibhs05_06.dta"
+>>>>>>> .r2057
 *dropping households not used in 05 pov. estimation from 05 sample.
+gen poor190_1 = (y2_i < pline190) 
+label var poor190_1 "Poor under $1.90 a day poverty line (line = pline190, agg = total)"
+gen poor190_2 = (agg190 < pline190)
+label var poor190_2 "Poor under $1.90 a day poverty line (line = pline190, agg = w/out rent)"
+label var agg190 "y2_i - rent (used for $1.90-a-day estimates)"
+
+order poor190_1 poor190_2 , after(pline190)
+
 keep if filter == 1 | kihbs==2015
 order kihbs resid urban eatype county cycle
 order hhsizec ctry_adq, after(hhsize) 
@@ -1455,6 +1503,7 @@ drop rururb
 sort kihbs county resid clid hhid
 *dropping vars that aren't in the 2015 dataset
 drop prov district doi weight_hh weight_pop uhhid fao_adq fpl absl hcl filter
+label var province "Province"
 
 /*
 *temporary poverty status 15/16
@@ -1463,8 +1512,67 @@ replace poor=0 if (assetindex>=5 & kihbs==2015)
 */
 tabstat poor [aw=wta_pop], by(kihbs)
 
-egen strata = group(county urban)
+*generating a real consumption aggregate in 2015/16 prices. 
+*The poverty lines used for generate a comparable aggregate are those created using the 2015/16 basket of goods and their 2005/06 prices.
+
+gen z1 = 1584 if urban==0 & kihbs==2005
+gen z2 = 2779  if urban==1 & kihbs==2005
+gen z3 = z2_i if urban==0 & kihbs==2015
+gen z4 = z2_i if urban==1 & kihbs==2015
+
+egen rural_05pline = max(z1)
+egen urban_05pline = max(z2)
+egen rural_15pline = max(z3)
+egen urban_15pline = max(z4)
+
+drop z1 z2 z3 z4
+
+*generating factor to "inflate" the 2005 aggregate, to allow real comparison
+*Rural Factor = 2.053 implying 105% increase.
+*Urban Factor = 2.157 implying 115% increase.
+gen double pfactor =.
+replace pfactor =  rural_15pline / rural_05pline if urban == 0
+replace pfactor =  urban_15pline / urban_05pline if urban == 1
+replace pfactor = 1 if kihbs==2015
+gen rcons = .
+replace rcons = y2_i if kihbs==2015
+replace rcons = y2_i * pfactor if (kihbs==2005)
+
+label var rcons "Real consumption aggregate (2015 prices)"
+label var pfactor "Factor used to inflate 2005/06 prices to 2015/16"
+drop rural_15pline rural_05pline urban_15pline urban_05pline
+
+*replacing 2005 absolute and food poverty lines with comparable versions
+gen z2_i_old = z2_i if kihbs==2005 
+*Old rural absolute line = 1474
+replace z2_i = 1584 if urban == 0 & kihbs==2005
+*Old urban absolute line = 2913
+replace z2_i = 2779 if urban == 1 & kihbs==2005
+
+*keep old food poverty line to replicate 2005 hardcore poverty
+gen z_i_old = z_i if kihbs==2005
+*Old rural food line = 988
+replace z_i = 1002 if urban == 0 & kihbs==2005
+*Old urban food line = 1562
+replace z_i = 1237 if urban == 1 & kihbs==2005
+*recalculate the poverty dummy as the line for 2005 has changed
+replace poor = (y2_i<z2_i) if kihbs==2005
+*recalculate the poverty dummy as the line for 2005 has changed
+gen poor_old = poor
+replace poor_old = (y2_i<z2_i_old) if kihbs==2005
+
+label var z_i "Food poverty line used for comparable 2005/06 estimates"
+label var z_i_old "Food poverty line used to replicate 2005/06 estimates"
+label var z2_i "Absolute poverty line used for comparable 2005/06 estimates"
+label var z2_i_old "Absolute poverty line used to replicate 2005/06 estimates"
+*Generate NEDI dummy for 10 counties included in North-Eastern Development initiative
+gen nedi = inlist(county,5,7,9,10,33,25,4,23,8,24)
+label define lnedi 0"Non-NEDI County" 1"NEDI County" , replace
+label values nedi lnedi
+label var nedi "Dummy for NEDI Counties"
+
 order strata , after(county)
-order fdtexp fdtexpdr nfdtexp nfdtexpdr hhtexp hhtexpdr adqexp adqexpdr , after(wta_adq)
+order fdtexp fdtexpdr nfdtexp nfdtexpdr hhtexp hhtexpdr adqexp adqexpdr rcons , after(wta_adq)
+compress
 save "${gsdData}/1-CleanOutput/hh.dta" , replace
 

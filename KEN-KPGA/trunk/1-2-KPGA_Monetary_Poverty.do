@@ -88,7 +88,13 @@ la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
 
-*Sectoral decomposition of poverty
+save "${gsdTemp}/clean_hh_0515.dta", replace
+
+
+**********************************
+*TRAJECTORY OF POVERTY 
+**********************************
+
 *Separate the cleaned dataset for the two years
 drop if kihbs==2015
 save "${gsdData}/KIHBS05/clean_hh_05.dta", replace
@@ -96,36 +102,328 @@ use "${gsdData}/hh.dta", clear
 drop if kihbs==2005
 save "${gsdData}/KIHBS15/clean_hh_15.dta", replace
 
-use "${gsdData}/KIHBS05/clean_hh_05.dta", clear
+*A) Merge detailed employment sector info, using parts of 1-1_homogenize for cleaning
+*2005
+use "${gsdData}/KIHBS05/Section B Household member Information.dta", clear
 
-sedecomposition using "${gsdData}/KIHBS15/clean_hh_15.dta" [w=wta_pop], sector(hhsector) pline1(pline190) pline2(pline190) var1(y2_i) var2(y2_i) hc
-*Note pweights not allowed, poverty hc stats are off
+egen uhhid=concat(id_clust id_hh)
+label var uhhid "Unique HH id"
 
-*Poverty trajectory 2005-2015
+*drop visitors
+drop if (b07==77)
+
+*relpacing dont know / not stated codes as missing (.z) - 139 observations
+replace b05a = .z if inlist(b05a,98,99)
+gen age=b05a
+label var age "Age"
+assert age!=.
+
+gen hhsizec 	= 1 if !mi(age)
+*generate dependats dummy (<15 OR >65)
+gen depen 	= (inrange(age, 0, 14) | (age>=66)) & !mi(age)
+*female working age
+gen female	= ((b04 == 2) & inrange(age, 15, 65))
+
+*generate age categories
+gen nfe0_4 	= (inrange(age, 0, 4) 	& (b04 == 2))
+gen nma0_4 	= (inrange(age, 0, 4) 	& (b04 == 1))
+gen nfe5_14	= (inrange(age, 5, 14) 	& (b04 == 2))
+gen nma5_14	= (inrange(age, 5, 14) 	& (b04 == 1))
+gen nfe15_24 	= (inrange(age, 15, 24) & (b04 == 2))
+gen nma15_24 	= (inrange(age, 15, 24) & (b04 == 1))
+gen nfe25_65 	= (inrange(age, 25, 65) & (b04 == 2))
+gen nma25_65 	= (inrange(age, 25, 65) & (b04 == 1))
+gen nfe66plus 	= ((age>=66) 		& (b04 == 2)) & !mi(age)
+gen nma66plus 	= ((age>=66) 		& (b04 == 1)) & !mi(age)
+
+gen n0_4 	= (inrange(age, 0, 4))
+gen n5_14	= (inrange(age, 5, 14))
+gen n15_24 	= (inrange(age, 15, 24))
+gen n25_65 	= (inrange(age, 25, 65))
+gen n66plus 	= (age>=66) & !mi(age)
+
+*check that every individual belongs to exactly one age-sex category
+egen tot = rowtotal(n0_4 n5_14 n15_24 n25_65 n66plus)
+assert tot == 1 if !mi(age)
+drop tot
+
+egen tot = rowtotal(nfe* nma*)
+assert tot == 1 if !mi(age)
+drop tot
+
+*recode relationship with household head to ensure compatability with 2005
+recode b03 (1 = 1) (2 = 2) (3 4 = 3) (5 = 4) (6 = 5) (7 = 6) (8 = 7) (9 10 = 8) , gen(famrel)
+label define lfamrel 1"Head" 2"Spouse" 3"Son / Daughter"  4"Father / Mother" 5"Sister / Brother" 6"Grandchild" 7"Other Relative"  8"Other non-relative" , modify
+label values famrel lfamrel
+label var famrel "Relationship to hh head"
+
+*labelling sex
+label define lsex 1"Male" 2"Female" , modify
+label values b04 lsex
+
+keep uhhid b_id famrel b04 age b05b
+order uhhid b_id famrel b04 age b05b
+sort uhhid b_id
+
+save "${gsdTemp}/demo05.dta", replace
+
+use "${gsdData}/KIHBS05/Section E Labour.dta", clear
+rename e_id b_id
+
+egen uhhid=concat(id_clust id_hh)
+label var uhhid "Unique HH id"
+isid uhhid b_id
+sort uhhid b_id
+
+merge 1:1 uhhid b_id using "${gsdTemp}/demo05.dta" , keep(match) nogen
+
+* individuals not eligible for employment module need to be dropped (e02 = filter);
+drop if e02 == 1
+* drop individuals 15+ (ILO Kenya procedure);
+drop if age <15
+
+*Unemployment 
+gen unemp=.
+*unemployed if "Seeking Work" or "Doing nothing"
+replace unemp= 1 if inlist(e03, 6, 7)
+*employed if active in the past 7d
+replace unemp= 0 if inlist(e03, 1, 2, 3, 4, 5)
+*employed if "Seeking work" with activity to return to
+replace unemp= 0 if inlist(e03, 6, 7) & (e09==1)
+*removing retired respondents    				
+replace unemp= . if inlist(e10, 2) | e03==8								
+
+egen hours=rsum(e05-e07) 
+*remioving employed, with no hours, no job to return
+replace unemp= . if (unemp==0 & e09==2 & hours==0) 					
+lab var unemp "Unemployed"
+
+*Not in the Labour force
+*persons are in the labour force if they are employed or unemployed
+gen nilf = 0 if inlist(unemp,0,1)
+*NILF if retired, homemaker, student, incapacitated
+replace nilf = 1 if inlist(e03,8,9,10,11) & unemp==.
+
+*Employment Status
+gen empstat=.
+*wage employee*
+replace empstat=1 if (unemp==0 & e04==1) 
+*self employed   			  
+replace empstat=2 if (unemp==0 & (e04==2 | e04==3)) 
+*unpaid family   
+replace empstat=3 if (unemp==0 & e04==4) 
+*apprentice   		   
+replace empstat=4 if (unemp==0 & e04==5) 
+*other   		    
+replace empstat=5 if (unemp==0 & e04==6)    		    
+*respondent is not asked e04 if inactive in the past 7d yet they have an activity to return to
+replace empstat=6 if (unemp==0 & mi(e04) & e09==1)    		    
+
+lab var empstat "Employment Status"
+
+lab def empstat 1 "Wage employed" 2 "Self employed" 3 "Unpaid fam worker" 4 "Apprentice" 5 "Other" 6"Missing status"
+lab val empstat empstat
+tab empstat unemp
+
+*Sector 
+gen ocusec=.
+replace ocusec=1 if e16>1000 & e16<2000
+replace ocusec=2 if e16>2000 & e16<3000
+replace ocusec=3 if e16>3000 & e16<4000
+replace ocusec=4 if e16>4000 & e16<5000
+replace ocusec=5 if e16>5000 & e16<6000
+replace ocusec=6 if e16>6000 & e16<7000
+replace ocusec=7 if e16>7000 & e16<8000
+replace ocusec=8 if e16>8000 & e16<9000
+replace ocusec=9 if e16>9000 & e16<10000
+
+*207 observations contain a sector of employment for unemployed individuals, all individuals are either seeking work or doing nothing.
+assert inlist(e03,6,7) if unemp== 1 & !mi(ocusec)
+replace ocusec = . if unemp==1
+
+lab var ocusec "Sector of occupation"
+
+lab def ocusec 1 "Agriculture" 2 "Mining" 3 "Manufacturing" 4 "Electricity/water" 5 "Construction" 6 "Trade/Restaurant/Tourism" 7 "Transport/Comms" 8 "Finance" 9 "Social Services" 
+lab val ocusec ocusec
+
+*Labor vars for HH head
+
+keep if b_id==1
+
+gen sector=ocusec
+lab var sector "HH sector of occupation"
+lab val sector ocusec 
+
+keep uhhid sector
+
+isid uhhid
+sort uhhid
+save "${gsdTemp}/hheadlabor05.dta", replace
+
 use "${gsdData}/KIHBS05/clean_hh_05.dta", clear
+egen uhhid=concat(clid hhid)
+
+merge 1:1 uhhid using "${gsdTemp}/hheadlabor05.dta", nogen
 	
-	*Use assumptions from MPO model for pass-through rate (0.7) and GDP per capita growth
-	*Increase hh consumption expenditure 
-	gen y2_i_6 = y2_i * (1 + 0.7 * 0.036)
-	gen y2_i_7 = y2_i_6 * (1 + 0.7 * 0.041)
-	gen y2_i_8 = y2_i_7 * (1 + 0.7 * -0.024)
-	gen y2_i_9 = y2_i_8 * (1 + 0.7 * 0.006)
-	gen y2_i_10 = y2_i_9 * (1 + 0.7 * 0.056)
-	gen y2_i_11 = y2_i_10 * (1 + 0.7 * 0.033)
-	gen y2_i_12 = y2_i_11 * (1 + 0.7 * 0.018)
-	gen y2_i_13 = y2_i_12 * (1 + 0.7 * 0.031)
-	gen y2_i_14 = y2_i_13 * (1 + 0.7 * 0.026)
-	gen y2_i_15 = y2_i_14 * (1 + 0.7 * 0.030)
+save "${gsdTemp}/hh_05_sectors.dta", replace	
 	
-gen proj_poor1902 = (y2_i_15 < proj_pline190)
+*2015
+use "${gsdData}/KIHBS15/hhm.dta", clear
+
+keep clid hhid b*
+
+*recode relationship with household head to ensure compatability with 2005
+recode b03 (1 = 1) (2 = 2) (3 = 3) (6 = 4) (5 = 5) (4 = 6) (7 8 9 10 = 7) (11 = 8) , gen(famrel)
+label define lfamrel 1"Head" 2"Spouse" 3"Son / Daughter"  4"Father / Mother" 5"Sister / Brother" 6"Grandchild" 7"Other Relative"  8"Other non-relative" , modify
+label values famrel lfamrel
+label var famrel "Relationship to hh head"
+
+keep clid hhid  b01 famrel
+order clid hhid b01 famrel
+sort clid hhid  b01
+save "${gsdTemp}/demo15.dta", replace
+
+use "${gsdData}/KIHBS15/hhm.dta", clear
+
+merge 1:1 clid hhid b01 using "${gsdTemp}/demo15.dta", assert(match) keepusing(famrel) nogen
+
+* individuals not eligible for employment module need to be dropped (e02 = filter);
+keep if d01 == 1
+
+*Active if worked in one of the 6 activities in the last 7 days
+gen active_7d = 1 if d02_1 == 1 | d02_2 == 1 | d02_3 == 1 | d02_4 == 1 | d02_5 == 1 | d02_6 == 1 
+replace active_7d = 0 if (d02_1==2 & d02_2==2 & d02_3==2 & d02_4==2 & d02_5==2 & d02_6==2)
+
+*Unemployment 
+*An individual is considered unemployed if:
+	* They were not economically active in the past 7 days
+	* AND they do not have an activity to return to OR have an activity but no certain return date.
+	* Unemployment must also exclude those not considered as part of the labour force (those unavailable to start in <=4 weeks,incapactated, homemakers, full time students, the sick, those that don't need work and the retired.)
+
+gen unemp = .
+*UNEMPLOYED
+*Inactive & does not have a defined return date & no activity to return to.
+*Inactive & does not have a defined return date Or inactive and no activity to return to.
+replace unemp = 1 if (active_7d==0 & !inlist(d07,1,2,3))
+replace unemp = 1 if (active_7d==0 & d04_1=="G" )
+*Active in the last 7d OR Inactive with defined return date 
+replace unemp = 0 if active_7d==1
+replace unemp = 0 if active_7d==0 & inlist(d07,1,2,3)
+*EXCLUDED
+replace unemp = . if inlist(d13,5,8)
+replace unemp = . if inlist(d14,2,4,8,14,15,17)
+
+*Employment sectors
+*Sector 
+gen ocusec=.
+replace ocusec=1 if (d16>1000 & d16<2000)
+replace ocusec=2 if d16>2000 & d16<3000
+replace ocusec=3 if d16>3000 & d16<4000
+replace ocusec=4 if d16>4000 & d16<5000
+replace ocusec=5 if d16>5000 & d16<6000
+replace ocusec=6 if d16>6000 & d16<7000
+replace ocusec=7 if d16>7000 & d16<8000
+replace ocusec=8 if d16>8000 & d16<9000
+*creative arts & entertainment ==9000
+replace ocusec=9 if d16>=9000 & d16<10000
+
+*A number of emplyment sectors are have values of d16<1000 and must be entered again:
+*100 - 199 (Agriculutre related)
+replace ocusec=1 if inrange(d16,100,199)
+*200 - 299 (Forestry related)
+replace ocusec=1 if inrange(d16,200,299)
+*300 - 399 (Fishing related)
+replace ocusec=1 if inrange(d16,300,399)
+*500 - 599 (mining related)
+replace ocusec=2 if inrange(d16,500,599)
+*600 - 699 (petroleum extraction)
+replace ocusec=3 if inrange(d16,600,699)
+*700 - 799 (mining)
+replace ocusec=2 if inrange(d16,700,799)
+*800 - 899 (mining)
+replace ocusec=2 if inrange(d16,800,899)
+*900 - 999 (support to petroleum extraction)
+replace ocusec=3 if inrange(d16,900,999)
+lab var ocusec "Sector of occupation"
+
+lab def ocusec 1 "Agriculture" 2 "Mining" 3 "Manufacturing" 4 "Electricity/water" 5 "Construction" 6 "Trade/Restaurant/Tourism" 7 "Transport/Comms" 8 "Finance" 9 "Social Services" 
+lab val ocusec ocusec
+
+*assert that the only observations where the sector variable is missing is where the ISIC code is missing.
+assert mi(d16) if (mi(ocusec) & unemp==0)
+
+*Labor vars for HH head
+keep if b01==1
+
+gen sector=ocusec
+lab var sector "HH sector of occupation"
+lab val sector ocusec 
+
+keep clid hhid sector
+
+isid clid hhid
+sort clid hhid
+save "${gsdTemp}/hheadlabor15.dta", replace
+
+use "${gsdData}/KIHBS15/clean_hh_15.dta", clear
+
+merge 1:1 clid hhid using "${gsdTemp}/hheadlabor15.dta", nogen
+
+save "${gsdTemp}/hh_15_sectors.dta", replace	
+	
+*B) Sectoral decomposition, generate assumptions for sectoral elasticities
+
+*Separate the cleaned dataset for the two years
+use "${gsdTemp}/hh_05_sectors.dta", clear
+
+sedecomposition using "${gsdTemp}/hh_15_sectors.dta" [w=wta_pop], sector(sector) pline1(pline190) pline2(pline190) var1(y2_i) var2(y2_i) hc
+
+*Merge GDP sector growth rates
+*If sector is missing, use overall GDP growth rate 
+replace sector = 10 if hhsector == . 
+
+merge m:1 sector using "Documents/WB Poverty GP/KPGA/sector_growth.dta", nogen	
+	*no sectoral breakdown for 2006, use overall GDP
+	gen sgrowth_6 = 3.6 
+
+*Assumptions for sector-specific growth elasticity 
+gen sector_elasticity = 0.85 if sector == 1
+replace sector_elasticity = 0.2 if sector == 2
+replace sector_elasticity = 0.2 if sector == 3
+replace sector_elasticity = 0.0 if sector == 4 
+replace sector_elasticity = 0.2 if sector == 5
+replace sector_elasticity = 0.6 if sector == 6
+replace sector_elasticity = 0.2 if sector == 7
+replace sector_elasticity = 0.0 if sector == 8
+replace sector_elasticity = 0.4 if sector == 9
+replace sector_elasticity = 0.65 if sector == 10
+
+*C) Increase hh consumption expenditure with sectoral growth and elasticity assumptions
+gen y2_i_6 = y2_i * (1 + (sgrowth_6 * sector_elasticity/100))
+gen y2_i_7 = y2_i_6 * (1 + (sgrowth_7 * sector_elasticity/100))
+gen y2_i_8 = y2_i_7 * (1 + (sgrowth_8 * sector_elasticity/100))
+gen y2_i_9 = y2_i_8 * (1 + (sgrowth_9 * sector_elasticity/100))
+gen y2_i_10 = y2_i_9 * (1 + (sgrowth_10 * sector_elasticity/100))
+gen y2_i_11 = y2_i_10 * (1 + (sgrowth_11 * sector_elasticity/100))
+gen y2_i_12 = y2_i_11 * (1 + (sgrowth_12 * sector_elasticity/100))
+gen y2_i_13 = y2_i_12 * (1 + (sgrowth_13 * sector_elasticity/100))
+gen y2_i_14 = y2_i_13 * (1 + (sgrowth_14 * sector_elasticity/100))
+gen y2_i_15 = y2_i_14 * (1 + (sgrowth_15 * sector_elasticity/100))
+
+*Calculate projected poverty headcounts 
 svyset clid [pweight=wta_pop], strata(strata)
-svy: mean proj_poor1902
-	*in MPO it is 25.2 not 24.7
-
+foreach i of numlist 6/15 {
+	gen proj_poor190_`i' = (y2_i_`i' < pline190)
+	gen proj_poor320_`i' = (y2_i_`i' < pline320)
+	qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean proj_poor190_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.90 line, `i') append
+	qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean proj_poor320_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 3.20 line, `i') append
+	}
+	
 	
 **********************************
 *MULTIDIMENSIONAL POVERTY
 **********************************
+use "${gsdTemp}/clean_hh_0515.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
 
@@ -375,70 +673,6 @@ merge 1:m clid hhid using "${gsdTemp}/eduhealth_indicators_15.dta", keep(match m
 save "${gsdTemp}/eduhealth_indicators_15.dta", replace
 
 *Education indicators KIHBS 2005
-*Use parts of 1-1_homogenize for cleaning
-use "${gsdData}/KIHBS05/Section B Household member Information.dta", clear
-
-egen uhhid=concat(id_clust id_hh)
-label var uhhid "Unique HH id"
-
-*drop visitors
-drop if (b07==77)
-
-*relpacing dont know / not stated codes as missing (.z) - 139 observations
-replace b05a = .z if inlist(b05a,98,99)
-gen age=b05a
-label var age "Age"
-assert age!=.
-
-gen hhsizec 	= 1 if !mi(age)
-*generate dependats dummy (<15 OR >65)
-gen depen 	= (inrange(age, 0, 14) | (age>=66)) & !mi(age)
-*female working age
-gen female	= ((b04 == 2) & inrange(age, 15, 65))
-
-*generate age categories
-gen nfe0_4 	= (inrange(age, 0, 4) 	& (b04 == 2))
-gen nma0_4 	= (inrange(age, 0, 4) 	& (b04 == 1))
-gen nfe5_14	= (inrange(age, 5, 14) 	& (b04 == 2))
-gen nma5_14	= (inrange(age, 5, 14) 	& (b04 == 1))
-gen nfe15_24 	= (inrange(age, 15, 24) & (b04 == 2))
-gen nma15_24 	= (inrange(age, 15, 24) & (b04 == 1))
-gen nfe25_65 	= (inrange(age, 25, 65) & (b04 == 2))
-gen nma25_65 	= (inrange(age, 25, 65) & (b04 == 1))
-gen nfe66plus 	= ((age>=66) 		& (b04 == 2)) & !mi(age)
-gen nma66plus 	= ((age>=66) 		& (b04 == 1)) & !mi(age)
-
-gen n0_4 	= (inrange(age, 0, 4))
-gen n5_14	= (inrange(age, 5, 14))
-gen n15_24 	= (inrange(age, 15, 24))
-gen n25_65 	= (inrange(age, 25, 65))
-gen n66plus 	= (age>=66) & !mi(age)
-
-*check that every individual belongs to exactly one age-sex category
-egen tot = rowtotal(n0_4 n5_14 n15_24 n25_65 n66plus)
-assert tot == 1 if !mi(age)
-drop tot
-
-egen tot = rowtotal(nfe* nma*)
-assert tot == 1 if !mi(age)
-drop tot
-
-*recode relationship with household head to ensure compatability with 2005
-recode b03 (1 = 1) (2 = 2) (3 4 = 3) (5 = 4) (6 = 5) (7 = 6) (8 = 7) (9 10 = 8) , gen(famrel)
-label define lfamrel 1"Head" 2"Spouse" 3"Son / Daughter"  4"Father / Mother" 5"Sister / Brother" 6"Grandchild" 7"Other Relative"  8"Other non-relative" , modify
-label values famrel lfamrel
-label var famrel "Relationship to hh head"
-
-*labelling sex
-label define lsex 1"Male" 2"Female" , modify
-label values b04 lsex
-
-keep uhhid b_id famrel b04 age b05b
-order uhhid b_id famrel b04 age b05b
-sort uhhid b_id
-
-save "${gsdTemp}/demo05.dta", replace
-
 use "${gsdData}/KIHBS05/Section C education.dta", clear
 
 *gen unique hh id using cluster and house #

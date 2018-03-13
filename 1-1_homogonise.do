@@ -36,19 +36,15 @@ tabstat poor [aw=wta_pop], by(resid)
 
 gen pline190 = .
 *2011 $1.90 a day poverty line = 2011 PPP conversion factor (private consumption) * 1.9 * (365/12)
+*35.429676*1.9*(365/12)
 gen pline190_2011 = 2047.54
 *deflate 2011 line using ratio of CPI indices.
 *2011 avg. = 121.17
-*2005/06 svy. avg. = 80.41
+*2005/06 svy. avg. = 74.36
 
 *2005/06 $1.90 a day poverty line = 
-replace pline190 = pline190_2011 * (80.41/121.17)
+replace pline190 = pline190_2011 * (74.36/121.17)
 drop pline190_2011
-
-*generate agg excluding rent to check robustness of $1.90 pov. calculations.
-gen agg190 = y2_i
-replace agg190 = y2_i - rent if urban == 1
-drop rent
 
 *Create additional pov / expenditure measures
 *Measure of 2x poverty line.
@@ -126,19 +122,15 @@ save "${gsdData}/1-CleanTemp/section_a.dta", replace
 *missings for some users
 ****************************************
 use "${gsdData}/1-CleanTemp/section_a.dta" , clear
-<<<<<<< .mine
 merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
 *calculating $1.90 a day poverty line (monthly)
 	*Step 1: Take the 2011 PP conversion factor and multiply by 1.90 *(365/12)
 	gen pline190_2011 = 35.4296 * 1.9 * (365/12)
 	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI (165.296))
-	gen double pline190 = pline190_2011 * (165.296/121.17)
+	gen double pline190 = pline190_2011 * (166.1438105/121.17)
 	drop pline190_2011
-||||||| .r1593
-merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15_full/poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
-=======
+
 merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
->>>>>>> .r2057
 
 label var pline190 "$1.90 a day poverty line (2011 ppp adjusted to 2016 prices)"	
 	
@@ -1456,6 +1448,7 @@ merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/land15.dta" ,keep(match master
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/transfers15.dta", keep(match master) nogen
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/assets15.dta", keep(match master) nogen
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/shocks15.dta", keep(match master) nogen
+merge 1:1 clid hhid using "${gsdData}\0-RawInput\KIHBS15\nfexpcat.dta" , keepusing(nfdrent) assert(match) nogen
 
 *Generating survey dummy
 gen kihbs = 2015
@@ -1466,26 +1459,11 @@ save "${gsdData}/1-CleanOutput/kihbs15_16.dta", replace
 
 **********************************
 *appending 2 datasets
-**********************************
-<<<<<<< .mine
 use "${gsdData}/1-CleanOutput/kihbs15_16.dta" , clear
+append using   "${gsdData}/1-CleanOutput/kihbs05_06.dta"
 *generating $1.90 poverty dummy for 2015
-merge 1:1 clid hhid using "${gsdData}\0-RawInput\KIHBS15\nfexpcat.dta" , keepusing(nfdrent) assert(match) nogen
-gen double agg190 = y2_i if kihbs==2015
-replace agg190 =  y2_i - nfdrent if urban==1
-
-*merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15/assetindex.dta", assert(match) keep(match) keepusing(assetindex) nogen
-append using "${gsdData}/1-CleanOutput/kihbs05_06.dta"
-||||||| .r1593
-use "${gsdData}/1-CleanOutput/kibhs15_16.dta" , clear
-*merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15_full/assetindex.dta", assert(match) keep(match) keepusing(assetindex) nogen
-append using "${gsdData}/1-CleanOutput/kibhs05_06.dta"
-=======
-use "${gsdData}/1-CleanOutput/kibhs15_16.dta" , clear
-*merge 1:1 clid hhid using "${gsdDataRaw}/KIHBS15/assetindex.dta", assert(match) keep(match) keepusing(assetindex) nogen
-append using "${gsdData}/1-CleanOutput/kibhs05_06.dta"
->>>>>>> .r2057
-*dropping households not used in 05 pov. estimation from 05 sample.
+gen double agg190 = y2_i
+replace agg190 =  y2_i - nfdrent if urban==1 & kihbs==2015
 gen poor190_1 = (y2_i < pline190) 
 label var poor190_1 "Poor under $1.90 a day poverty line (line = pline190, agg = total)"
 gen poor190_2 = (agg190 < pline190)
@@ -1494,6 +1472,7 @@ label var agg190 "y2_i - rent (used for $1.90-a-day estimates)"
 
 order poor190_1 poor190_2 , after(pline190)
 
+*dropping households not used in 05 pov. estimation from 05 sample.
 keep if filter == 1 | kihbs==2015
 order kihbs resid urban eatype county cycle
 order hhsizec ctry_adq, after(hhsize) 

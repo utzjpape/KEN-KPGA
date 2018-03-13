@@ -18,18 +18,18 @@ use "${gsdData}/hh.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
 
-*Poverty Headcount ratio 2005 
+*Poverty Headcount ratio 
 *Calculate 1.90 poverty line for 2005
 	*Step 1: Take the 2011 PPP conversion factor and multiply by 1.90 *(365/12)
 	gen pline190_2011 = 35.4296 * 1.9 * (365/12)
 	*Step 2. Adjust for prices (taking the ratio of 2011 CPI (121.17) to 2005/06 survey average (80.41)
-	replace pline190 = pline190_2011 * (80.41/121.17) if kihbs==2005
+	replace pline190 = pline190_2011 * (74.36/121.17) if kihbs==2005
 	drop pline190_2011
 
 label var pline190 "$1.90 a day poverty line (2011 ppp adjusted to prices at kihbs year)"	
-replace poor190 = (y2_i < pline190) if kihbs==2005
+replace poor190_1 = (y2_i < pline190) if kihbs==2005
 
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio, by kihbs year) replace
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190_1 se lb ub) sebnone f(3) h2(Poverty headcount ratio, by kihbs year) replace
 
 *Poverty Gap
 gen pgi = (pline190 - y2_i)/pline190 if !mi(y2_i) & y2_i < pline190 
@@ -243,16 +243,25 @@ replace ocusec = . if unemp==1
 
 lab var ocusec "Sector of occupation"
 
-lab def ocusec 1 "Agriculture" 2 "Mining" 3 "Manufacturing" 4 "Electricity/water" 5 "Construction" 6 "Trade/Restaurant/Tourism" 7 "Transport/Comms" 8 "Finance" 9 "Social Services" 
-lab val ocusec ocusec
+*Group sectors with small sample size
+gen sector = .
+	replace sector = 1 if ocusec == 1
+	replace sector = 2 if ocusec == 2
+	replace sector = 2 if ocusec == 3
+	replace sector = 3 if ocusec == 4
+	replace sector = 3 if ocusec == 6
+	replace sector = 4 if ocusec == 5
+	replace sector = 5 if ocusec == 7
+	replace sector = 5 if ocusec == 8
+	replace sector = 6 if ocusec == 9
+
+lab def lsector 1 "Agriculture" 2 "Mining/Manufacturing" 3 "Utilities/Commerce/Tourism" 4 "Construction" 5 "Transport/Comms/Finance" 6 "Social Services" 
+lab val sector lsector
+lab var sector "HH sector of occupation"
 
 *Labor vars for HH head
 
 keep if b_id==1
-
-gen sector=ocusec
-lab var sector "HH sector of occupation"
-lab val sector ocusec 
 
 keep uhhid sector
 
@@ -346,18 +355,27 @@ replace ocusec=2 if inrange(d16,800,899)
 replace ocusec=3 if inrange(d16,900,999)
 lab var ocusec "Sector of occupation"
 
-lab def ocusec 1 "Agriculture" 2 "Mining" 3 "Manufacturing" 4 "Electricity/water" 5 "Construction" 6 "Trade/Restaurant/Tourism" 7 "Transport/Comms" 8 "Finance" 9 "Social Services" 
-lab val ocusec ocusec
+*Group sectors with small sample size
+gen sector = .
+	replace sector = 1 if ocusec == 1
+	replace sector = 2 if ocusec == 2
+	replace sector = 2 if ocusec == 3
+	replace sector = 3 if ocusec == 4
+	replace sector = 3 if ocusec == 6
+	replace sector = 4 if ocusec == 5
+	replace sector = 5 if ocusec == 7
+	replace sector = 5 if ocusec == 8
+	replace sector = 6 if ocusec == 9
+
+lab def lsector 1 "Agriculture" 2 "Mining/Manufacturing" 3 "Utilities/Commerce/Tourism" 4 "Construction" 5 "Transport/Comms/Finance" 6 "Social Services" 
+lab val sector lsector
+lab var sector "HH sector of occupation"
 
 *assert that the only observations where the sector variable is missing is where the ISIC code is missing.
 assert mi(d16) if (mi(ocusec) & unemp==0)
 
 *Labor vars for HH head
 keep if b01==1
-
-gen sector=ocusec
-lab var sector "HH sector of occupation"
-lab val sector ocusec 
 
 keep clid hhid sector
 
@@ -380,23 +398,21 @@ sedecomposition using "${gsdTemp}/hh_15_sectors.dta" [w=wta_pop], sector(sector)
 
 *Merge GDP sector growth rates
 *If sector is missing, use overall GDP growth rate 
-replace sector = 10 if hhsector == . 
+replace sector = 7 if hhsector == . 
 
-merge m:1 sector using "Documents/WB Poverty GP/KPGA/sector_growth.dta", nogen	
+merge m:1 sector using "/Users/marinatolchinsky/Documents/WB Poverty GP/KPGA/sector_growth.dta", nogen	
 	*no sectoral breakdown for 2006, use overall GDP
 	gen sgrowth_6 = 3.6 
 
+*Poverty at 1.90 line
 *Assumptions for sector-specific growth elasticity 
-gen sector_elasticity = 0.85 if sector == 1
+gen sector_elasticity = 0.9 if sector == 1
 replace sector_elasticity = 0.2 if sector == 2
-replace sector_elasticity = 0.2 if sector == 3
-replace sector_elasticity = 0.0 if sector == 4 
-replace sector_elasticity = 0.2 if sector == 5
-replace sector_elasticity = 0.6 if sector == 6
-replace sector_elasticity = 0.2 if sector == 7
-replace sector_elasticity = 0.0 if sector == 8
-replace sector_elasticity = 0.4 if sector == 9
-replace sector_elasticity = 0.65 if sector == 10
+replace sector_elasticity = 0.7 if sector == 3 
+replace sector_elasticity = 0.2 if sector == 4
+replace sector_elasticity = 0.0 if sector == 5
+replace sector_elasticity = 0.1 if sector == 6
+replace sector_elasticity = 0.7 if sector == 7
 
 *C) Increase hh consumption expenditure with sectoral growth and elasticity assumptions
 gen y2_i_6 = y2_i * (1 + (sgrowth_6 * sector_elasticity/100))
@@ -412,11 +428,41 @@ gen y2_i_15 = y2_i_14 * (1 + (sgrowth_15 * sector_elasticity/100))
 
 *Calculate projected poverty headcounts 
 svyset clid [pweight=wta_pop], strata(strata)
-foreach i of numlist 6/15 {
+gen proj_poor190_6 = (y2_i_6 < pline190)
+qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor190_6 se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.90 line, `i') replace
+
+foreach i of numlist 7/15 {
 	gen proj_poor190_`i' = (y2_i_`i' < pline190)
-	gen proj_poor320_`i' = (y2_i_`i' < pline320)
-	qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean proj_poor190_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.90 line, `i') append
-	qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean proj_poor320_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 3.20 line, `i') append
+	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor190_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.90 line, `i') append
+	}
+
+*Poverty at 3.20 line
+*Assumptions for sector-specific growth elasticity 
+gen sector_elasticity_lm = 0.8 if sector == 1
+replace sector_elasticity_lm = 0.1 if sector == 2
+replace sector_elasticity_lm = 0.47 if sector == 3 
+replace sector_elasticity_lm = 0.1 if sector == 4
+replace sector_elasticity_lm = -0.4 if sector == 5
+replace sector_elasticity_lm = 0.0 if sector == 6
+replace sector_elasticity_lm = 0.65 if sector == 7
+
+*C) Increase hh consumption expenditure with sectoral growth and elasticity assumptions
+gen y2_i_6_lm = y2_i * (1 + (sgrowth_6 * sector_elasticity_lm/100))
+gen y2_i_7_lm = y2_i_6_lm * (1 + (sgrowth_7 * sector_elasticity_lm/100))
+gen y2_i_8_lm = y2_i_7_lm * (1 + (sgrowth_8 * sector_elasticity_lm/100))
+gen y2_i_9_lm = y2_i_8_lm * (1 + (sgrowth_9 * sector_elasticity_lm/100))
+gen y2_i_10_lm = y2_i_9_lm * (1 + (sgrowth_10 * sector_elasticity_lm/100))
+gen y2_i_11_lm = y2_i_10_lm * (1 + (sgrowth_11 * sector_elasticity_lm/100))
+gen y2_i_12_lm = y2_i_11_lm * (1 + (sgrowth_12 * sector_elasticity_lm/100))
+gen y2_i_13_lm = y2_i_12_lm * (1 + (sgrowth_13 * sector_elasticity_lm/100))
+gen y2_i_14_lm = y2_i_13_lm * (1 + (sgrowth_14 * sector_elasticity_lm/100))
+gen y2_i_15_lm = y2_i_14_lm * (1 + (sgrowth_15 * sector_elasticity_lm/100))
+
+*Calculate projected poverty headcounts 
+svyset clid [pweight=wta_pop], strata(strata)
+foreach i of numlist 6/15 {
+	gen proj_poor320_`i'_lm = (y2_i_`i'_lm < pline320)
+	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor320_`i'_lm se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 3.20 line, `i') append
 	}
 	
 	
@@ -428,7 +474,7 @@ use "${gsdTemp}/clean_hh_0515.dta", clear
 svyset clid [pweight=wta_pop], strata(strata)
 
 *Poverty by gender of household head
-qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty rate, by gender of hh head) replace 
+qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor190_1 se lb ub) sebnone f(3) h2(2015 Poverty rate, by gender of hh head) replace 
 qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2015 Poverty gap, by gender of hh head) append  
 
 *Access to improved water, sanitation, and electricity

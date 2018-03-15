@@ -98,7 +98,7 @@ save "${gsdTemp}/clean_hh_0515.dta", replace
 *Separate the cleaned dataset for the two years
 drop if kihbs==2015
 save "${gsdData}/KIHBS05/clean_hh_05.dta", replace
-use "${gsdData}/hh.dta", clear
+use "${gsdTemp}/clean_hh_0515.dta", clear
 drop if kihbs==2005
 save "${gsdData}/KIHBS15/clean_hh_15.dta", replace
 
@@ -390,11 +390,10 @@ merge 1:1 clid hhid using "${gsdTemp}/hheadlabor15.dta", nogen
 save "${gsdTemp}/hh_15_sectors.dta", replace	
 	
 *B) Increase hh consumption expenditure with sectoral growth and elasticity assumptions
-
-*Separate the cleaned dataset for the two years
 use "${gsdTemp}/hh_05_sectors.dta", clear
 
 sedecomposition using "${gsdTemp}/hh_15_sectors.dta" [w=wta_pop], sector(sector) pline1(pline190) pline2(pline190) var1(y2_i) var2(y2_i) hc
+sedecomposition using "${gsdTemp}/hh_15_sectors.dta" [w=wta_pop], sector(sector) pline1(pline320) pline2(pline320) var1(y2_i) var2(y2_i) hc
 
 *Merge GDP sector growth rates
 *If sector is missing, use overall GDP growth rate 

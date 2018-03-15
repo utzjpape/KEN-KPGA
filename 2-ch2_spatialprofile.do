@@ -2,26 +2,6 @@ clear all
 cap log close
 
 use "${gsdData}/1-CleanOutput/hh.dta" ,clear
-*replacing 2005 absolute and food poverty lines with comparable versions
-gen z2_i_old = z2_i if kihbs==2005 
-*Old rural absolute line = 1474
-replace z2_i = 1584 if urban == 0 & kihbs==2005
-*Old urban absolute line = 2913
-replace z2_i = 2779 if urban == 1 & kihbs==2005
-
-*keep old food poverty line to replicate 2005 hardcore poverty
-gen z_i_old = z_i if kihbs==2005
-
-*Old rural food line = 988
-replace z_i = 1002 if urban == 0 & kihbs==2005
-*Old urban food line = 1562
-replace z_i = 1237 if urban == 1 & kihbs==2005
-
-*Generate NEDI dummy for 10 counties included in North-Eastern Development initiative
-gen nedi = inlist(county,5,7,9,10,33,25,4,23,8,24)
-label define lnedi 0"Non-Nedi County" 1"NEDI County" , replace
-label values nedi lnedi
-
 /************************
 BASIC DESCRIPTIVE STATS
 ************************/
@@ -31,15 +11,10 @@ BASIC DESCRIPTIVE STATS
 svyset clid [pw=wta_pop] , strat(strat)
 
 *Absolute poor
-*recalculate the poverty dummy as the line for 2005 has changed
-replace poor = (y2_i<z2_i) if kihbs==2005
 *generate hardcore poor dummy
 gen hcpoor = (y2_i < z_i)
 *generate food poor dummy
 gen fdpoor = (y_i < z_i)
-
-gen old05_poor = (y2_i<z2_i_old) 
-replace old05_poor = .  if kihbs==2015
 
 gen old05_hcpoor = (y2_i<z_i_old) 
 replace old05_hcpoor = .  if kihbs==2015
@@ -112,19 +87,19 @@ tabout  nedi kihbs using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(fre
 *2005 incomparable poverty
 
 *Kenya/provinces
-tabout province if kihbs==2005  using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop], svy c(mean old05_poor se old05_poor ) f(3 3 3 3) sum clab(Poverty SE) sebnone replace 
+tabout province if kihbs==2005  using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop], svy c(mean poor_old se poor_old ) f(3 3 3 3) sum clab(Poverty SE) sebnone replace 
 *Kenya/Urban Rural 
-tabout urban if kihbs==2005  using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop], svy c(mean old05_poor se old05_poor) f(3 3 3) sum  clab(Poverty SE) sebnone append 
-*Distribution of old05_poor / population
-tabout province   if kihbs==2005 & old05_poor==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_old05_poor) append
+tabout urban if kihbs==2005  using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop], svy c(mean poor_old se poor_old) f(3 3 3) sum  clab(Poverty SE) sebnone append 
+*Distribution of poor_old / population
+tabout province   if kihbs==2005 & poor_old==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_poor_old) append
 tabout province   if kihbs==2005 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_population) append
 
-tabout eatype   if kihbs==2005 & old05_poor==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_old05_poor) append
+tabout eatype   if kihbs==2005 & poor_old==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_poor_old) append
 tabout eatype   if kihbs==2005 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_population) append
 
 *Absolute number of poor using 2005 incomparable absolute poverty line
-tabout  eatype kihbs if old05_poor==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop] , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
-tabout  province kihbs if old05_poor==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop] , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
+tabout  eatype kihbs if poor_old==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop] , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
+tabout  province kihbs if poor_old==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop] , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
 
 
 *Hardcore poor
@@ -173,34 +148,6 @@ tabout province kihbs  using "${gsdOutput}/ch2_table2.xls" [aw=wta_pop], c(mean 
 
 /*3.Kernel Density plots*/
 *************************
-*The poverty lines used for generate a comparable aggregate are those created using the 2015 basket of goods and their 2005 prices.
-*
-
-gen z1 = 1584 if urban==0 & kihbs==2005
-gen z2 = 2779  if urban==1 & kihbs==2005
-gen z3 = z2_i if urban==0 & kihbs==2015
-gen z4 = z2_i if urban==1 & kihbs==2015
-
-egen rural_05pline = max(z1)
-egen urban_05pline = max(z2)
-egen rural_15pline = max(z3)
-egen urban_15pline = max(z4)
-
-drop z1 z2 z3 z4
-
-*generating factor to "inflate" the 2005 aggregate, to allow real comparison
-*Rural Factor = 2.053 implying 105% increase.
-*Urban Factor = 2.157 implying 115% increase.
-gen double pfactor =.
-replace pfactor =  rural_15pline / rural_05pline if urban == 0
-replace pfactor =  urban_15pline / urban_05pline if urban == 1
-gen rcons = .
-replace rcons = y2_i if kihbs==2015
-replace rcons = y2_i * pfactor if (kihbs==2005)
-
-label var rcons "Real consumption aggregate (2015 prices)"
-drop rural_15pline rural_05pline urban_15pline urban_05pline
-
 global cons "rcons"
 
 *Comparison of the distributions of the real consumption aggregates:
@@ -292,8 +239,8 @@ putexcel B36=matrix(nedi_2015)
 
 *Urban / Rural
 putexcel A39=("2005") A40=("Rural") A41=("Urban") A43=("2015") A44=("Rural") A45=("Urban")
-putexcel B40=(rururb_2005)
-putexcel B44=(rururb_2015)
+putexcel B40=matrix(rururb_2005)
+putexcel B44=matrix(rururb_2015)
 
 *-----------------------------------------------------------------------*
 *Hardcore poverty
@@ -342,11 +289,10 @@ putexcel A19=("Coast") A20=("North Eastern") A21=("Eastern") A22=("Central") A23
 putexcel B17=matrix(rururb_hc_2015)
 putexcel B19=matrix(prov_hc_2015)
 
-run "${gsdDo}/incomparable_2005_pov.do"
+*run "${gsdDo}/incomparable_2005_pov.do"
 
 save "${gsdTemp}/ch2_analysis1.dta" , replace
 use "${gsdTemp}/ch2_analysis1.dta" , clear
-
 
 	/*4.Shared Prosperity*/
 	******************************
@@ -486,12 +432,115 @@ egen texp_nbo_rdec = xtile(rcons) , weights(wta_hh) by(kihbs) p(1(1)99)
 keep if inrange(texp_nbo_rdec,91,100)
 collapse (mean) mean_cons=rcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
-export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("nairobi top 10%") sheetreplace first(var)                              
+export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("nairobi top 10%") sheetreplace first(var)  
 
+*consumption components
+use "${gsdData}/1-CleanOutput/kihbs15_16.dta" , clear
+merge 1:1 clid hhid using "${gsdData}/0-RawInput/kihbs15/nfexpcat.dta" , keep(match master) nogen assert(match master)
+keep clid hhid kihbs y_i y2_i nfdtrans-nfdegycons wta_hh wta_pop fpindex ctry_adq urban strata
+save "${gsdTemp}/16cons.dta" , replace
+
+use "${gsdDataRaw}/KIHBS05/consumption aggregated data.dta", clear
+keep id_clust id_hh nfdfoth nfdrnthh nfdtrans nfdcloth nfdutil nfdfuel nfdwater y_i y2_i edtexp fpindex
+ren (id_clust id_hh) (clid hhid)
+*13,212 observations in cons agg dataset yet only 13158 are used in pov measurement. hence keep only those 13158 that match.
+merge 1:1 clid hhid using "${gsdData}/1-CleanOutput/kihbs05_06.dta" , nogen keep(match) keepusing(strata urban ctry_adq kihbs wta_hh wta_pop)
+
+save "${gsdTemp}/06cons.dta" , replace
+append using "${gsdTemp}/16cons.dta"
+
+replace nfdother = nfdfoth if mi(nfdother)
+replace nfdrent = nfdrnthh if mi(nfdrent)
+replace nfdrefuse = nfdutil if mi(nfdrefuse)
+replace nfdegycons = nfdfuel if mi(nfdegycons)
+replace nfdedcons = edtexp if mi(nfdedcons)
+                               
+drop nfdfoth nfdrnthh  nfdutil nfdfuel edtexp
+
+foreach var of varlist _all {
+	assert !mi(`var')
+}	 
+foreach var of varlist nfdwater nfdcloth nfdtrans nfdother nfdrefuse nfdedcons nfdrent nfdegycons {
+	replace `var' = `var' /12/ctry_adq/fpindex if kihbs == 2005
+}	
+*assert that 2015/16 non-food categories include all expediture that is not food.
+gen nfcons = y2_i - y_i 
+egen nfcons_sum = rsum(nfdwater nfdcloth nfdtrans nfdother nfdrefuse nfdedcons nfdrent nfdegycons)
+gen diff = nfcons - nfcons_sum
+assert abs(diff)<1 if kihbs==2015
+*
+*nfdother is not exhaustive within 2005 data. The difference between total and food and the sum of non-food items is replace 
+replace nfdother = nfdother + diff if diff>0 & !mi(diff) & kihbs==2005
+drop nfcons_sum diff
+egen nfcons_sum = rsum(nfdwater nfdcloth nfdtrans nfdother nfdrefuse nfdedcons nfdrent nfdegycons)
+gen diff = nfcons - nfcons_sum
+*Replacing transport clothing refuse and water to other
+replace nfdother = (nfdtrans + nfdcloth + nfdrefuse + nfdwater + nfdother)
+save "${gsdTemp}/cons.dta" , replace
+use "${gsdTemp}/cons.dta" , clear
+collapse (sum) y_i nfdrent nfdedcons nfdother nfdegycons [aw=wta_hh]  , by(urban kihbs)
+egen total = rsum(y_i nfdrent nfdedcons nfdother nfdegycons)
+gen food = (y_i / total)*100
+gen rent = (nfdrent / total)*100
+gen education = (nfdedcons / total)*100
+gen others = (nfdother / total)*100
+gen energy = (nfdegycons / total)*100
+keep kihbs urban food rent education energy others
+order kihbs urban food rent education energy others
+export excel using "${gsdOutput}\ch2_cons_components.xls", firstrow(variables) sheet("Rururb") sheetreplace
+use "${gsdTemp}/cons.dta" , clear
+collapse (sum) y_i nfdrent nfdedcons nfdother nfdegycons [aw=wta_hh]  , by(kihbs)
+egen total = rsum(y_i nfdrent nfdedcons nfdother nfdegycons)
+gen food = (y_i / total)*100
+gen rent = (nfdrent / total)*100
+gen education = (nfdedcons / total)*100
+gen others = (nfdother / total)*100
+gen energy = (nfdegycons / total)*100
+keep kihbs  food rent education energy others
+order kihbs food rent education energy others
+export excel using "${gsdOutput}\ch2_cons_components.xls", firstrow(variables) sheet("National") sheetreplace
+
+*Access to services by quintile
+use "${gsdTemp}/ch2_0.dta" , clear
+
+tabout kihbs texp_nat_quint  using "${gsdOutput}/ch2_table9_nat.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
+	tabout kihbs texp_nat_quint  using "${gsdOutput}/ch2_table9_nat.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+}
+tabout kihbs poor  using "${gsdOutput}/ch2_table9_nat_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
+	tabout kihbs poor  using "${gsdOutput}/ch2_table9_nat_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+}
+*rural households
+tabout kihbs texp_rurb_quint if urban==0  using "${gsdOutput}/ch2_table9_rur.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
+	tabout kihbs texp_rurb_quint if urban==0   using "${gsdOutput}/ch2_table9_rur.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+}
+tabout kihbs poor if urban==0  using "${gsdOutput}/ch2_table9_rur_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
+	tabout kihbs poor if urban==0   using "${gsdOutput}/ch2_table9_rur_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+}
+*urban households
+tabout kihbs texp_nat_quint if urban==1  using "${gsdOutput}/ch2_table9_urb.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
+	tabout kihbs texp_rurb_quint if urban==1  using "${gsdOutput}/ch2_table9_urb.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+}
+tabout kihbs poor if urban==1  using "${gsdOutput}/ch2_table9_urb_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
+	tabout kihbs poor if urban==1  using "${gsdOutput}/ch2_table9_urb_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+}
+*Nairobi households
+tabout kihbs texp_prov_quint if province==8  using "${gsdOutput}/ch2_table9_nbo.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
+	tabout kihbs texp_prov_quint if province==8  using "${gsdOutput}/ch2_table9_nbo.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+}
+tabout kihbs poor if province==8  using "${gsdOutput}/ch2_table9_nbo_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
+	tabout kihbs poor if province==8  using "${gsdOutput}/ch2_table9_nbo_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+}
  /*5.Decompositions*/
 **********************
 *We have to adjust the absolute poverty line to be fixed using the previous price factor
-
 use "${gsdTemp}/ch2_0.dta" , clear
 gen z2_i_pp_2015 = z2_i
 replace z2_i_pp_2015 = z2_i * pfactor if kihbs==2005
@@ -580,6 +629,11 @@ putexcel B25=matrix(prov_2015)
 putexcel B35=matrix(nedi_2005)
 putexcel B39=matrix(nedi_2015)
 
+*generate dummy for each province
+forvalues i = 1/8{
+	gen prov_`i' = (province==`i')
+}
+
 levelsof kihbs , local(years)
 foreach year of local years {
 	ineqdeco y2_i if kihbs == `year' [aw = wta_pop]  , bygroup(urban)
@@ -587,16 +641,37 @@ foreach year of local years {
 	
 	ineqdeco y2_i if kihbs == `year' [aw = wta_pop]  , bygroup(province)
 	matrix prov_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1)]
+	*same decompositions as above done for each province
+	forvalues i = 1 / 8 {
+		ineqdeco y2_i if kihbs == `year' [aw = wta_pop] , bygroup(prov_`i')
+		matrix prov_`i'_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1)]
+		}
 }
 matrix rururb_ge1 = [rururb_ge1_2005 \ rururb_ge1_2015]
 matrix prov_ge1 = [prov_ge1_2005 \ prov_ge1_2015]
+forvalues i = 1/8 {
+	matrix prov_`i'_ge1 = [prov_`i'_ge1_2005 \ prov_`i'_ge1_2015]
+}
 
 putexcel set "${gsdOutput}/ch2_table6_gedecomp.xls" , replace
-putexcel B1=("rural / urban decomp.") A3=("2006") A4=("2016") B2=("Between Group") C2=("Within Group") D2=("Total pop.") B6=("provincial decomp.") A8=("2006") A9=("2016") B7=("Between Group") C7=("Within Group") D7=("Total pop.")
-
+putexcel B1=("rural / urban decomp.") A3=("2005/06") A4=("2015/16") B2=("Between Group") C2=("Within Group") D2=("Total pop.") B6=("provincial decomp.") A8=("2005/06") A9=("2015/16") B7=("Between Group") C7=("Within Group") D7=("Total pop.")
+local i = 11
+local j = 12
+local k = 13
+local l = 14
+local m = 1
+foreach s in Coast NorthEastern Eastern Central RiftValley Western Nyanza Nairobi {
+	putexcel A`k'=("2005/06") A`l'=("2015/16") B`j'=("Between Group") C`j'=("Within Group") D`j'=("Total pop.")  B`i'=("`s'")
+	putexcel B`k'=matrix(prov_`m'_ge1)
+	local i = `i' + 5
+	local j = `j' + 5
+	local k = `k' + 5
+	local l = `l' + 5
+	local m = `m'+1
+	
+}
 putexcel B3=matrix(rururb_ge1)
 putexcel B8=matrix(prov_ge1)
-
 
 save "${gsdTemp}/ch2_analysis2.dta" , replace
 use "${gsdTemp}/ch2_analysis2.dta" , clear
@@ -609,13 +684,13 @@ global cons = "rcons"
 /*** Generating Percentiles ***/
 
 foreach var in 2005 2015 {
-        xtile pctile_`var'_total = $cons if kihbs == `var' [aw = wta_pop], nq(100)
-		xtile pctile_`var'_rural = $cons if kihbs == `var' & urban==0 [aw = wta_pop], nq(100)
-		xtile pctile_`var'_urban = $cons if kihbs == `var' & urban==1 [aw = wta_pop], nq(100) 
+        xtile pctile_`var'_total = $cons if kihbs == `var' [aw = wta_hh], nq(100)
+		xtile pctile_`var'_rural = $cons if kihbs == `var' & urban==0 [aw = wta_hh], nq(100)
+		xtile pctile_`var'_urban = $cons if kihbs == `var' & urban==1 [aw = wta_hh], nq(100) 
 }
 foreach var in 2005 2015 {
 	forvalues i = 1 / 8 {
-        xtile pctile_`i'_`var' = $cons if kihbs == `var' & province == `i' [aw = wta_pop], nq(100)
+        xtile pctile_`i'_`var' = $cons if kihbs == `var' & province == `i' [aw = wta_hh], nq(100)
 }
 }
 egen pctile_total = rowtotal(pctile_2005_total pctile_2015_total)
@@ -631,38 +706,38 @@ forvalues i = 1 / 8 {
 matrix change = J(100, 11, 0)
 
 forvalues x = 1/100 {
-          quietly sum $cons [aw = wta_pop] if kihbs == 2005 & pctile_total == `x'
+          quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_total == `x'
 		  matrix change[`x', 1] = r(mean)
 		  
-		  quietly sum $cons [aw = wta_pop] if kihbs == 2015 & pctile_total == `x'
-		  matrix change[`x', 1] = (100 * (r(mean) / change[`x', 1])) - 100
+		  quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_total == `x'
+		matrix change[`x', 1] = (((r(mean) / change[`x', 1])^(1/10)-1)*100)
 
-		  quietly sum $cons [aw = wta_pop] if kihbs == 2005 & pctile_rural == `x' ///
+		  quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_rural == `x' ///
 		   & [urban == 0 ] 
 		  matrix change[`x', 2] = r(mean)
 
-  		  quietly sum $cons [aw = wta_pop] if kihbs == 2015 & pctile_rural == `x' ///
+  		  quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_rural == `x' ///
 		   & [urban == 0 ]
-		  matrix change[`x', 2] = (100 * (r(mean) / change[`x', 2])) - 100
+			matrix change[`x', 2] = (((r(mean) / change[`x', 2])^(1/10)-1)*100)
 		   		 
-		  quietly sum $cons [aw = wta_pop] if kihbs == 2005 & pctile_urban == `x' ///
+		  quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_urban == `x' ///
 		   & [urban == 1] 
 		  matrix change[`x', 3] = r(mean)
 		  
-		  quietly sum $cons [aw = wta_pop] if kihbs == 2015 & pctile_urban == `x' ///
+		  quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_urban == `x' ///
 		   & [urban == 1]
-		  matrix change[`x', 3] = (100 * (r(mean) / change[`x', 3])) - 100
-		  
+		matrix change[`x', 3] = (((r(mean) / change[`x', 3])^(1/10)-1)*100)
+
+		   
 		  forvalues i = 1 / 8 {
 		  
-		  	quietly sum $cons [aw = wta_pop] if kihbs == 2005 & pctile_prov`i' == `x' ///
+		  	quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_prov`i' == `x' ///
 			& [province == `i'] 
 			matrix change[`x', (3+`i')] = r(mean)
 			
-			quietly sum $cons [aw = wta_pop] if kihbs == 2015 & pctile_prov`i' == `x' ///
+			quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_prov`i' == `x' ///
 		   & [province == `i']
-		  matrix change[`x', (3+`i')] = (100 * (r(mean) / change[`x', (3+`i')])) - 100		
-		  
+			matrix change[`x', (3+`i')] = (((r(mean) / change[`x', 3+`i'])^(1/10)-1)*100)		  
 }
 }
 svmat change, names(change)
@@ -673,45 +748,167 @@ forvalues i = 1/11 {
 }
 *
 foreach x in 05 15 {
-	sum $cons if kihbs == 20`x' [aw = wta_pop]
+	sum $cons if kihbs == 20`x' [aw = wta_hh]
 	scalar mean20`x'_total = r(mean)
 
-	sum $cons if kihbs == 20`x' & urban == 0 [aw = wta_pop]
+	sum $cons if kihbs == 20`x' & urban == 0 [aw = wta_hh]
 	scalar mean20`x'_rural = r(mean)
 
-	sum $cons if kihbs == 20`x' & urban == 1 [aw = wta_pop]
+	sum $cons if kihbs == 20`x' & urban == 1 [aw = wta_hh]
 	scalar mean20`x'_urban = r(mean)
 	
 	forvalues i = 1/8 {
-		sum $cons if kihbs == 20`x' & province == `i' [aw = wta_pop]
+		sum $cons if kihbs == 20`x' & province == `i' [aw = wta_hh]
 		scalar mean20`x'_prov`i' = r(mean)
 }
 }
 forvalues i = 1/8 {
-	local mean_change_prov`i' = ((mean2015_prov`i' / mean2005_prov`i')-1) * 100
+	local mean_change_prov`i' = (((mean2015_prov`i' / mean2005_prov`i')^(1/10)-1)*100)
 }
 /*** Generating graph ***/
 
-local mean_change1 = ((mean2015_total / mean2005_total)-1)*100
-local mean_change2 = ((mean2015_rural / mean2005_rural)-1)*100 
-local mean_change3 = ((mean2015_urban / mean2005_urban)-1)*100
+local mean_change1 = (((mean2015_total / mean2005_total)^(1/10)-1)*100)
+local mean_change2 = (((mean2015_rural / mean2005_rural)^(1/10)-1)*100)
+local mean_change3 = (((mean2015_urban / mean2005_urban)^(1/10)-1)*100)
 
 *National, rural and urban GICs
 local i = 1
-foreach s in total rural urban  {
-        line schange`i' x, lcolor(navy) lpattern(solid) yline(`mean_change`i'') subtitle("Growth incidence, `s'") xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("% change cons per adq", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`i', replace)
+foreach s in National Rural Urban  {
+        line schange`i' x, lcolor(navy) lpattern(solid) yline(`mean_change`i'') subtitle("Growth incidence (2005/06 - 2015/16),  `s'")  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`i', replace)
 		local i = `i' + 1
 }
 graph combine gic1 gic2 gic3, iscale(*0.9) title("2005/06-2015/16")
+graph export "${gsdOutput}\GIC_1.png", as(png) replace
 graph save "${gsdOutput}/GIC_nat_rur_urb.gph", replace
 
 *Provincial level GICs 
-run "${gsdDo}/provincial_gic.do"
-replace hhsector = 5 if mi(hhsector)
-lab def sector 1 "Agriculture" 2 "Manufacturing" 3 "Services" 4 "Construction" 5"Other" , replace
-lab val hhsector sector
-save "${gsdTemp}/ch2_analysis3.dta" , replace
-use "${gsdTemp}/ch2_analysis3.dta" , clear
+use "${gsdTemp}/ch2_analysis2.dta" , clear
+/*6.Growth Incidence curve*/
+*****************************
+global cons = "rcons"
+/*** Generating Percentiles ***/
+
+foreach var in 2005 2015 {
+	forvalues i = 1 / 8 {
+        xtile pctile_`i'_`var' = $cons if kihbs == `var' & province == `i' [aw = wta_hh], nq(100)
+}
+}
+
+forvalues i = 1 / 8 {
+	egen pctile_prov`i' = rowtotal(pctile_`i'_2005 pctile_`i'_2015)
+}
+*Between 2005 and 2015
+*create (100x8) matrix full of zeros. Each column will populated with the percentile change in real consumption
+*for the 8 provinces).
+matrix change = J(100, 8, 0)
+
+forvalues x = 1/100 {
+		  forvalues i = 1 / 8 {
+		  	quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_prov`i' == `x'& province == `i'
+			matrix change[`x', (`i')] = r(mean)
+			
+			quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_prov`i' == `x'   & province == `i'
+			matrix change[`x', (`i')] = (((r(mean) / change[`x', `i'])^(1/10)-1)*100)	
+}
+}
+svmat change, names(change)
+gen x = _n if _n <= 100
+
+forvalues i = 1/8 {
+          lowess change`i' x, gen(schange`i') nograph
+}
+*
+foreach x in 05 15 {
+	forvalues i = 1/8 {
+		sum $cons if kihbs == 20`x' & province == `i' [aw = wta_hh]
+		scalar mean20`x'_prov`i' = r(mean)
+}
+}
+forvalues i = 1/8 {
+	local mean_change_prov`i' = (((mean2015_prov`i' / mean2005_prov`i')^(1/10)-1)*100)
+}
+/*** Generating graph ***/
+
+*Provincial level GICs
+local k = 1
+local provinces "Coast North_Eastern Eastern Central Rift_valley Western Nyanza Nairobi"
+
+foreach s of local provinces  {
+        line schange`k' x, lcolor(navy) lpattern(solid) yline(`mean_change_prov`k'') subtitle("Growth incidence (2005/06 - 2015/16), `s'")         xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`k', replace)
+		local k = `k'+1
+}
+graph combine gic1 gic2 gic3 gic4 gic5 gic6 gic7 gic8, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
+graph save "${gsdOutput}/GIC_provinces.gph", replace
+graph combine gic1  gic3  gic5  gic8, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
+graph save "${gsdOutput}/GIC_provinces_select.gph", replace
+graph export "${gsdOutput}/GIC_prov1.png", as(png) replace
+graph combine gic2  gic4  gic6  gic7, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
+graph save "${gsdOutput}/GIC_provinces_select2.gph", replace
+graph export "${gsdOutput}/GIC_prov2.png", as(png) replace
+drop pctile* schange* change* x 
+use "${gsdTemp}/ch2_analysis2.dta" , clear
+*NEDI / Non-Nedi GICs 
+global cons = "rcons"
+gen nedi_cat = 1 if nedi==0
+replace nedi_cat = 2 if nedi==2
+replace nedi_cat = 2 if nedi==1
+label define lnedicat 1"Non-NEDI County" 2"NEDI County" , replace
+label values nedi_cat lnedicat
+label var nedi_cat "1=Non-NEDI County 2=NEDI county - FOR matrix in GIC"
+
+
+/*** Generating Percentiles ***/
+foreach var in 2005 2015 {
+	forvalues i = 1 / 2 {
+        xtile pctile_`i'_`var' = $cons if kihbs == `var' & nedi_cat == `i' [aw = wta_hh], nq(100)
+}
+}
+forvalues i = 1 / 2 {
+	egen pctile_nedi`i' = rowtotal(pctile_`i'_2005 pctile_`i'_2015)
+}
+*Between 2005 and 2015
+*create (100x8) matrix full of zeros. Each column will populated with the percentile change in real consumption
+*for the 2 NEDI categories).
+matrix change = J(100, 2, 0)
+
+forvalues x = 1/100 {
+		  forvalues i = 1 / 2 {
+		  	quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_nedi`i' == `x'& nedi_cat == `i'
+			matrix change[`x', (`i')] = r(mean)
+			
+			quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_nedi`i' == `x'   & nedi_cat == `i'
+			matrix change[`x', (`i')] = (((r(mean) / change[`x', `i'])^(1/10)-1)*100)	
+}
+}
+svmat change, names(change)
+gen x = _n if _n <= 100
+
+forvalues i = 1/2 {
+          lowess change`i' x, gen(schange`i') nograph
+}
+*
+foreach x in 05 15 {
+	forvalues i = 1/2 {
+		sum $cons if kihbs == 20`x' & nedi_cat == `i' [aw = wta_hh]
+		scalar mean20`x'_nedi`i' = r(mean)
+}
+}
+forvalues i = 1/2 {
+	local mean_change_nedi`i' = (((mean2015_nedi`i' / mean2005_nedi`i')^(1/10)-1)*100)
+}
+/*** Generating graph ***/
+*NEDI GICs
+local k = 1
+local nedis "Non-NEDI NEDI"
+
+foreach s of local nedis  {
+        line schange`k' x, lcolor(navy) lpattern(solid) yline(`mean_change_nedi`k'') subtitle("Growth incidence (2005/06 - 2015/16), `s'")  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`k', replace)
+		local k = `k'+1
+}
+graph combine gic1 gic2, iscale(*0.9) title("NEDI Category GICs 2005/06-2015/16")
+graph save "${gsdOutput}/GIC_nedi.gph", replace
+graph export "${gsdOutput}/GIC_nedi.png", as(png) replace
+drop pctile* schange* change* x 
 /*6.Sectoral decompoosition*/
 *****************************
 *Sectoral decomposition using sedecomposition command and 2 seperate datasets (one for each year) for rural and for urban.
@@ -720,12 +917,12 @@ use "${gsdTemp}/ch2_analysis3.dta" , clear
 *log file is used to output data
 
 *National sectoral decomposition
-use "${gsdTemp}/ch2_analysis3.dta" , clear
+use "${gsdTemp}/ch2_analysis2.dta" , clear
 log close _all
 log using "${gsdOutput}/sdecomp", text replace
 keep if kihbs==2005
 saveold "${gsdTemp}/decomp_nat_05.dta" , replace
-use "${gsdTemp}/ch2_analysis3.dta" , clear
+use "${gsdTemp}/ch2_analysis2.dta" , clear
 keep if kihbs==2015
 saveold "${gsdTemp}/decomp_nat_15.dta" , replace
 
@@ -734,53 +931,52 @@ use "${gsdTemp}/ch2_analysis3.dta" , clear
 
 keep if urban ==0 & kihbs==2005
 saveold "${gsdTemp}/decomp_rur_05.dta" , replace
-use "${gsdTemp}/ch2_analysis3.dta" , clear
+use "${gsdTemp}/ch2_analysis2.dta" , clear
 keep if urban ==0 & kihbs==2015
 saveold "${gsdTemp}/decomp_rur_15.dta" , replace
 
 *urban sectoral decomposition
-use "${gsdTemp}/ch2_analysis3.dta" , clear
+use "${gsdTemp}/ch2_analysis2.dta" , clear
 keep if urban ==1 & kihbs==2005
 saveold "${gsdTemp}/decomp_urb_05.dta" , replace
-use "${gsdTemp}/ch2_analysis3.dta" , clear
+use "${gsdTemp}/ch2_analysis2.dta" , clear
 keep if urban ==1 & kihbs==2015
 saveold "${gsdTemp}/decomp_urb_15.dta" , replace
 
 *Nairobi sectoral decomposition
-use "${gsdTemp}/ch2_analysis3.dta" , clear
+use "${gsdTemp}/ch2_analysis2.dta" , clear
 keep if prov ==8 & kihbs==2005
 saveold "${gsdTemp}/decomp_nbo_05.dta" , replace
-use "${gsdTemp}/ch2_analysis3.dta" , clear
+use "${gsdTemp}/ch2_analysis2.dta" , clear
 keep if prov ==8 & kihbs==2015
 saveold "${gsdTemp}/decomp_nbo_15.dta" , replace
 
-use "${gsdTemp}/ch2_analysis3.dta" , clear
-*Sectoral decomposition for households nationally
+use "${gsdTemp}/ch2_analysis2.dta" , clear
+*Ravallion / Huppi sectoral decomposition for households nationally
 use "${gsdTemp}/decomp_nat_05.dta" , clear
 sedecomposition using "${gsdTemp}/decomp_nat_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
-*Sectoral decomposition for rural households
+*Ravallion / Huppi sectoral decomposition for rural households
 use "${gsdTemp}/decomp_rur_05.dta" , clear
 sedecomposition using "${gsdTemp}/decomp_rur_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
-*Sectoral decomposition for urban households
+*Ravallion / Huppi sectoral decomposition for urban households
 use "${gsdTemp}/decomp_urb_05.dta" , clear
 sedecomposition using "${gsdTemp}/decomp_urb_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
-*Sectoral decomposition for Nairobi
+*Ravallion / Huppi sectoral decomposition for Nairobi
 use "${gsdTemp}/decomp_nbo_05.dta" , clear
 sedecomposition using "${gsdTemp}/decomp_nbo_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
-*Sectoral decomposition for households nationally - by rural / urban
+*Ravallion / Huppi regional decomposition for households nationally - by rural / urban
 use "${gsdTemp}/decomp_nat_05.dta" , clear
 sedecomposition using "${gsdTemp}/decomp_nat_15.dta"  [aw=wta_pop]  , sector(urban) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
-*Sectoral decomposition for households nationally - by province
+*Ravallion / Huppi regional decomposition for households nationally - by province
 use "${gsdTemp}/decomp_nat_05.dta" , clear
 sedecomposition using "${gsdTemp}/decomp_nat_15.dta"  [aw=wta_pop]  , sector(province) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
-
-
 log close _all
+
 erase "${gsdTemp}/decomp_rur_15.dta"
 erase "${gsdTemp}/decomp_rur_05.dta"
 erase "${gsdTemp}/decomp_urb_15.dta"
@@ -790,26 +986,44 @@ erase "${gsdTemp}/decomp_nat_15.dta"
 
 /*7.Consumption Regressions*/
 *****************************
-use "${gsdTemp}/ch2_analysis3.dta" , clear
+use "${gsdTemp}/ch2_analysis2.dta" , clear
 svyset clid [pweight = wta_hh]  , strata(strata)
 
 gen hhsize2 = hhsize^2
+gen lnrcons = ln(rcons)
 
-gen lncons = ln(y2_i)
+table kihbs [aw=wta_pop], c(mean poor)
+table poor [aw=wta_pop], 
 
-*regress total consumption  / log of total consumption on hh chars
-levelsof kihbs, local(year)
+gen married=cond(marhead==1 | marhead==2,1,0)
+replace married=. if marhead==6 
+replace relhead=. if relhead ==5
+recode relhead (4=3)
+replace hhsize=. if hhsize>15
 
-foreach i of local year {
-	svy: regress lncons urban i.province depen malehead female singhh agehead agehead_sq i.relhead i.marhead hhsize hhsize2 no_edu yrsch literacy aveyrsch educhead i.hhedu hwage dive i.hhsector tra_all shock_drought shock_prise shock_lstockdeath shock_crop shock_famdeath ownhouse impwater impsan elec_light title bicycle radio tv cell_phone char_jiko mnet sofa  if kihbs==`i'
-	estimates store reg_1_`i'
-	esttab reg_1_`i' using "${gsdOutput}/reg_1_`i'.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
-}
-*
-*regressing as above with dwelling characteristics
-foreach i of local year {
-	svy: regress lncons urban#province depen  female singhh agehead agehead_sq i.relhead malehead#marhead hhsize hhsize2 no_edu yrsch literacy aveyrsch educhead i.hhedu hwage dive malehead#hhsector tra_all shock_drought shock_prise shock_lstockdeath shock_crop shock_famdeath ownhouse impwater impsan elec_light title bicycle radio tv cell_phone char_jiko mnet sofa if kihbs==`i'
-	estimates store reg_2_`i'
-	esttab reg_2_`i' using "${gsdOutput}/reg_2_`i'.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
-}
-*
+*regressing log of real consumption on geographic / household characteristics
+reg lnrcons urban ib8.province hhsize malehead agehead agehead_sq depen i.relhead married i.hhedu i.hhsector dive , robust
+estimates store reg_lncons_0
+esttab reg_lncons_0 using "${gsdOutput}/reg_lncons_0.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+
+reg lnrcons ib5.province hhsize malehead agehead agehead_sq depen i.relhead married i.hhedu i.hhsector dive if urban==0 , robust
+estimates store reg_lncons_1
+esttab reg_lncons_1 using "${gsdOutput}/reg_lncons_1.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+
+reg lnrcons ib5.province hhsize malehead agehead agehead_sq depen i.relhead married i.hhedu i.hhsector dive if urban==1 , robust
+estimates store reg_lncons_2
+esttab reg_lncons_2 using "${gsdOutput}/reg_lncons_2.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+
+*regress poor household dummy on geographic / household characteristics
+svy: probit poor ib5.province hhsize malehead agehead agehead_sq  depen i.relhead married i.hhedu i.hhsector dive  if urban==0
+margins, dydx(*)
+estimates store probit
+esttab probit using "${gsdOutput}/probit_rural.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+
+svy: probit poor ib5.province hhsize malehead agehead agehead_sq  depen i.relhead married i.hhedu i.hhsector dive  if urban==1
+margins, dydx(*)
+estimates store probit
+esttab probit using "${gsdOutput}/probit_urban.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+
+clear
+

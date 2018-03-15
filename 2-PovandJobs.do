@@ -166,7 +166,7 @@ label define lsector 7	"Accomodation and food service activities"	 , modify
 label define lsector 8	"Professional, scientific and technical activities"	 , modify
 label define lsector 9	"Education, human health and social work"	 , modify
 label define lsector 10 "Others"	 , modify
-label define lsector 11 "Others"	 , modify
+label define lsector 11 "Not Known / Missing"	 , modify
 
 
 label values occ_sector lsector
@@ -190,6 +190,10 @@ forvalues i = 2/11 {
 	tabout hhskill if occ_sector==`i'  using "${gsdOutput}/povandjobs1.xls"  ,svy npos(col) c(freq) clab(Freq) append
 	tabout hhedu if occ_sector==`i' using "${gsdOutput}/povandjobs1.xls"  ,svy npos(col) c(freq) clab(Freq) append
 } 
+
+*statistics below are to be done for the population instead of households
+svyset, clear
+svyset clid [pweight = wta_pop]  , strata(strata)
 **================================================*
 *Occupational sector by rural / urban classification
 **================================================*
@@ -200,9 +204,6 @@ tabout occ_sector if urban==1 using "${gsdOutput}/povandjobs2.xls"  ,svy npos(co
 **================================================*
 tabout occ_sector province using "${gsdOutput}/povandjobs3.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 
-*statistics below are to be done for the population instead of households
-svyset, clear
-svyset clid [pweight = wta_pop]  , strata(strata)
 **================================================*
 *Poverty status by head of household sex
 **================================================*

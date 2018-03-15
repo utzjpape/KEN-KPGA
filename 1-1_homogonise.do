@@ -126,7 +126,7 @@ merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/poverty.dta" , assert(match) k
 *calculating $1.90 a day poverty line (monthly)
 	*Step 1: Take the 2011 PP conversion factor and multiply by 1.90 *(365/12)
 	gen pline190_2011 = 35.4296 * 1.9 * (365/12)
-	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI (165.296))
+	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI (166.144))
 	gen double pline190 = pline190_2011 * (166.1438105/121.17)
 	drop pline190_2011
 

@@ -88,6 +88,25 @@ la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
 
+*Average percentile consumption, at 5% distribution interval
+xtile percentiles = y2_i [pweight=wta_pop], n(20)
+qui tabout percentiles if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i se ) sebnone f(3) h2(Total imputed consumption by quintiles, 2015) append
+qui tabout percentiles if kihbs==2005 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i se ) sebnone f(3) h2(Total imputed consumption by quintiles, 2005) append
+
+*Consumption shock
+gen y2_i_shock = y2_i*0.9
+xtile percentiles_s = y2_i_shock [pweight=wta_pop], n(20)
+
+gen poor190_shock = (y2_i_shock < pline190)
+label var poor190_shock "10% consumption shock, poor under $1.90 a day LMIC poverty line (line = pline320)"
+
+gen poor320_shock = (y2_i_shock < pline320)
+label var poor320_shock "10% consumption shock, poor under $3.20 a day LMIC poverty line (line = pline320)"
+
+qui tabout percentiles_s if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i_shock se ) sebnone f(3) h2(Total imputed consumption by quintiles, 10% Shock, 2015) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190_shock se ) sebnone f(3) h2(Poverty headcount at IPL, 10% Shock, 2015) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320_shock se ) sebnone f(3) h2(Poverty headcount at LMIC, 10% Shock, 2015) append
+
 save "${gsdTemp}/clean_hh_0515.dta", replace
 
 
@@ -486,11 +505,13 @@ foreach i of numlist 6/15 {
 	qui tabout kihbs if proj_poor320_`i' == 1 using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean y2_i_`i'_lm se lb ub) sebnone f(3) h2(Mean income under 3.20 line, `i') append
 	}	
 
-*Consumption shock
+*Trajectory of poverty to 2030 with annualized poverty change 2005-2015 (-3.82)
+use "${gsdData}/KIHBS15/clean_hh_15.dta", clear
 
-
-
-
+gen proj_poor190_30 = poor190_1 * (1 - (0.0382*15))
+qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor190_30`i' se lb ub) sebnone f(3) h2(Projected Poverty Rate 2030, annualized percentage reduction poverty) append
+	
+	xx
 **********************************
 *MULTIDIMENSIONAL POVERTY
 **********************************

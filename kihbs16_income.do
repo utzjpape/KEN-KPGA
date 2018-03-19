@@ -252,7 +252,7 @@ save "$out/kihbs16_income", replace
 *** Credit
 use "$in/sec_r1", clear 
 merge m:1 clid hhid using "$out/kihbs16_income" , assert(match using) nogen keepusing(province resid wta_hh)
-recode r07 (1=1) (2/3=2) (4=96) (5/11=4), gen(cred_cat)
+recode r07 (1=1) (2/3=2) (4=96) (5/11=3), gen(cred_cat)
 label define lcredcat 1"Subsistence" 2"Health / Education" 3"Investment" 4"Other" , replace
 label values cred_cat lcredcat
 

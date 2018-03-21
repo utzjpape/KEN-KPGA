@@ -177,8 +177,8 @@ save "${gsdTemp}/WB_clean_all.dta", replace
 **********************************
 
 *A) import the gdp data and merge with poverty data
-wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;SSF) year(2005:2015) indicator(NY.GDP.PCAP.PP.KD - GDP per capita, PPP (constant 2011 international $)) clear long
-save "WB_data_gdp.dta", replace
+wbopendata, language(en - English) country(KEN;GHA;RWA;UGA;TZA;SSF) year(2005:2015) indicator(NY.GDP.PCAP.PP.KD - GDP per capita, PPP (constant 2011 international $)) clear long
+save "${gsdTemp}/WB_data_gdp.dta", replace
 
 *create ID to merge with poverty data
 gen idcode = 1 if countrycode == "GHA"
@@ -193,7 +193,7 @@ destring id, replace
 sort id
 rename ny_gdp_pcap_pp_kd gdp
 keep id countryname year gdp
-save "WB_clean_gdp.dta", replace
+save "${gsdTemp}/WB_clean_gdp.dta", replace
 
 wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;SSF) year(2005:2015) indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
 rename si_pov_dday poverty
@@ -214,15 +214,15 @@ sort id
 keep id countryname year poverty
 
 	*Kenya headcount ratio 2015 = 20.9; 2005 = 33.6 
-	replace poverty = 33.8 if id == 72005
-	replace poverty = 20.9 if id == 72015
+	replace poverty = 43.6 if id == 72005
+	replace poverty = 35.6 if id == 72015
 
 	*South Africa, drop 2008 poverty rate per country economist guidance
 	replace poverty = . if id == 62008
 	
-save "WB_gdp_poverty.dta", replace
+save "${gsdTemp}/WB_gdp_poverty.dta", replace
 
-merge 1:1 id using "WB_clean_gdp.dta"
+merge 1:1 id using "${gsdTemp}/WB_clean_gdp.dta"
 drop _merge id
 
 *B) calculate annualized percentage change in poverty and GDP

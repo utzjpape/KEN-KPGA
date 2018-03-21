@@ -118,6 +118,8 @@ replace cons_shortfall_320 = 0 if poor320 == 0
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_shortfall_190 se) sebnone f(3) h2(Mean consumption shortfall, pline 1.90, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_shortfall_320 se) sebnone f(3) h2(Mean consumption shortfall, pline 3.20, by kihbs year) append
+qui tabout kihbs if poor190==1 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i se) sebnone f(3) h2(Mean consumption expenditure, poor under 1.90, by kihbs year) append
+qui tabout kihbs if poor320==1 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i se) sebnone f(3) h2(Mean consumption expenditure, poor under 3.20, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline190 se) sebnone f(3) h2(Poverty line 1.90 in LCU, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline320 se) sebnone f(3) h2(Poverty line 3.20 in LCU, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline125 se) sebnone f(3) h2(Poverty line 1.25 in LCU, by kihbs year) append
@@ -260,11 +262,88 @@ foreach i of numlist 6/15 {
 	}
 	
 *Trajectory of poverty to 2030 with annualized poverty change 2005-2015 (-3.82)
-use "${gsdData}/KIHBS15/clean_hh_15.dta", clear
-
+use "${gsdData}/KIHBS05/clean_hh_05.dta", clear
 gen proj_poor190_30 = poor190 * (1 - (0.0183*15))
 qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor190_30`i' se lb ub) sebnone f(3) h2(Projected Poverty Rate 2030, annualized percentage reduction poverty) append
 	
+*Non-sector simulation, with general GDP pass-through rate
+use "${gsdData}/KIHBS05/clean_hh_05.dta", clear
+
+replace tsector = 4
+
+merge m:1 tsector using "/Users/marinatolchinsky/Documents/WB Poverty GP/KPGA/sector_agg_growth.dta", nogen	
+	*GDP for 2006
+	gen sgrowth_2006 = 3.6 
+
+*Poverty at 1.90 line
+*Pass-through rate assumption
+gen gdp_passthrough = 0.285
+
+*Augment hh consumption expenditure 
+gen cons_pp_6 = cons_pp * (1 + (sgrowth_2006 * gdp_passthrough/100))
+gen cons_pp_7 = cons_pp_6 * (1 + (sgrowth_2007 * gdp_passthrough/100))
+gen cons_pp_8 = cons_pp_7 * (1 + (sgrowth_2008 * gdp_passthrough/100))
+gen cons_pp_9 = cons_pp_8 * (1 + (sgrowth_2009 * gdp_passthrough/100))
+gen cons_pp_10 = cons_pp_9 * (1 + (sgrowth_2010 * gdp_passthrough/100))
+gen cons_pp_11 = cons_pp_10 * (1 + (sgrowth_2011 * gdp_passthrough/100))
+gen cons_pp_12 = cons_pp_11 * (1 + (sgrowth_2012 * gdp_passthrough/100))
+gen cons_pp_13 = cons_pp_12 * (1 + (sgrowth_2013 * gdp_passthrough/100))
+gen cons_pp_14 = cons_pp_13 * (1 + (sgrowth_2014 * gdp_passthrough/100))
+gen cons_pp_15 = cons_pp_14 * (1 + (sgrowth_2015 * gdp_passthrough/100))
+
+*Calculate projected poverty headcounts 
+foreach i of numlist 6/15 {
+	gen proj_poor190_`i' = (cons_pp_`i' < pline190)
+	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor190_`i' se lb ub) sebnone f(3) h2(Non-sectoral Simulation, Projected Poverty Headcount, 1.90 line, `i') append
+	}
+
+*Poverty at 3.20 line
+*Pass-through rate assumption
+gen gdp_passthrough_lm = 0.24
+
+*Augment hh consumption expenditure 
+gen cons_pp_6_lm = cons_pp * (1 + (sgrowth_2006 * gdp_passthrough_lm/100))
+gen cons_pp_7_lm = cons_pp_6_lm * (1 + (sgrowth_2007 * gdp_passthrough_lm/100))
+gen cons_pp_8_lm = cons_pp_7_lm * (1 + (sgrowth_2008 * gdp_passthrough_lm/100))
+gen cons_pp_9_lm = cons_pp_8_lm * (1 + (sgrowth_2009 * gdp_passthrough_lm/100))
+gen cons_pp_10_lm = cons_pp_9_lm * (1 + (sgrowth_2010 * gdp_passthrough_lm/100))
+gen cons_pp_11_lm = cons_pp_10_lm * (1 + (sgrowth_2011 * gdp_passthrough_lm/100))
+gen cons_pp_12_lm = cons_pp_11_lm * (1 + (sgrowth_2012 * gdp_passthrough_lm/100))
+gen cons_pp_13_lm = cons_pp_12_lm * (1 + (sgrowth_2013 * gdp_passthrough_lm/100))
+gen cons_pp_14_lm = cons_pp_13_lm * (1 + (sgrowth_2014 * gdp_passthrough_lm/100))
+gen cons_pp_15_lm = cons_pp_14_lm * (1 + (sgrowth_2015 * gdp_passthrough_lm/100))
+
+*Calculate projected poverty headcounts 
+svyset clid [pweight=wta_pop], strata(strata)
+foreach i of numlist 6/15 {
+	gen proj_poor320_`i' = (cons_pp_`i'_lm < pline320)
+	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor320_`i' se lb ub) sebnone f(3) h2(Non-sectoral Simulation, Projected Poverty Headcount, 3.20 line, `i') append
+	}
+
+*Poverty at 1.25 line	
+*Pass-through rate assumption
+gen gdp_passthrough_ex = 0.43
+
+*Augment hh consumption expenditure 
+gen cons_pp_6_ex = cons_pp * (1 + (sgrowth_2006 * gdp_passthrough_ex/100))
+gen cons_pp_7_ex = cons_pp_6_ex * (1 + (sgrowth_2007 * gdp_passthrough_ex/100))
+gen cons_pp_8_ex = cons_pp_7_ex * (1 + (sgrowth_2008 * gdp_passthrough_ex/100))
+gen cons_pp_9_ex = cons_pp_8_ex * (1 + (sgrowth_2009 * gdp_passthrough_ex/100))
+gen cons_pp_10_ex = cons_pp_9_ex * (1 + (sgrowth_2010 * gdp_passthrough_ex/100))
+gen cons_pp_11_ex = cons_pp_10_ex * (1 + (sgrowth_2011 * gdp_passthrough_ex/100))
+gen cons_pp_12_ex = cons_pp_11_ex * (1 + (sgrowth_2012 * gdp_passthrough_ex/100))
+gen cons_pp_13_ex = cons_pp_12_ex * (1 + (sgrowth_2013 * gdp_passthrough_ex/100))
+gen cons_pp_14_ex = cons_pp_13_ex * (1 + (sgrowth_2014 * gdp_passthrough_ex/100))
+gen cons_pp_15_ex = cons_pp_14_ex * (1 + (sgrowth_2015 * gdp_passthrough_ex/100))
+
+*Calculate projected poverty headcounts 
+svyset clid [pweight=wta_pop], strata(strata)
+ 
+foreach i of numlist 6/15 {
+	gen proj_poor125_`i' = (cons_pp_`i'_ex < pline125)
+	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor125_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.25 line, `i') append
+	}
+
 	
 **********************************
 *MULTIDIMENSIONAL POVERTY

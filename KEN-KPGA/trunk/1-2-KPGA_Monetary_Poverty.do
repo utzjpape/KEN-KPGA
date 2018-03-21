@@ -18,49 +18,48 @@ use "${gsdData}/hh.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
 
-*Poverty Headcount ratio 2005
-*Create per capita aggregate
+*Poverty Headcount ratio 
+*Per capita aggregate
 gen double cons_pp = (y2_i*ctry_adq)/hhsize
 label var cons_pp "Per capita consumption (kshs, deflated, monthly)"
-gen pline190_povcal = 1051.89
-label var pline190_povcal "$1.90 poverty line in local currency according to PovcalNet"
 
-replace poor190_1 = (cons_pp < pline190_povcal) if kihbs==2005
+*Create per capita aggregate
+*calculating $1.90 a day poverty line (monthly)
+	*Step 1: Take the 2011 PP conversion factor and multiply by 1.90 *(365/12)
+	gen pline190_2011 = 35.4296 * 1.9 * (365/12)
+	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI to the average of the survey period CPI)
+	replace pline190 = pline190_2011 * (166.299/121.1654) if kihbs==2015
+	replace pline190 = pline190_2011 * (74.2557 / 121.1654) if kihbs==2005
+	drop pline190_2011
+	
+gen poor190 = (cons_pp < pline190) 
+label var poor190 "Poor under $1.90 a day poverty line (line = pline190)"
 
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190_1 se lb ub) sebnone f(3) h2(Poverty headcount ratio, by kihbs year) replace
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio, by kihbs year) replace
 
 *Poverty Gap
-*2005
-gen pgi = (pline190_povcal - cons_pp)/pline190_povcal if !mi(cons_pp) & cons_pp < pline190_povcal & kihbs==2005
-replace pgi = 0 if cons_pp>pline190_povcal & !mi(cons_pp) & kihbs==2005
-
-*2015
-replace pgi = (pline190 - y2_i)/pline190 if !mi(y2_i) & y2_i < pline190 & kihbs==2015
-replace pgi = 0 if y2_i>pline190 & !mi(y2_i) & kihbs==2015
+gen pgi = (pline190 - cons_pp)/pline190 if !mi(cons_pp) & cons_pp < pline190
+replace pgi = 0 if cons_pp>pline190 & !mi(cons_pp) 
 la var pgi "Poverty Gap Index"
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi se lb ub) sebnone f(3) h2(Poverty Gap Index, by kihbs year) append
 	
 *Extreme Poverty 
-*Calculating $1.25 a day poverty line (monthly)
-	*Step 1: Take the 2011 PPP conversion factor and multiply by 1.25 *(365/12)
+*Calculate $1.25 a day poverty line (monthly)
 	gen pline125_2011 = 35.4296 * 1.25 * (365/12)
-	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI for 2015(165.296) and 2005(79.8))
-	gen double pline125 = pline125_2011 * (166.14/121.17) if kihbs==2015
-	gen double pline125_povcal = 692.031 if kihbs==2005
+	gen pline125 = pline125_2011 * (166.299/121.1654) if kihbs==2015
+	replace pline125 = pline125_2011 * (74.2557 / 121.1654) if kihbs==2005
 	drop pline125_2011
-	label var pline125 "$1.25 a day poverty line (2011 ppp adjusted to prices at kihbs year)"	
-
-gen poor125 = (y2_i < pline125) if kihbs==2015
-replace poor125 = (cons_pp < pline125_povcal) if kihbs==2005
-label var poor125 "Extreme poor under $1.25 a day poverty line (line = pline125)"
+	
+gen poor125 = (cons_pp < pline125) 
+label var poor125 "Poor under $1.25 a day poverty line (line = pline125)"
 order poor125, after(pline125)
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor125 se lb ub) sebnone f(3) h2(Extreme poverty rate, by kihbs year) append
 
 *Inequality (GINI)
 *2015
-fastgini y2_i [pweight=wta_pop] if kihbs==2015
+fastgini cons_pp [pweight=wta_pop] if kihbs==2015
 return list 
 gen gini_overall_15=r(gini)
 qui tabout gini_overall_15 using "${gsdOutput}/Monetary_Poverty_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2015) append
@@ -72,28 +71,21 @@ gen gini_overall_05=r(gini)
 qui tabout gini_overall_05 using "${gsdOutput}/Monetary_Poverty_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005) append
 
 *Poverty at Lower Middle Income Class line of $3.20 USD PPP / day 
-*Calculate the 3.20 poverty line for 2005
+*Calculate 3.20 a day poverty line
 	gen pline320_2011 = 35.4296 * 3.20 * (365/12)
-	gen double pline320 = pline320_2011 * (166.14/121.17) if kihbs==2015
-	gen double pline320_povcal = 1771.6 if kihbs==2005
+	gen pline320 = pline320_2011 * (166.299/121.1654) if kihbs==2015
+	replace pline320 = pline320_2011 * (74.2557 / 121.1654) if kihbs==2005
 	drop pline320_2011
-	label var pline320 "LMIC poverty line $3.20 (2011 ppp adjusted to prices at kihbs year)"	
-
-gen poor320 = (y2_i < pline320) if kihbs==2015
-replace poor320 = (cons_pp < pline320_povcal) if kihbs==2005
-label var poor320 "Poor under $3.20 a day LMIC poverty line (line = pline320)"
-order poor320, after(pline320)
+	
+gen poor320 = (cons_pp < pline320) 
+label var poor320 "Poor under $3.20 a day poverty line (line = pline320)"
+order poor125, after(pline320)
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320 se lb ub) sebnone f(3) h2(Poverty rate at LMIC line of $3.20 USD PPP / day, by kihbs year) append
 
 *Poverty gap at LMIC line
-*2005
-gen pgi_320 = (pline320_povcal - cons_pp)/pline320_povcal if !mi(cons_pp) & cons_pp < pline320_povcal & kihbs==2005
-replace pgi_320 = 0 if cons_pp>pline320_povcal & !mi(cons_pp) & kihbs==2005
-
-*2015
-replace pgi_320 = (pline320 - y2_i)/pline320 if !mi(y2_i) & y2_i < pline320 & kihbs==2015
-replace pgi_320 = 0 if y2_i>pline320 & !mi(y2_i) & kihbs==2015
+gen pgi_320 = (pline320 - cons_pp)/pline320 if !mi(cons_pp) & cons_pp < pline320
+replace pgi_320 = 0 if cons_pp>pline320 & !mi(cons_pp)
 la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
@@ -104,18 +96,31 @@ qui tabout percentiles if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_sourc
 qui tabout percentiles if kihbs==2005 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i se ) sebnone f(3) h2(Total imputed consumption by quintiles, 2005) append
 
 *Consumption shock
-gen y2_i_shock = y2_i*0.9
-xtile percentiles_s = y2_i_shock [pweight=wta_pop], n(20)
+gen cons_pp_shock = cons_pp*0.9
+xtile percentiles_s = cons_pp_shock [pweight=wta_pop], n(20)
 
-gen poor190_shock = (y2_i_shock < pline190)
+gen poor190_shock = (cons_pp_shock < pline190)
 label var poor190_shock "10% consumption shock, poor under $1.90 a day LMIC poverty line (line = pline320)"
 
-gen poor320_shock = (y2_i_shock < pline320)
+gen poor320_shock = (cons_pp_shock < pline320)
 label var poor320_shock "10% consumption shock, poor under $3.20 a day LMIC poverty line (line = pline320)"
 
-qui tabout percentiles_s if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i_shock se ) sebnone f(3) h2(Total imputed consumption by quintiles, 10% Shock, 2015) append
+qui tabout percentiles_s if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp_shock se) sebnone f(3) h2(Total imputed consumption by quintiles, 10% Shock, 2015) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190_shock se) sebnone f(3) h2(Poverty headcount at IPL, 10% Shock, 2015) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320_shock se) sebnone f(3) h2(Poverty headcount at LMIC, 10% Shock, 2015) append
+
+*Mean consumption shortfall and poverty line for poverty gap
+
+gen cons_shortfall_190 = pline190 - cons_pp if poor190 == 1
+replace cons_shortfall_190 = 0 if poor190 == 0
+gen cons_shortfall_320 = pline320 - cons_pp if poor320 == 1
+replace cons_shortfall_320 = 0 if poor320 == 0
+
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_shortfall_190 se) sebnone f(3) h2(Mean consumption shortfall, pline 1.90, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_shortfall_320 se) sebnone f(3) h2(Mean consumption shortfall, pline 3.20, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline190 se) sebnone f(3) h2(Poverty line 1.90 in LCU, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline320 se) sebnone f(3) h2(Poverty line 3.20 in LCU, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline125 se) sebnone f(3) h2(Poverty line 1.25 in LCU, by kihbs year) append
 
 save "${gsdTemp}/clean_hh_0515.dta", replace
 
@@ -123,438 +128,141 @@ save "${gsdTemp}/clean_hh_0515.dta", replace
 **********************************
 *TRAJECTORY OF POVERTY 
 **********************************
+use "${gsdTemp}/clean_hh_0515.dta", clear
+
+*Sector aggregates for simulation, with GDP for missing sector
+gen tsector = hhsector
+replace tsector = 2 if inlist(hhsector, 2, 4)
+replace tsector = 4 if hhsector == . 
+label define ltsector 1 "Agriculture" 2 "Industry" 3 "Services" 4 "GDP"
+label val tsector ltsector
+
+save "${gsdData}/clean_hh_0515.dta", replace
 
 *Separate the cleaned dataset for the two years
 drop if kihbs==2015
 save "${gsdData}/KIHBS05/clean_hh_05.dta", replace
-use "${gsdTemp}/clean_hh_0515.dta", clear
+use "${gsdData}/clean_hh_0515.dta", clear
 drop if kihbs==2005
-save "${gsdData}/KIHBS15/clean_hh_15.dta", replace
-
-*A) Merge detailed employment sector info, using parts of 1-1_homogenize for cleaning
-*2005
-use "${gsdData}/KIHBS05/Section B Household member Information.dta", clear
-
-egen uhhid=concat(id_clust id_hh)
-label var uhhid "Unique HH id"
-
-*drop visitors
-drop if (b07==77)
-
-*relpacing dont know / not stated codes as missing (.z) - 139 observations
-replace b05a = .z if inlist(b05a,98,99)
-gen age=b05a
-label var age "Age"
-assert age!=.
-
-gen hhsizec 	= 1 if !mi(age)
-*generate dependats dummy (<15 OR >65)
-gen depen 	= (inrange(age, 0, 14) | (age>=66)) & !mi(age)
-*female working age
-gen female	= ((b04 == 2) & inrange(age, 15, 65))
-
-*generate age categories
-gen nfe0_4 	= (inrange(age, 0, 4) 	& (b04 == 2))
-gen nma0_4 	= (inrange(age, 0, 4) 	& (b04 == 1))
-gen nfe5_14	= (inrange(age, 5, 14) 	& (b04 == 2))
-gen nma5_14	= (inrange(age, 5, 14) 	& (b04 == 1))
-gen nfe15_24 	= (inrange(age, 15, 24) & (b04 == 2))
-gen nma15_24 	= (inrange(age, 15, 24) & (b04 == 1))
-gen nfe25_65 	= (inrange(age, 25, 65) & (b04 == 2))
-gen nma25_65 	= (inrange(age, 25, 65) & (b04 == 1))
-gen nfe66plus 	= ((age>=66) 		& (b04 == 2)) & !mi(age)
-gen nma66plus 	= ((age>=66) 		& (b04 == 1)) & !mi(age)
-
-gen n0_4 	= (inrange(age, 0, 4))
-gen n5_14	= (inrange(age, 5, 14))
-gen n15_24 	= (inrange(age, 15, 24))
-gen n25_65 	= (inrange(age, 25, 65))
-gen n66plus 	= (age>=66) & !mi(age)
-
-*check that every individual belongs to exactly one age-sex category
-egen tot = rowtotal(n0_4 n5_14 n15_24 n25_65 n66plus)
-assert tot == 1 if !mi(age)
-drop tot
-
-egen tot = rowtotal(nfe* nma*)
-assert tot == 1 if !mi(age)
-drop tot
-
-*recode relationship with household head to ensure compatability with 2005
-recode b03 (1 = 1) (2 = 2) (3 4 = 3) (5 = 4) (6 = 5) (7 = 6) (8 = 7) (9 10 = 8) , gen(famrel)
-label define lfamrel 1"Head" 2"Spouse" 3"Son / Daughter"  4"Father / Mother" 5"Sister / Brother" 6"Grandchild" 7"Other Relative"  8"Other non-relative" , modify
-label values famrel lfamrel
-label var famrel "Relationship to hh head"
-
-*labelling sex
-label define lsex 1"Male" 2"Female" , modify
-label values b04 lsex
-
-keep uhhid b_id famrel b04 age b05b
-order uhhid b_id famrel b04 age b05b
-sort uhhid b_id
-
-save "${gsdTemp}/demo05.dta", replace
-
-use "${gsdData}/KIHBS05/Section E Labour.dta", clear
-rename e_id b_id
-
-egen uhhid=concat(id_clust id_hh)
-label var uhhid "Unique HH id"
-isid uhhid b_id
-sort uhhid b_id
-
-merge 1:1 uhhid b_id using "${gsdTemp}/demo05.dta" , keep(match) nogen
-
-* individuals not eligible for employment module need to be dropped (e02 = filter);
-drop if e02 == 1
-* drop individuals 15+ (ILO Kenya procedure);
-drop if age <15
-
-*Unemployment 
-gen unemp=.
-*unemployed if "Seeking Work" or "Doing nothing"
-replace unemp= 1 if inlist(e03, 6, 7)
-*employed if active in the past 7d
-replace unemp= 0 if inlist(e03, 1, 2, 3, 4, 5)
-*employed if "Seeking work" with activity to return to
-replace unemp= 0 if inlist(e03, 6, 7) & (e09==1)
-*removing retired respondents    				
-replace unemp= . if inlist(e10, 2) | e03==8								
-
-egen hours=rsum(e05-e07) 
-*remioving employed, with no hours, no job to return
-replace unemp= . if (unemp==0 & e09==2 & hours==0) 					
-lab var unemp "Unemployed"
-
-*Not in the Labour force
-*persons are in the labour force if they are employed or unemployed
-gen nilf = 0 if inlist(unemp,0,1)
-*NILF if retired, homemaker, student, incapacitated
-replace nilf = 1 if inlist(e03,8,9,10,11) & unemp==.
-
-*Employment Status
-gen empstat=.
-*wage employee*
-replace empstat=1 if (unemp==0 & e04==1) 
-*self employed   			  
-replace empstat=2 if (unemp==0 & (e04==2 | e04==3)) 
-*unpaid family   
-replace empstat=3 if (unemp==0 & e04==4) 
-*apprentice   		   
-replace empstat=4 if (unemp==0 & e04==5) 
-*other   		    
-replace empstat=5 if (unemp==0 & e04==6)    		    
-*respondent is not asked e04 if inactive in the past 7d yet they have an activity to return to
-replace empstat=6 if (unemp==0 & mi(e04) & e09==1)    		    
-
-lab var empstat "Employment Status"
-
-lab def empstat 1 "Wage employed" 2 "Self employed" 3 "Unpaid fam worker" 4 "Apprentice" 5 "Other" 6"Missing status"
-lab val empstat empstat
-tab empstat unemp
-
-*Sector 
-gen ocusec=.
-replace ocusec=1 if e16>1000 & e16<2000
-replace ocusec=2 if e16>2000 & e16<3000
-replace ocusec=3 if e16>3000 & e16<4000
-replace ocusec=4 if e16>4000 & e16<5000
-replace ocusec=5 if e16>5000 & e16<6000
-replace ocusec=6 if e16>6000 & e16<7000
-replace ocusec=7 if e16>7000 & e16<8000
-replace ocusec=8 if e16>8000 & e16<9000
-replace ocusec=9 if e16>9000 & e16<10000
-
-*207 observations contain a sector of employment for unemployed individuals, all individuals are either seeking work or doing nothing.
-assert inlist(e03,6,7) if unemp== 1 & !mi(ocusec)
-replace ocusec = . if unemp==1
-
-lab var ocusec "Sector of occupation"
-
-*Group sectors with small sample size
-gen sector = .
-	replace sector = 1 if ocusec == 1
-	replace sector = 2 if ocusec == 2
-	replace sector = 2 if ocusec == 3
-	replace sector = 3 if ocusec == 4
-	replace sector = 3 if ocusec == 6
-	replace sector = 4 if ocusec == 5
-	replace sector = 5 if ocusec == 7
-	replace sector = 5 if ocusec == 8
-	replace sector = 6 if ocusec == 9
-
-lab def lsector 1 "Agriculture" 2 "Mining/Manufacturing" 3 "Utilities/Commerce/Tourism" 4 "Construction" 5 "Transport/Comms/Finance" 6 "Social Services" 
-lab val sector lsector
-lab var sector "HH sector of occupation"
-
-*Labor vars for HH head
-
-keep if b_id==1
-
-keep uhhid sector
-
-isid uhhid
-sort uhhid
-save "${gsdTemp}/hheadlabor05.dta", replace
-
+save "${gsdData}/KIHBS15/clean_hh_15.dta", replace	
+	
+*Increase hh consumption expenditure with sectoral growth and elasticity assumptions
 use "${gsdData}/KIHBS05/clean_hh_05.dta", clear
-egen uhhid=concat(clid hhid)
 
-merge 1:1 uhhid using "${gsdTemp}/hheadlabor05.dta", nogen
-	
-save "${gsdTemp}/hh_05_sectors.dta", replace	
-	
-*2015
-use "${gsdData}/KIHBS15/hhm.dta", clear
+sedecomposition using "${gsdData}/KIHBS15/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline190) pline2(pline190) var1(cons_pp) var2(cons_pp) hc
+sedecomposition using "${gsdData}/KIHBS15/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline320) pline2(pline320) var1(cons_pp) var2(cons_pp) hc
+sedecomposition using "${gsdData}/KIHBS15/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline125) pline2(pline125) var1(cons_pp) var2(cons_pp) hc
 
-keep clid hhid b*
-
-*recode relationship with household head to ensure compatability with 2005
-recode b03 (1 = 1) (2 = 2) (3 = 3) (6 = 4) (5 = 5) (4 = 6) (7 8 9 10 = 7) (11 = 8) , gen(famrel)
-label define lfamrel 1"Head" 2"Spouse" 3"Son / Daughter"  4"Father / Mother" 5"Sister / Brother" 6"Grandchild" 7"Other Relative"  8"Other non-relative" , modify
-label values famrel lfamrel
-label var famrel "Relationship to hh head"
-
-keep clid hhid  b01 famrel
-order clid hhid b01 famrel
-sort clid hhid  b01
-save "${gsdTemp}/demo15.dta", replace
-
-use "${gsdData}/KIHBS15/hhm.dta", clear
-
-merge 1:1 clid hhid b01 using "${gsdTemp}/demo15.dta", assert(match) keepusing(famrel) nogen
-
-* individuals not eligible for employment module need to be dropped (e02 = filter);
-keep if d01 == 1
-
-*Active if worked in one of the 6 activities in the last 7 days
-gen active_7d = 1 if d02_1 == 1 | d02_2 == 1 | d02_3 == 1 | d02_4 == 1 | d02_5 == 1 | d02_6 == 1 
-replace active_7d = 0 if (d02_1==2 & d02_2==2 & d02_3==2 & d02_4==2 & d02_5==2 & d02_6==2)
-
-*Unemployment 
-*An individual is considered unemployed if:
-	* They were not economically active in the past 7 days
-	* AND they do not have an activity to return to OR have an activity but no certain return date.
-	* Unemployment must also exclude those not considered as part of the labour force (those unavailable to start in <=4 weeks,incapactated, homemakers, full time students, the sick, those that don't need work and the retired.)
-
-gen unemp = .
-*UNEMPLOYED
-*Inactive & does not have a defined return date & no activity to return to.
-*Inactive & does not have a defined return date Or inactive and no activity to return to.
-replace unemp = 1 if (active_7d==0 & !inlist(d07,1,2,3))
-replace unemp = 1 if (active_7d==0 & d04_1=="G" )
-*Active in the last 7d OR Inactive with defined return date 
-replace unemp = 0 if active_7d==1
-replace unemp = 0 if active_7d==0 & inlist(d07,1,2,3)
-*EXCLUDED
-replace unemp = . if inlist(d13,5,8)
-replace unemp = . if inlist(d14,2,4,8,14,15,17)
-
-*Employment sectors
-*Sector 
-gen ocusec=.
-replace ocusec=1 if (d16>1000 & d16<2000)
-replace ocusec=2 if d16>2000 & d16<3000
-replace ocusec=3 if d16>3000 & d16<4000
-replace ocusec=4 if d16>4000 & d16<5000
-replace ocusec=5 if d16>5000 & d16<6000
-replace ocusec=6 if d16>6000 & d16<7000
-replace ocusec=7 if d16>7000 & d16<8000
-replace ocusec=8 if d16>8000 & d16<9000
-*creative arts & entertainment ==9000
-replace ocusec=9 if d16>=9000 & d16<10000
-
-*A number of emplyment sectors are have values of d16<1000 and must be entered again:
-*100 - 199 (Agriculutre related)
-replace ocusec=1 if inrange(d16,100,199)
-*200 - 299 (Forestry related)
-replace ocusec=1 if inrange(d16,200,299)
-*300 - 399 (Fishing related)
-replace ocusec=1 if inrange(d16,300,399)
-*500 - 599 (mining related)
-replace ocusec=2 if inrange(d16,500,599)
-*600 - 699 (petroleum extraction)
-replace ocusec=3 if inrange(d16,600,699)
-*700 - 799 (mining)
-replace ocusec=2 if inrange(d16,700,799)
-*800 - 899 (mining)
-replace ocusec=2 if inrange(d16,800,899)
-*900 - 999 (support to petroleum extraction)
-replace ocusec=3 if inrange(d16,900,999)
-lab var ocusec "Sector of occupation"
-
-*Group sectors with small sample size
-gen sector = .
-	replace sector = 1 if ocusec == 1
-	replace sector = 2 if ocusec == 2
-	replace sector = 2 if ocusec == 3
-	replace sector = 3 if ocusec == 4
-	replace sector = 3 if ocusec == 6
-	replace sector = 4 if ocusec == 5
-	replace sector = 5 if ocusec == 7
-	replace sector = 5 if ocusec == 8
-	replace sector = 6 if ocusec == 9
-
-lab def lsector 1 "Agriculture" 2 "Mining/Manufacturing" 3 "Utilities/Commerce/Tourism" 4 "Construction" 5 "Transport/Comms/Finance" 6 "Social Services" 
-lab val sector lsector
-lab var sector "HH sector of occupation"
-
-*assert that the only observations where the sector variable is missing is where the ISIC code is missing.
-assert mi(d16) if (mi(ocusec) & unemp==0)
-
-*Labor vars for HH head
-keep if b01==1
-
-keep clid hhid sector
-
-isid clid hhid
-sort clid hhid
-save "${gsdTemp}/hheadlabor15.dta", replace
-
-use "${gsdData}/KIHBS15/clean_hh_15.dta", clear
-
-merge 1:1 clid hhid using "${gsdTemp}/hheadlabor15.dta", nogen
-
-save "${gsdTemp}/hh_15_sectors.dta", replace	
-	
-*B) Increase hh consumption expenditure with sectoral growth and elasticity assumptions
-use "${gsdTemp}/hh_05_sectors.dta", clear
-
-sedecomposition using "${gsdTemp}/hh_15_sectors.dta" [w=wta_pop], sector(sector) pline1(pline190) pline2(pline190) var1(y2_i) var2(y2_i) hc
-sedecomposition using "${gsdTemp}/hh_15_sectors.dta" [w=wta_pop], sector(sector) pline1(pline320) pline2(pline320) var1(y2_i) var2(y2_i) hc
-
-*Merge GDP sector growth rates
-*If sector is missing, use overall GDP growth rate 
-replace sector = 7 if hhsector == . 
-
-merge m:1 sector using "/Users/marinatolchinsky/Documents/WB Poverty GP/KPGA/sector_growth.dta", nogen	
+*Merge GDP sector growth rates  
+merge m:1 tsector using "/Users/marinatolchinsky/Documents/WB Poverty GP/KPGA/sector_agg_growth.dta", nogen	
 	*no sectoral breakdown for 2006, use overall GDP
-	gen sgrowth_6 = 3.6 
+	gen sgrowth_2006 = 3.6 
 
 *Poverty at 1.90 line
 *Assumptions for sector-specific growth elasticity 
-gen sector_elasticity = 0.9 if sector == 1
-replace sector_elasticity = 0.2 if sector == 2
-replace sector_elasticity = 0.7 if sector == 3 
-replace sector_elasticity = 0.2 if sector == 4
-replace sector_elasticity = 0.0 if sector == 5
-replace sector_elasticity = 0.1 if sector == 6
-replace sector_elasticity = 0.7 if sector == 7
+gen sector_elasticity = 0.5 if tsector == 1
+replace sector_elasticity = 0.1 if tsector == 2
+replace sector_elasticity = 0.3 if tsector == 3 
+replace sector_elasticity = 0.25 if tsector == 4
 
 *Augment hh consumption expenditure 
-gen y2_i_6 = y2_i * (1 + (sgrowth_6 * sector_elasticity/100))
-gen y2_i_7 = y2_i_6 * (1 + (sgrowth_7 * sector_elasticity/100))
-gen y2_i_8 = y2_i_7 * (1 + (sgrowth_8 * sector_elasticity/100))
-gen y2_i_9 = y2_i_8 * (1 + (sgrowth_9 * sector_elasticity/100))
-gen y2_i_10 = y2_i_9 * (1 + (sgrowth_10 * sector_elasticity/100))
-gen y2_i_11 = y2_i_10 * (1 + (sgrowth_11 * sector_elasticity/100))
-gen y2_i_12 = y2_i_11 * (1 + (sgrowth_12 * sector_elasticity/100))
-gen y2_i_13 = y2_i_12 * (1 + (sgrowth_13 * sector_elasticity/100))
-gen y2_i_14 = y2_i_13 * (1 + (sgrowth_14 * sector_elasticity/100))
-gen y2_i_15 = y2_i_14 * (1 + (sgrowth_15 * sector_elasticity/100))
+gen cons_pp_6 = cons_pp * (1 + (sgrowth_2006 * sector_elasticity/100))
+gen cons_pp_7 = cons_pp_6 * (1 + (sgrowth_2007 * sector_elasticity/100))
+gen cons_pp_8 = cons_pp_7 * (1 + (sgrowth_2008 * sector_elasticity/100))
+gen cons_pp_9 = cons_pp_8 * (1 + (sgrowth_2009 * sector_elasticity/100))
+gen cons_pp_10 = cons_pp_9 * (1 + (sgrowth_2010 * sector_elasticity/100))
+gen cons_pp_11 = cons_pp_10 * (1 + (sgrowth_2011 * sector_elasticity/100))
+gen cons_pp_12 = cons_pp_11 * (1 + (sgrowth_2012 * sector_elasticity/100))
+gen cons_pp_13 = cons_pp_12 * (1 + (sgrowth_2013 * sector_elasticity/100))
+gen cons_pp_14 = cons_pp_13 * (1 + (sgrowth_2014 * sector_elasticity/100))
+gen cons_pp_15 = cons_pp_14 * (1 + (sgrowth_2015 * sector_elasticity/100))
 
 *Calculate projected poverty headcounts 
 svyset clid [pweight=wta_pop], strata(strata)
-gen proj_poor190_6 = (y2_i_6 < pline190)
+gen proj_poor190_6 = (cons_pp_6 < pline190)
 qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor190_6 se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.90 line, `i') replace
 
 foreach i of numlist 7/15 {
-	gen proj_poor190_`i' = (y2_i_`i' < pline190)
+	gen proj_poor190_`i' = (cons_pp_`i' < pline190)
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor190_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.90 line, `i') append
 	}
 
 *Poverty at 3.20 line
 *Assumptions for sector-specific growth elasticity 
-gen sector_elasticity_lm = 0.8 if sector == 1
-replace sector_elasticity_lm = 0.1 if sector == 2
-replace sector_elasticity_lm = 0.47 if sector == 3 
-replace sector_elasticity_lm = 0.1 if sector == 4
-replace sector_elasticity_lm = -0.4 if sector == 5
-replace sector_elasticity_lm = 0.0 if sector == 6
-replace sector_elasticity_lm = 0.65 if sector == 7
+gen sector_elasticity_lm = 0.2 if tsector == 1
+replace sector_elasticity_lm = 0.1 if tsector == 2
+replace sector_elasticity_lm = 0.3 if tsector == 3 
+replace sector_elasticity_lm = 0.4 if tsector == 4
 
 *Augment hh consumption expenditure 
-gen y2_i_6_lm = y2_i * (1 + (sgrowth_6 * sector_elasticity_lm/100))
-gen y2_i_7_lm = y2_i_6_lm * (1 + (sgrowth_7 * sector_elasticity_lm/100))
-gen y2_i_8_lm = y2_i_7_lm * (1 + (sgrowth_8 * sector_elasticity_lm/100))
-gen y2_i_9_lm = y2_i_8_lm * (1 + (sgrowth_9 * sector_elasticity_lm/100))
-gen y2_i_10_lm = y2_i_9_lm * (1 + (sgrowth_10 * sector_elasticity_lm/100))
-gen y2_i_11_lm = y2_i_10_lm * (1 + (sgrowth_11 * sector_elasticity_lm/100))
-gen y2_i_12_lm = y2_i_11_lm * (1 + (sgrowth_12 * sector_elasticity_lm/100))
-gen y2_i_13_lm = y2_i_12_lm * (1 + (sgrowth_13 * sector_elasticity_lm/100))
-gen y2_i_14_lm = y2_i_13_lm * (1 + (sgrowth_14 * sector_elasticity_lm/100))
-gen y2_i_15_lm = y2_i_14_lm * (1 + (sgrowth_15 * sector_elasticity_lm/100))
+gen cons_pp_6_lm = cons_pp * (1 + (sgrowth_2006 * sector_elasticity_lm/100))
+gen cons_pp_7_lm = cons_pp_6_lm * (1 + (sgrowth_2007 * sector_elasticity_lm/100))
+gen cons_pp_8_lm = cons_pp_7_lm * (1 + (sgrowth_2008 * sector_elasticity_lm/100))
+gen cons_pp_9_lm = cons_pp_8_lm * (1 + (sgrowth_2009 * sector_elasticity_lm/100))
+gen cons_pp_10_lm = cons_pp_9_lm * (1 + (sgrowth_2010 * sector_elasticity_lm/100))
+gen cons_pp_11_lm = cons_pp_10_lm * (1 + (sgrowth_2011 * sector_elasticity_lm/100))
+gen cons_pp_12_lm = cons_pp_11_lm * (1 + (sgrowth_2012 * sector_elasticity_lm/100))
+gen cons_pp_13_lm = cons_pp_12_lm * (1 + (sgrowth_2013 * sector_elasticity_lm/100))
+gen cons_pp_14_lm = cons_pp_13_lm * (1 + (sgrowth_2014 * sector_elasticity_lm/100))
+gen cons_pp_15_lm = cons_pp_14_lm * (1 + (sgrowth_2015 * sector_elasticity_lm/100))
 
 *Calculate projected poverty headcounts 
 svyset clid [pweight=wta_pop], strata(strata)
 foreach i of numlist 6/15 {
-	gen proj_poor320_`i' = (y2_i_`i'_lm < pline320)
+	gen proj_poor320_`i' = (cons_pp_`i'_lm < pline320)
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor320_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 3.20 line, `i') append
 	}
 
 *Poverty at 1.25 line	
 *Assumptions for sector-specific growth elasticity 
-gen sector_elasticity_ex = 0.9 if sector == 1
-replace sector_elasticity_ex = 0.2 if sector == 2
-replace sector_elasticity_ex = 0.3 if sector == 3 
-replace sector_elasticity_ex = 0.2 if sector == 4
-replace sector_elasticity_ex = 0 if sector == 5
-replace sector_elasticity_ex = 0.1 if sector == 6
-replace sector_elasticity_ex = 0.7 if sector == 7
+gen sector_elasticity_ex = 0.75 if tsector == 1
+replace sector_elasticity_ex = 0.1 if tsector == 2
+replace sector_elasticity_ex = 0.4 if tsector == 3 
+replace sector_elasticity_ex = 0.35 if tsector == 4
 
 *Augment hh consumption expenditure 
-gen y2_i_6_ex = y2_i * (1 + (sgrowth_6 * sector_elasticity_ex/100))
-gen y2_i_7_ex = y2_i_6_ex * (1 + (sgrowth_7 * sector_elasticity_ex/100))
-gen y2_i_8_ex = y2_i_7_ex * (1 + (sgrowth_8 * sector_elasticity_ex/100))
-gen y2_i_9_ex = y2_i_8_ex * (1 + (sgrowth_9 * sector_elasticity_ex/100))
-gen y2_i_10_ex = y2_i_9_ex * (1 + (sgrowth_10 * sector_elasticity_ex/100))
-gen y2_i_11_ex = y2_i_10_ex * (1 + (sgrowth_11 * sector_elasticity_ex/100))
-gen y2_i_12_ex = y2_i_11_ex * (1 + (sgrowth_12 * sector_elasticity_ex/100))
-gen y2_i_13_ex = y2_i_12_ex * (1 + (sgrowth_13 * sector_elasticity_ex/100))
-gen y2_i_14_ex = y2_i_13_ex * (1 + (sgrowth_14 * sector_elasticity_ex/100))
-gen y2_i_15_ex = y2_i_14_ex * (1 + (sgrowth_15 * sector_elasticity_ex/100))
+gen cons_pp_6_ex = cons_pp * (1 + (sgrowth_2006 * sector_elasticity_ex/100))
+gen cons_pp_7_ex = cons_pp_6_ex * (1 + (sgrowth_2007 * sector_elasticity_ex/100))
+gen cons_pp_8_ex = cons_pp_7_ex * (1 + (sgrowth_2008 * sector_elasticity_ex/100))
+gen cons_pp_9_ex = cons_pp_8_ex * (1 + (sgrowth_2009 * sector_elasticity_ex/100))
+gen cons_pp_10_ex = cons_pp_9_ex * (1 + (sgrowth_2010 * sector_elasticity_ex/100))
+gen cons_pp_11_ex = cons_pp_10_ex * (1 + (sgrowth_2011 * sector_elasticity_ex/100))
+gen cons_pp_12_ex = cons_pp_11_ex * (1 + (sgrowth_2012 * sector_elasticity_ex/100))
+gen cons_pp_13_ex = cons_pp_12_ex * (1 + (sgrowth_2013 * sector_elasticity_ex/100))
+gen cons_pp_14_ex = cons_pp_13_ex * (1 + (sgrowth_2014 * sector_elasticity_ex/100))
+gen cons_pp_15_ex = cons_pp_14_ex * (1 + (sgrowth_2015 * sector_elasticity_ex/100))
 
 *Calculate projected poverty headcounts 
 svyset clid [pweight=wta_pop], strata(strata)
  
 foreach i of numlist 6/15 {
-	gen proj_poor125_`i' = (y2_i_`i'_ex < pline125)
+	gen proj_poor125_`i' = (cons_pp_`i'_ex < pline125)
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor125_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.25 line, `i') append
 	}
 	
 *Calculate projected poverty gaps
 foreach i of numlist 6/15 {
-	gen proj_pgi_`i' = (pline190 - y2_i_`i')/pline190 if !mi(y2_i_`i') & y2_i_`i' < pline190 
-	replace proj_pgi_`i' = 0 if y2_i_`i' > pline190 & !mi(y2_i_`i') 
+	gen proj_pgi_`i' = (pline190 - cons_pp_`i')/pline190 if !mi(cons_pp_`i') & cons_pp_`i' < pline190 
+	replace proj_pgi_`i' = 0 if cons_pp_`i' > pline190 & !mi(cons_pp_`i') 
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_pgi_`i' se lb ub) sebnone f(3) h2(Projected Poverty Gap, 1.90 line, `i') append
 	}
 
 foreach i of numlist 6/15 {
-	gen proj_pgi_`i'_lm = (pline320 - y2_i_`i'_lm)/pline320 if !mi(y2_i_`i'_lm) & y2_i_`i'_lm < pline320 
-	replace proj_pgi_`i'_lm = 0 if y2_i_`i'_lm > pline320 & !mi(y2_i_`i'_lm) 
+	gen proj_pgi_`i'_lm = (pline320 - cons_pp_`i'_lm)/pline320 if !mi(cons_pp_`i'_lm) & cons_pp_`i'_lm < pline320 
+	replace proj_pgi_`i'_lm = 0 if cons_pp_`i'_lm > pline320 & !mi(cons_pp_`i'_lm) 
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_pgi_`i'_lm se lb ub) sebnone f(3) h2(Projected Poverty Gap, 3.20 line, `i') append
 	}
 	
 foreach i of numlist 6/15 {
-	gen proj_pgi_`i'_ex = (pline125 - y2_i_`i'_ex)/pline125 if !mi(y2_i_`i'_ex) & y2_i_`i'_lm < pline125
-	replace proj_pgi_`i'_ex = 0 if y2_i_`i'_ex > pline125 & !mi(y2_i_`i'_ex) 
+	gen proj_pgi_`i'_ex = (pline125 - cons_pp_`i'_ex)/pline125 if !mi(cons_pp_`i'_ex) & cons_pp_`i'_lm < pline125
+	replace proj_pgi_`i'_ex = 0 if cons_pp_`i'_ex > pline125 & !mi(cons_pp_`i'_ex) 
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_pgi_`i'_ex se lb ub) sebnone f(3) h2(Projected Poverty Gap, 1.25 line, `i') append
 	}
 	
-*Mean incomes for poverty gap graph
-foreach i of numlist 6/15 {
-	qui tabout kihbs if proj_poor190_`i' == 1 using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean y2_i_`i' se lb ub) sebnone f(3) h2(Mean income under 1.90 line, `i') append
-	}
-	
-foreach i of numlist 6/15 {
-	qui tabout kihbs if proj_poor320_`i' == 1 using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean y2_i_`i'_lm se lb ub) sebnone f(3) h2(Mean income under 3.20 line, `i') append
-	}	
-
 *Trajectory of poverty to 2030 with annualized poverty change 2005-2015 (-3.82)
 use "${gsdData}/KIHBS15/clean_hh_15.dta", clear
 
-gen proj_poor190_30 = poor190_1 * (1 - (0.0382*15))
+gen proj_poor190_30 = poor190 * (1 - (0.0183*15))
 qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor190_30`i' se lb ub) sebnone f(3) h2(Projected Poverty Rate 2030, annualized percentage reduction poverty) append
 	
 	

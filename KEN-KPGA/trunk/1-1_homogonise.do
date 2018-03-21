@@ -34,18 +34,6 @@ label var poor "Poor under pl"
 tabstat poor* [aw=wta_pop]
 tabstat poor [aw=wta_pop], by(resid)
 
-gen pline190 = .
-*2011 $1.90 a day poverty line = 2011 PPP conversion factor (private consumption) * 1.9 * (365/12)
-*35.429676*1.9*(365/12)
-gen pline190_2011 = 2047.54
-*deflate 2011 line using ratio of CPI indices.
-*2011 avg. = 121.17
-*2005/06 svy. avg. = 74.36
-
-*2005/06 $1.90 a day poverty line = 
-replace pline190 = pline190_2011 * (74.36/121.17)
-drop pline190_2011
-
 *Create additional pov / expenditure measures
 *Measure of 2x poverty line.
 gen twx_poor = (y2_i<(z2_i*2)) 
@@ -123,21 +111,7 @@ save "${gsdData}/1-CleanTemp/section_a.dta", replace
 ****************************************
 use "${gsdData}/1-CleanTemp/section_a.dta" , clear
 merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
-*calculating $1.90 a day poverty line (monthly)
-	*Step 1: Take the 2011 PP conversion factor and multiply by 1.90 *(365/12)
-	gen pline190_2011 = 35.4296 * 1.9 * (365/12)
-	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI (121.17) to the average of the survey period CPI (166.144))
-	gen double pline190 = pline190_2011 * (166.1438105/121.17)
-	drop pline190_2011
-
-merge 1:1 clid hhid using  "${gsdDataRaw}/KIHBS15/poverty.dta" , assert(match) keepusing(wta_hh wta_pop wta_adq ctry_adq clid hhid fdtexp nfdtexp hhtexp fpindex y2_i y_i z2_i z_i urban fdtexpdr nfdtexpdr hhtexpdr adqexp adqexpdr poor_food poor twx_poor) nogen
-
-label var pline190 "$1.90 a day poverty line (2011 ppp adjusted to 2016 prices)"	
-	
-
 save "${gsdData}/1-CleanTemp/hhpoverty.dta" , replace
-
-
 **********************************
 *2005 HH composition
 **********************************
@@ -1461,22 +1435,45 @@ save "${gsdData}/1-CleanOutput/kihbs15_16.dta", replace
 *appending 2 datasets
 use "${gsdData}/1-CleanOutput/kihbs15_16.dta" , clear
 append using   "${gsdData}/1-CleanOutput/kihbs05_06.dta"
-*generating $1.90 poverty dummy for 2015
-gen double agg190 = y2_i
-replace agg190 =  y2_i - nfdrent if urban==1 & kihbs==2015
-gen poor190_1 = (y2_i < pline190) 
-label var poor190_1 "Poor under $1.90 a day poverty line (line = pline190, agg = total)"
-gen poor190_2 = (agg190 < pline190)
-label var poor190_2 "Poor under $1.90 a day poverty line (line = pline190, agg = w/out rent)"
-label var agg190 "y2_i - rent (used for $1.90-a-day estimates)"
-
-order poor190_1 poor190_2 , after(pline190)
-
 *dropping households not used in 05 pov. estimation from 05 sample.
 keep if filter == 1 | kihbs==2015
+
+*Create dummies for poverty using international poverty line
+*generate per capita aggregate and divide by 2011 private consumption PPP conversion factor
+gen double cons_pp = (y2_i*ctry_adq)/hhsize
+replace cons_pp = cons_pp / 35.4296
+assert !mi(cons_pp)
+gen cpi2011 =.
+*2005/06 - CPI Deflator
+local cpi2005_cpi = 8/13*(72.5720268908468/121.165396064531)
+local cpi2006_cpi=5/13*(76.949915626827/121.165396064531)
+replace cpi2011= 1/(`cpi2005_cpi'+`cpi2006_cpi') if kihbs==2005
+*2015/16 - CPI Deflator
+local cpi2015_cpi = 4/12*(159.598887706963/121.165396064531)
+local cpi2016_cpi=8/12*(169.64908107332/121.165396064531)
+replace cpi2011 = 1/(`cpi2015_cpi'+`cpi2016_cpi') if kihbs==2015
+
+gen pline125 = (1.25*(365/12))/cpi2011
+gen poor125 = (cons_pp < pline125)
+gen pline190 = (1.90*(365/12))/cpi2011
+gen poor190 = (cons_pp < pline190)
+gen pline320 = (3.20*(365/12))/cpi2011
+gen poor320 = (cons_pp < pline320)
+
+label var cons_pp "Per capita aggregate (2011 US$)"
+label var cpi2011 "CPI deflator"
+label var pline125 "$1.25 2011 poverty line deflated to 2005/06 & inflated to 2015/16 - Official"
+label var poor125 "Poor under $1.25 poverty line (2011 US$)"
+label var pline190 "$1.90 2011 poverty line deflated to 2005/06 & inflated to 2015/16 - Official"
+label var poor190 "Poor under $1.90 poverty line (2011 US$)"
+label var pline320 "$3.20 2011 poverty line deflated to 2005/06 & inflated to 2015/16 - Official"
+label var poor320 "Poor under $3.20 poverty line (2011 US$)"
+
 order kihbs resid urban eatype county cycle
 order hhsizec ctry_adq, after(hhsize) 
+label var province "Province"
 label var hhsizec "hhsize (ind. missing age not counted) - only 2005"
+label var rent "Rent (imputed and actual - for urban hh only)"
 replace urban = (resid - 1) if mi(urban)
 drop rururb
 sort kihbs county resid clid hhid

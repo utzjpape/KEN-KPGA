@@ -118,8 +118,8 @@ replace cons_shortfall_320 = 0 if poor320 == 0
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_shortfall_190 se) sebnone f(3) h2(Mean consumption shortfall, pline 1.90, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_shortfall_320 se) sebnone f(3) h2(Mean consumption shortfall, pline 3.20, by kihbs year) append
-qui tabout kihbs if poor190==1 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i se) sebnone f(3) h2(Mean consumption expenditure, poor under 1.90, by kihbs year) append
-qui tabout kihbs if poor320==1 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i se) sebnone f(3) h2(Mean consumption expenditure, poor under 3.20, by kihbs year) append
+qui tabout kihbs if poor190==1 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp se) sebnone f(3) h2(Mean consumption expenditure, poor under 1.90, by kihbs year) append
+qui tabout kihbs if poor320==1 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp se) sebnone f(3) h2(Mean consumption expenditure, poor under 3.20, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline190 se) sebnone f(3) h2(Poverty line 1.90 in LCU, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline320 se) sebnone f(3) h2(Poverty line 3.20 in LCU, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline125 se) sebnone f(3) h2(Poverty line 1.25 in LCU, by kihbs year) append
@@ -574,6 +574,9 @@ replace stunted = 0 if _zlen >= -2 & _zlen!=.
 gen malnourished = .
 replace malnourished = 1 if _cbmi < 18.5 & age >= 18 
 replace malnourished = 0 if _cbmi >= 18.5 & age >= 18 & _cbmi!=.
+
+*Child immunized for measles
+
 
 la var literacy_hhm "Literate, age 15+" 
 la var complete_primary "Completed primary schooling, age 25+"

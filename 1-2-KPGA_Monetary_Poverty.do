@@ -576,7 +576,9 @@ replace malnourished = 1 if _cbmi < 18.5 & age >= 18
 replace malnourished = 0 if _cbmi >= 18.5 & age >= 18 & _cbmi!=.
 
 *Child immunized for measles
-
+gen immunized_measles = .
+replace immunized_measles = 1 if f20 == 1 & inrange(age_months,12,23)
+	*Sample size is too small (13 children in the age range)
 
 la var literacy_hhm "Literate, age 15+" 
 la var complete_primary "Completed primary schooling, age 25+"

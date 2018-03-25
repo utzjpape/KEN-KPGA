@@ -344,7 +344,135 @@ foreach i of numlist 6/15 {
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor125_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.25 line, `i') append
 	}
 
-	
+*Growth-redistribution to 2030 simulation
+use "${gsdData}/KIHBS15/clean_hh_15.dta", clear	
+
+svyset clid [pweight=wta_pop], strata(strata)
+
+*Growth with no redistribution to reach poverty < 3% in 2030
+gen gr_cons_2030 = cons_pp * (1 + (0.1138*15))
+gen gr_poor_2030 = gr_cons_2030 < pline190
+svy: mean gr_poor_2030
+
+*Redistribution with no growth to reach poverty < 3% in 2030
+gen re_cons_2030 = cons_pp + (.0289 * 15) * (5120 - cons_pp)
+gen re_poor_2030 = re_cons_2030 < pline190
+svy: mean re_poor_2030
+fastgini re_cons_2030 [pweight=wta_pop] 
+
+*Combination growth-redistribution to reach poverty < 3% in 2030
+
+*0.5% growth
+gen gi05_cons_2030 = cons_pp * (1 + (0.005*15)) + ((.0277 * 15) * (5120 - cons_pp))
+gen gi05_poor_2030 = gi05_cons_2030 < pline190
+svy: mean gi05_poor_2030
+
+*1% growth
+gen gi1_cons_2030 = cons_pp * (1 + (0.01*15)) + ((.0264 * 15) * (5120 - cons_pp))
+gen gi1_poor_2030 = gi1_cons_2030 < pline190
+svy: mean gi1_poor_2030
+
+*1.5% growth
+gen gi15_cons_2030 = cons_pp * (1 + (0.015*15)) + ((.0251 * 15) * (5120 - cons_pp))
+gen gi15_poor_2030 = gi15_cons_2030 < pline190
+svy: mean gi15_poor_2030
+
+*2% growth
+gen gi2_cons_2030 = cons_pp * (1 + (0.02*15)) + ((.0238 * 15) * (5120 - cons_pp))
+gen gi2_poor_2030 = gi2_cons_2030 < pline190
+svy: mean gi2_poor_2030
+
+*2.5% growth
+gen gi25_cons_2030 = cons_pp * (1 + (0.025*15)) + ((.0226 * 15) * (5120 - cons_pp))
+gen gi25_poor_2030 = gi25_cons_2030 < pline190
+svy: mean gi25_poor_2030
+
+*3% growth
+gen gi3_cons_2030 = cons_pp * (1 + (0.03*15)) + ((.0212 * 15) * (5120 - cons_pp))
+gen gi3_poor_2030 = gi3_cons_2030 < pline190
+svy: mean gi3_poor_2030
+
+*3.5% growth
+gen gi35_cons_2030 = cons_pp * (1 + (0.035*15)) + ((.02 * 15) * (5120 - cons_pp))
+gen gi35_poor_2030 = gi35_cons_2030 < pline190
+svy: mean gi35_poor_2030
+
+*4% growth
+gen gi4_cons_2030 = cons_pp * (1 + (0.04*15)) + ((.0187 * 15) * (5120 - cons_pp))
+gen gi4_poor_2030 = gi4_cons_2030 < pline190
+svy: mean gi4_poor_2030
+
+*4.5% growth
+gen gi45_cons_2030 = cons_pp * (1 + (0.045*15)) + ((.0175 * 15) * (5120 - cons_pp))
+gen gi45_poor_2030 = gi45_cons_2030 < pline190
+svy: mean gi45_poor_2030
+
+*5% growth
+gen gi5_cons_2030 = cons_pp * (1 + (0.05*15)) + ((.0161 * 15) * (5120 - cons_pp))
+gen gi5_poor_2030 = gi5_cons_2030 < pline190
+svy: mean gi5_poor_2030
+
+*5.5% growth
+gen gi55_cons_2030 = cons_pp * (1 + (0.055*15)) + ((.0148 * 15) * (5120 - cons_pp))
+gen gi55_poor_2030 = gi55_cons_2030 < pline190
+svy: mean gi55_poor_2030
+
+*6% growth
+gen gi6_cons_2030 = cons_pp * (1 + (0.06*15)) + ((.0136 * 15) * (5120 - cons_pp))
+gen gi6_poor_2030 = gi6_cons_2030 < pline190
+svy: mean gi6_poor_2030
+
+*6.5% growth
+gen gi65_cons_2030 = cons_pp * (1 + (0.065*15)) + ((.0124 * 15) * (5120 - cons_pp))
+gen gi65_poor_2030 = gi65_cons_2030 < pline190
+svy: mean gi65_poor_2030
+
+*7% growth
+gen gi7_cons_2030 = cons_pp * (1 + (0.07*15)) + ((.011 * 15) * (5120 - cons_pp))
+gen gi7_poor_2030 = gi7_cons_2030 < pline190
+svy: mean gi7_poor_2030
+
+*7.5% growth
+gen gi75_cons_2030 = cons_pp * (1 + (0.075*15)) + ((.0097 * 15) * (5120 - cons_pp))
+gen gi75_poor_2030 = gi75_cons_2030 < pline190
+svy: mean gi75_poor_2030
+
+*8% growth
+gen gi8_cons_2030 = cons_pp * (1 + (0.08*15)) + ((.0085 * 15) * (5120 - cons_pp))
+gen gi8_poor_2030 = gi8_cons_2030 < pline190
+svy: mean gi8_poor_2030
+
+*8.5% growth
+gen gi85_cons_2030 = cons_pp * (1 + (0.085*15)) + ((.0073 * 15) * (5120 - cons_pp))
+gen gi85_poor_2030 = gi85_cons_2030 < pline190
+svy: mean gi85_poor_203
+
+*9% growth
+gen gi9_cons_2030 = cons_pp * (1 + (0.09*15)) + ((.006 * 15) * (5120 - cons_pp))
+gen gi9_poor_2030 = gi9_cons_2030 < pline190
+svy: mean gi9_poor_2030
+
+*9.5% growth
+gen gi95_cons_2030 = cons_pp * (1 + (0.095*15)) + ((.0047 * 15) * (5120 - cons_pp))
+gen gi95_poor_2030 = gi95_cons_2030 < pline190
+svy: mean gi95_poor_2030
+
+*10% growth
+gen gi10_cons_2030 = cons_pp * (1 + (0.10*15)) + ((.0035 * 15) * (5120 - cons_pp))
+gen gi10_poor_2030 = gi10_cons_2030 < pline190
+svy: mean gi10_poor_2030
+
+*10.5% growth
+gen gi105_cons_2030 = cons_pp * (1 + (0.105*15)) + ((.002 * 15) * (5120 - cons_pp))
+gen gi105_poor_2030 = gi105_cons_2030 < pline190
+svy: mean gi105_poor_2030
+
+*11% growth
+gen gi11_cons_2030 = cons_pp * (1 + (0.11*15)) + ((.0009 * 15) * (5120 - cons_pp))
+gen gi11_poor_2030 = gi11_cons_2030 < pline190
+svy: mean gi11_poor_2030
+
+
 **********************************
 *MULTIDIMENSIONAL POVERTY
 **********************************
@@ -368,8 +496,10 @@ use "${gsdData}/KIHBS15/hhm.dta", clear
 *Cleaning code from 1-1_homogenise, with some changes to create necessary education indicators
 ren b05_yy age
 assert !mi(age)
-*drop observations where age filter is either no or don't know. 
-drop if inlist(c01,2,9)
+
+*drop observations where age filter is illogical or don't know
+drop if inlist(c01,9)
+drop if c01 == 2 & age > 2
 
 *In order to maintain data structure one variable will be created for the highest level ed. completed.
 gen yrsch = .

@@ -14,11 +14,11 @@ if "${gsdData}"=="" {
 *MONETARY POVERTY
 **********************************
 
-use "${gsdData}/hh.dta", clear
+use "${gsdData}/1-CleanOutput/hh.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
 
-*Poverty Headcount ratio 
+*Poverty at 1.90 a day line 
 *Per capita aggregate
 gen double cons_pp = (y2_i*ctry_adq)/hhsize
 label var cons_pp "Per capita consumption (kshs, deflated, monthly)"
@@ -35,16 +35,16 @@ label var cons_pp "Per capita consumption (kshs, deflated, monthly)"
 gen poor190 = (cons_pp < pline190) 
 label var poor190 "Poor under $1.90 a day poverty line (line = pline190)"
 
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio, by kihbs year) replace
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio at 1.90 line, by kihbs year) replace
 
 *Poverty Gap
 gen pgi = (pline190 - cons_pp)/pline190 if !mi(cons_pp) & cons_pp < pline190
 replace pgi = 0 if cons_pp>pline190 & !mi(cons_pp) 
-la var pgi "Poverty Gap Index"
+la var pgi "Poverty Gap Index, 1.90 poverty line"
 
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi se lb ub) sebnone f(3) h2(Poverty Gap Index, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi se lb ub) sebnone f(3) h2(Poverty Gap Index at 1.90 line, by kihbs year) append
 	
-*Extreme Poverty 
+*Poverty at 1.25 a day line
 *Calculate $1.25 a day poverty line (monthly)
 	gen pline125_2011 = 35.4296 * 1.25 * (365/12)
 	gen pline125 = pline125_2011 * (166.299/121.1654) if kihbs==2015
@@ -55,7 +55,14 @@ gen poor125 = (cons_pp < pline125)
 label var poor125 "Poor under $1.25 a day poverty line (line = pline125)"
 order poor125, after(pline125)
 
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor125 se lb ub) sebnone f(3) h2(Extreme poverty rate, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor125 se lb ub) sebnone f(3) h2(Poverty rate at 1.25 line, by kihbs year) append
+
+*Poverty Gap
+gen pgi_125 = (pline125 - cons_pp)/pline125 if !mi(cons_pp) & cons_pp < pline125
+replace pgi = 0 if cons_pp>pline125 & !mi(cons_pp) 
+la var pgi "Poverty Gap Index, 1.25 poverty line"
+
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_125 se lb ub) sebnone f(3) h2(Poverty gap at 1.25 line, by kihbs year) append
 
 *Inequality (GINI)
 *2015
@@ -81,7 +88,7 @@ gen poor320 = (cons_pp < pline320)
 label var poor320 "Poor under $3.20 a day poverty line (line = pline320)"
 order poor125, after(pline320)
 
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320 se lb ub) sebnone f(3) h2(Poverty rate at LMIC line of $3.20 USD PPP / day, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320 se lb ub) sebnone f(3) h2(Poverty rate at LMIC line, by kihbs year) append
 
 *Poverty gap at LMIC line
 gen pgi_320 = (pline320 - cons_pp)/pline320 if !mi(cons_pp) & cons_pp < pline320
@@ -124,13 +131,13 @@ qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mea
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline320 se) sebnone f(3) h2(Poverty line 3.20 in LCU, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline125 se) sebnone f(3) h2(Poverty line 1.25 in LCU, by kihbs year) append
 
-save "${gsdTemp}/clean_hh_0515.dta", replace
+save "${gsdData}/1-CleanOutput/clean_hh_0515.dta", replace
 
 
 **********************************
 *TRAJECTORY OF POVERTY 
 **********************************
-use "${gsdTemp}/clean_hh_0515.dta", clear
+use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
 
 *Sector aggregates for simulation, with GDP for missing sector
 gen tsector = hhsector
@@ -139,21 +146,21 @@ replace tsector = 4 if hhsector == .
 label define ltsector 1 "Agriculture" 2 "Industry" 3 "Services" 4 "GDP"
 label val tsector ltsector
 
-save "${gsdData}/clean_hh_0515.dta", replace
+save "${gsdData}/1-CleanOutput/clean_hh_0515.dta", replace
 
 *Separate the cleaned dataset for the two years
 drop if kihbs==2015
-save "${gsdData}/KIHBS05/clean_hh_05.dta", replace
-use "${gsdData}/clean_hh_0515.dta", clear
+save "${gsdData}/1-CleanOutput/clean_hh_05.dta", replace
+use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
 drop if kihbs==2005
-save "${gsdData}/KIHBS15/clean_hh_15.dta", replace	
+save "${gsdData}/1-CleanOutput/clean_hh_15.dta", replace	
 	
 *Increase hh consumption expenditure with sectoral growth and elasticity assumptions
-use "${gsdData}/KIHBS05/clean_hh_05.dta", clear
+use "${gsdData}/1-CleanOutput/clean_hh_05.dta", clear
 
-sedecomposition using "${gsdData}/KIHBS15/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline190) pline2(pline190) var1(cons_pp) var2(cons_pp) hc
-sedecomposition using "${gsdData}/KIHBS15/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline320) pline2(pline320) var1(cons_pp) var2(cons_pp) hc
-sedecomposition using "${gsdData}/KIHBS15/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline125) pline2(pline125) var1(cons_pp) var2(cons_pp) hc
+sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline190) pline2(pline190) var1(cons_pp) var2(cons_pp) hc
+sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline320) pline2(pline320) var1(cons_pp) var2(cons_pp) hc
+sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline125) pline2(pline125) var1(cons_pp) var2(cons_pp) hc
 
 *Merge GDP sector growth rates  
 merge m:1 tsector using "/Users/marinatolchinsky/Documents/WB Poverty GP/KPGA/sector_agg_growth.dta", nogen	
@@ -262,12 +269,12 @@ foreach i of numlist 6/15 {
 	}
 	
 *Trajectory of poverty to 2030 with annualized poverty change 2005-2015 (-3.82)
-use "${gsdData}/KIHBS05/clean_hh_05.dta", clear
+use "${gsdData}/1-CleanOutput/clean_hh_05.dta", clear
 gen proj_poor190_30 = poor190 * (1 - (0.0183*15))
 qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor190_30`i' se lb ub) sebnone f(3) h2(Projected Poverty Rate 2030, annualized percentage reduction poverty) append
 	
 *Non-sector simulation, with general GDP pass-through rate
-use "${gsdData}/KIHBS05/clean_hh_05.dta", clear
+use "${gsdData}/1-CleanOutput/clean_hh_05.dta", clear
 
 replace tsector = 4
 
@@ -345,7 +352,7 @@ foreach i of numlist 6/15 {
 	}
 
 *Growth-redistribution to 2030 simulation
-use "${gsdData}/KIHBS15/clean_hh_15.dta", clear	
+use "${gsdData}/1-CleanOutput/clean_hh_15.dta", clear	
 
 svyset clid [pweight=wta_pop], strata(strata)
 
@@ -476,7 +483,7 @@ svy: mean gi11_poor_2030
 **********************************
 *MULTIDIMENSIONAL POVERTY
 **********************************
-use "${gsdTemp}/clean_hh_0515.dta", clear
+use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
 
@@ -491,7 +498,7 @@ qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy s
 	
 *Education indicators KIHBS 2015
 *Use household member dataset and parts of 1-1_homogenize for cleaning
-use "${gsdData}/KIHBS15/hhm.dta", clear
+use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
 
 *Cleaning code from 1-1_homogenise, with some changes to create necessary education indicators
 ren b05_yy age
@@ -727,13 +734,13 @@ la var malnourished "Malnourished, adult aged 18+"
 
 *Merge weights from hh dataset for kihbs==2015
 save "${gsdTemp}/eduhealth_indicators_15.dta", replace
-use "${gsdData}/hh.dta", clear
+use "${gsdData}/1-CleanOutput/hh.dta", clear
 drop if kihbs==2005
 merge 1:m clid hhid using "${gsdTemp}/eduhealth_indicators_15.dta", keep(match master) nogen
 save "${gsdTemp}/eduhealth_indicators_15.dta", replace
 
 *Education indicators KIHBS 2005
-use "${gsdData}/KIHBS05/Section C education.dta", clear
+use "${gsdDataRaw}/KIHBS05/Section C education.dta", clear
 
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -742,7 +749,7 @@ label var uhhid "Unique HH id"
 isid uhhid b_id
 sort uhhid b_id
 *26 observations have no demographic data and education data. 6,740 have demographic data and no education data.
-merge 1:1 uhhid b_id using "${gsdTemp}/demo05.dta", keep(match) nogen
+merge 1:1 uhhid b_id using "${gsdData}/1-CleanTemp//demo05.dta", keep(match) nogen
 
 *Years of schooling
 gen yrsch = c04a
@@ -839,7 +846,7 @@ ren (id_clust id_hh) (clid hhid)
 save "${gsdTemp}/edu_indicators_05.dta", replace
 
 *Health indicators KIHBS 2005
-use "${gsdData}/KIHBS05/Section D Health.dta", clear
+use "${gsdDataRaw}/KIHBS05/Section D Health.dta", clear
 
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -884,7 +891,7 @@ save "${gsdTemp}/health_indicators_05.dta", replace
 
 *Children aged 6 – 59 months stunted (haz < -2 s.d. from the median of the WHO child growth standards)
 
-use "${gsdData}/KIHBS05/Section F Child health.dta", clear
+use "${gsdDataRaw}/KIHBS05/Section F Child health.dta", clear
 
 *gen unique hh id using cluster and house #
 egen uhhid=concat(id_clust id_hh)
@@ -892,7 +899,7 @@ label var uhhid "Unique HH id"
 
 isid uhhid b_id
 sort uhhid b_id
-merge 1:1 uhhid b_id using "${gsdTemp}/demo05.dta", keep(match) nogen
+merge 1:1 uhhid b_id using "${gsdData}/1-CleanTemp/demo05.dta", keep(match) nogen
 
 *CHECK: Using code from WHO macro - http://www.who.int/childgrowth/software/en/
 *Calculate age in days		
@@ -956,7 +963,7 @@ ren (id_clust id_hh) (clid hhid)
 save "${gsdTemp}/childhealth_indicators_05.dta", replace
 
 *Merge weights from hh dataset for kihbs==2005
-use "${gsdData}/hh.dta", clear
+use "${gsdData}/1-CleanOutput/hh.dta", clear
 drop if kihbs==2015
 merge 1:m clid hhid using "${gsdTemp}/edu_indicators_05.dta", nogen
 merge m:m clid hhid using "${gsdTemp}/health_indicators_05.dta", nogen
@@ -987,7 +994,7 @@ qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy s
 *Other indicators for Multidimensional Poverty Index (MPI)
 
 *Access to water source on premise & sanitation not shared with other households
-use "${gsdData}/KIHBS15/hh.dta", clear
+use "${gsdDataRaw}/KIHBS15/hh.dta", clear
 
 gen water_onpremise = .
 	replace water_onpremise = 1 if j05 == 0
@@ -1000,7 +1007,7 @@ gen san_notshared = .
 	
 keep clid hhid water_onpremise san_notshared
 save "${gsdTemp}/wash_indicators_15.dta", replace
-use "${gsdData}/hh.dta", clear
+use "${gsdData}/1-CleanOutput/hh.dta", clear
 drop if kihbs==2005
 merge 1:1 clid hhid using "${gsdTemp}/wash_indicators_15.dta", assert(match) nogen
 save "${gsdTemp}/wash_indicators_15.dta", replace
@@ -1011,7 +1018,7 @@ qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy s
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean san_notshared se lb ub) sebnone f(3) h2(Sanitation not shared with other households, by kihbs year) append
 
 *Security
-use "${gsdData}/KIHBS15/qb.dta", clear
+use "${gsdDataRaw}/KIHBS15/qb.dta", clear
 
 codebook qb02
 tab qb03
@@ -1027,7 +1034,7 @@ gen crime = .
 collapse (max) dom_violence crime, by(clid hhid)
 
 save "${gsdTemp}/security_indicators_15.dta", replace
-use "${gsdData}/hh.dta", clear
+use "${gsdData}/1-CleanOutput/hh.dta", clear
 drop if kihbs==2005
 merge 1:1 clid hhid using "${gsdTemp}/security_indicators_15.dta", keep(match master) nogen
 save "${gsdTemp}/security_indicators_15.dta", replace
@@ -1036,13 +1043,3 @@ svyset clid [pweight=wta_pop], strata(strata)
 
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean dom_violence se lb ub) sebnone f(3) h2(Experienced domestic violence in past two years, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean crime se lb ub) sebnone f(3) h2(Experienced crime in past two years, by kihbs year) append
-
-/*Multidimensional Poverty Index (MPI) for 2015
-use "${gsdData}/hh.dta", clear
-drop if kihbs==2005
-merge 1:1 clid hhid using "${gsdTemp}/eduhealth_indicators_15.dta", keep(match master) nogen
-merge 1:1 clid hhid using "${gsdTemp}/wash_indicators_15.dta", keep(match master) nogen
-merge 1:1 clid hhid using "${gsdTemp}/security_indicators_15.dta", keep(match master) nogen
-keep clid hhid wta_hh wta_pop wta_adq poor190 pcomplete_primary pprimary_enrollment pused_formalhc pinpatient_visit phealth_insurance pstunted pmalnourished impwater impsan elec_acc water_onpremise san_notshared dom_violence crime 
-save "${gsdTemp}/mpi_15.dta", replace
-

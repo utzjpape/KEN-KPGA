@@ -1542,7 +1542,7 @@ label var z_i_old "Food poverty line used to replicate 2005/06 estimates"
 label var z2_i "Absolute poverty line used for comparable 2005/06 estimates"
 label var z2_i_old "Absolute poverty line used to replicate 2005/06 estimates"
 *Generate NEDI dummy for 10 counties included in North-Eastern Development initiative
-gen nedi = inlist(county,5,7,9,10,33,25,4,23,8,24)
+gen nedi = inlist(county,5,7,9,10,25,4,23,8,24,11)
 label define lnedi 0"Non-NEDI County" 1"NEDI County" , replace
 label values nedi lnedi
 label var nedi "Dummy for NEDI Counties"

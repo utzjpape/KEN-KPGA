@@ -182,7 +182,7 @@ lab val sector sector
 
 svyset clid [pweight = wta_hh]  , strata(strata)
 **=====================================*
-*Household head skill level and education level by occupational sector
+*1) Household head skill level and education level by occupational sector
 **=====================================*
 tabout hhskill if occ_sector==1  using "${gsdOutput}/povandjobs1.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 tabout hhedu if occ_sector==1 using "${gsdOutput}/povandjobs1.xls"  ,svy npos(col) c(freq) clab(Freq) append
@@ -195,43 +195,63 @@ forvalues i = 2/11 {
 svyset, clear
 svyset clid [pweight = wta_pop]  , strata(strata)
 **================================================*
-*Occupational sector by rural / urban classification
+*2) Occupational sector by rural / urban classification
 **================================================*
 tabout occ_sector if urban==0  using "${gsdOutput}/povandjobs2.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 tabout occ_sector if urban==1 using "${gsdOutput}/povandjobs2.xls"  ,svy npos(col) c(freq) clab(Freq) append
 **================================================*
-*Occupational sector by province
+*3) Occupational sector by province
 **================================================*
 tabout occ_sector province using "${gsdOutput}/povandjobs3.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 
 **================================================*
-*Poverty status by head of household sex
+*4) Poverty status by head of household sex
 **================================================*
 tabout b04 poor using "${gsdOutput}/povandjobs4.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 **================================================*
-*Poverty status by head of household ed. status
+*5) Poverty status by head of household ed. status
 **================================================*
 tabout hhedu poor  using "${gsdOutput}/povandjobs5.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 **================================================*
-*Poverty status by head of household occupation (private/public)
+*6) Poverty status by head of household occupation (private/public)
 **================================================*
 tabout employer poor using "${gsdOutput}/povandjobs6.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 **================================================*
-*Poverty status by head of household occupation (sector - large)
+*7) Poverty status by head of household occupation (sector - large)
 **================================================*
 tabout occ_sector poor using "${gsdOutput}/povandjobs7.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 **================================================*
-*Poverty status by urban/rural
+*8) Poverty status by urban/rural
 **================================================*
 tabout urban poor  using "${gsdOutput}/povandjobs8.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 **================================================*
-*Poverty status by province
+*9) Poverty status by province
 **================================================*
 tabout province poor  using "${gsdOutput}/povandjobs9.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 **================================================*
-*Poverty status by household head skill level
+*10) Poverty status by household head skill level
 **================================================*
 tabout hhskill poor  using "${gsdOutput}/povandjobs10.xls"  ,svy npos(col) c(freq) clab(Freq) replace
 
 
+***================================================*
+**================================================*
+*Requsted by Johan for KEU
+*occupational sector by headcount rate / prop. & number of households / prop. & number of individuals
+use "${gsdData}/1-CleanOutput/hh.dta" ,clear
+svyset clid [pweight = wta_pop]  , strata(strata)
+**================================================*
+*11) Headcount rate by occupational sector and KIHBS year
+**================================================*
+replace hhsector = 5 if mi(hhsector)
+lab def sector 1 "Agriculture" 2 "Manufacturing" 3 "Services" 4 "Construction" 5"Unemployed / NILF",  replace
+label values hhsector sector
+
+tabout kihbs hhsector  using "${gsdOutput}/povandjobs11.xls"  ,svy c(mean poor se poor) sum clab(Headcount SE) sebnone f(3) replace
+tabout kihbs hhsector using "${gsdOutput}/povandjobs11.xls"  ,svy c(freq) clab(Population) f(1) append
+svyset , clear
+svyset clid [pweight = wta_hh]  , strata(strata)
+tabout kihbs hhsector  using "${gsdOutput}/povandjobs11.xls"  ,svy c(freq) clab(Households) f(1) append
+
+tabout poor hhsector  if kihbs==2015 using "${gsdOutput}/povandjobs11.xls"  ,svy npos(col) c(col) clab(Freq_`i') f(3) append
 

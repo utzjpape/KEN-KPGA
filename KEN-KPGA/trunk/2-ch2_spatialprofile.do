@@ -41,7 +41,7 @@ tabout  nedi kihbs if poor==1 using "${gsdOutput}/ch2_table1.xls"  , svy npos(co
 tabout  nedi kihbs using "${gsdOutput}/ch2_table1.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
 *-------------------------------------------------------------------------------*
 *-------------------------------------------------------------------------------*
-*Hardcore poverty
+*Extreme poverty
 *Incidence
 tabout urban kihbs  using "${gsdOutput}/ch2_table1_hc.xls" , svy c(mean hcpoor se hcpoor) f(3 3 3) sum  clab(Poverty SE) sebnone replace 
 tabout province kihbs  using "${gsdOutput}/ch2_table1_hc.xls" , svy c(mean hcpoor se hcpoor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
@@ -82,41 +82,6 @@ tabout  province kihbs using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c
 tabout  nedi kihbs if fdpoor==1 using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Number_of_fdpoor)  nwt(weight) append
 tabout  nedi kihbs using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
 *-------------------------------------------------------------------------------*
-*-------------------------------------------------------------------------------*
-
-*2005 incomparable poverty
-
-*Kenya/provinces
-tabout province if kihbs==2005  using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop], svy c(mean poor_old se poor_old ) f(3 3 3 3) sum clab(Poverty SE) sebnone replace 
-*Kenya/Urban Rural 
-tabout urban if kihbs==2005  using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop], svy c(mean poor_old se poor_old) f(3 3 3) sum  clab(Poverty SE) sebnone append 
-*Distribution of poor_old / population
-tabout province   if kihbs==2005 & poor_old==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_poor_old) append
-tabout province   if kihbs==2005 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_population) append
-
-tabout eatype   if kihbs==2005 & poor_old==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_poor_old) append
-tabout eatype   if kihbs==2005 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_population) append
-
-*Absolute number of poor using 2005 incomparable absolute poverty line
-tabout  eatype kihbs if poor_old==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop] , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
-tabout  province kihbs if poor_old==1 using "${gsdOutput}/ch2_table1_old05.xls" [aw=wta_pop] , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
-
-
-*Hardcore poor
-tabout province if kihbs==2005  using "${gsdOutput}/ch2_table1_05hc.xls" [aw=wta_pop],svy c(mean old05_hcpoor se old05_hcpoor ) f(3 3 3 3) sum clab(HC_Poverty SE) sebnone replace 
-*Kenya/Urban Rural 
-tabout eatype if kihbs==2005  using "${gsdOutput}/ch2_table1_05hc.xls" [aw=wta_pop],svy c(mean old05_hcpoor se old05_hcpoor) f(3 3 3) sum  clab(HC_Poverty SE) sebnone append 
-*Distribution of old05_hcpoor / population
-tabout province   if kihbs==2005 & old05_hcpoor==1 using "${gsdOutput}/ch2_table1_05hc.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_old05_hcpoor) append
-tabout province   if kihbs==2005 using "${gsdOutput}/ch2_table1_05hc.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_population) append
-
-tabout eatype   if kihbs==2005 & old05_hcpoor==1 using "${gsdOutput}/ch2_table1_05hc.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_old05_hcpoor) append
-tabout eatype   if kihbs==2005 using "${gsdOutput}/ch2_table1_05hc.xls" [aw=wta_pop],c(col) f(1)  clab(Distribution_of_population) append
-
-*Absolute number of poor using 2005 incomparable food poverty line
-tabout  eatype kihbs if old05_hcpoor==1 using "${gsdOutput}/ch2_table1_05hc.xls" [aw=wta_pop] , svy npos(col) c(freq) clab(Number_of_hcpoor)  nwt(weight) append
-tabout  province kihbs if old05_hcpoor==1 using "${gsdOutput}/ch2_table1_05hc.xls" [aw=wta_pop] , svy npos(col) c(freq) clab(Number_of_hcpoor)  nwt(weight) append
-
 svyset , clear
 
 	
@@ -141,7 +106,7 @@ forvalues i = 1/8 {
 *Kenya
 tabout kihbs using "${gsdOutput}/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3 3) sum  clab(Vulnerability) replace 
 *Kenya/Urban Rural
-tabout eatype kihbs  using "${gsdOutput}/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3) sum  clab(Vulnerability) append
+tabout urban kihbs  using "${gsdOutput}/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3) sum  clab(Vulnerability) append
 *Provinces
 tabout province kihbs  using "${gsdOutput}/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3 3) sum  clab(Vulnerability) append 
 
@@ -289,8 +254,6 @@ putexcel A19=("Coast") A20=("North Eastern") A21=("Eastern") A22=("Central") A23
 putexcel B17=matrix(rururb_hc_2015)
 putexcel B19=matrix(prov_hc_2015)
 
-*run "${gsdDo}/incomparable_2005_pov.do"
-
 save "${gsdTemp}/ch2_analysis1.dta" , replace
 use "${gsdTemp}/ch2_analysis1.dta" , clear
 
@@ -349,14 +312,6 @@ keep kihbs fshare nfshare
 export excel using "${gsdOutput}/fshare.xls" , sheet("National") first(var) replace
 
 use "${gsdTemp}/ch2_0.dta" , clear
-collapse (sum) y_i nfcons [aw=wta_hh] , by(kihbs eatype)
-egen double total = rsum( y_i  nfcons)
-gen fshare = (y_i / total)*100
-gen nfshare = (nfcons / total)*100
-keep kihbs eatype fshare nfshare
-export excel using "${gsdOutput}/fshare.xls" , sheet("Eatype") sheetreplace first(var)
-
-use "${gsdTemp}/ch2_0.dta" , clear
 collapse (sum) y_i nfcons [aw=wta_hh] , by(kihbs county)
 egen double total = rsum( y_i  nfcons)
 gen fshare = (y_i / total)*100
@@ -371,12 +326,6 @@ collapse (mean) mean_cons=rcons , by(kihbs texp_nat_rdec)
 ren texp_nat_rdec decile
 
 export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("national") replace first(var)
-*Eatype
-use "${gsdTemp}/ch2_0.dta" , clear
-egen texp_rurb_rdec = xtile(rcons) , weights(wta_hh) by(kihbs eatype) p(10(10)90)
-collapse (mean) mean_cons=rcons , by(kihbs eatype texp_rurb_rdec)
-ren texp_rurb_rdec decile
-export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("Eatype") sheetreplace first(var)
 *Rural / Urban
 use "${gsdTemp}/ch2_0.dta" , clear
 egen texp_rurb_rdec = xtile(rcons) , weights(wta_hh) by(kihbs urban) p(10(10)90)
@@ -434,10 +383,11 @@ collapse (mean) mean_cons=rcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
 export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("nairobi top 10%") sheetreplace first(var)  
 
+
 *consumption components
 use "${gsdData}/1-CleanOutput/kihbs15_16.dta" , clear
 merge 1:1 clid hhid using "${gsdData}/0-RawInput/kihbs15/nfexpcat.dta" , keep(match master) nogen assert(match master)
-keep clid hhid kihbs y_i y2_i nfdtrans-nfdegycons wta_hh wta_pop fpindex ctry_adq urban strata
+keep clid hhid kihbs y_i y2_i nfdrent nfdtrans-nfdegycons wta_hh wta_pop fpindex ctry_adq urban strata
 save "${gsdTemp}/16cons.dta" , replace
 
 use "${gsdDataRaw}/KIHBS05/consumption aggregated data.dta", clear
@@ -701,7 +651,7 @@ forvalues i = 1 / 8 {
 	egen pctile_prov`i' = rowtotal(pctile_`i'_2005 pctile_`i'_2015)
 }
 *Between 2005 and 2015
-*create (100x11) matrix full of zeros. Each column will populated with the percentile change in real consumption
+*create (100x11) matrix full of zeros. Each column will populated with the percentile annualized change in real consumption
 *for a particular region (national, rural, urban and the 8 provinces).
 matrix change = J(100, 11, 0)
 
@@ -945,10 +895,10 @@ saveold "${gsdTemp}/decomp_urb_15.dta" , replace
 
 *Nairobi sectoral decomposition
 use "${gsdTemp}/ch2_analysis2.dta" , clear
-keep if prov ==8 & kihbs==2005
+keep if province ==8 & kihbs==2005
 saveold "${gsdTemp}/decomp_nbo_05.dta" , replace
 use "${gsdTemp}/ch2_analysis2.dta" , clear
-keep if prov ==8 & kihbs==2015
+keep if province ==8 & kihbs==2015
 saveold "${gsdTemp}/decomp_nbo_15.dta" , replace
 
 use "${gsdTemp}/ch2_analysis2.dta" , clear

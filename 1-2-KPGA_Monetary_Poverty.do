@@ -103,16 +103,16 @@ qui tabout percentiles if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_sourc
 qui tabout percentiles if kihbs==2005 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i se ) sebnone f(3) h2(Total imputed consumption by quintiles, 2005) append
 
 *Consumption shock
-gen cons_pp_shock = cons_pp*0.9
+gen cons_pp_shock = cons_pp*0.9 if kihbs==2015
 xtile percentiles_s = cons_pp_shock [pweight=wta_pop], n(20)
 
-gen poor190_shock = (cons_pp_shock < pline190)
+gen poor190_shock = (cons_pp_shock < pline190) 
 label var poor190_shock "10% consumption shock, poor under $1.90 a day LMIC poverty line (line = pline320)"
 
 gen poor320_shock = (cons_pp_shock < pline320)
 label var poor320_shock "10% consumption shock, poor under $3.20 a day LMIC poverty line (line = pline320)"
 
-qui tabout percentiles_s if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp_shock se) sebnone f(3) h2(Total imputed consumption by quintiles, 10% Shock, 2015) append
+qui tabout percentiles_s using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp_shock se) sebnone f(3) h2(Total imputed consumption by quintiles, 10% Shock, 2015) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190_shock se) sebnone f(3) h2(Poverty headcount at IPL, 10% Shock, 2015) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320_shock se) sebnone f(3) h2(Poverty headcount at LMIC, 10% Shock, 2015) append
 

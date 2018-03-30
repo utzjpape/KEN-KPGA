@@ -18,50 +18,22 @@ use "${gsdData}/1-CleanOutput/hh.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
 
-*Poverty at 1.90 a day line 
-*Per capita aggregate
-gen double cons_pp = (y2_i*ctry_adq)/hhsize
-label var cons_pp "Per capita consumption (kshs, deflated, monthly)"
-
-*Create per capita aggregate
-*calculating $1.90 a day poverty line (monthly)
-	*Step 1: Take the 2011 PP conversion factor and multiply by 1.90 *(365/12)
-	gen pline190_2011 = 35.4296 * 1.9 * (365/12)
-	*Step 2. Adjust for inflation (taking the ratio of 2011 CPI to the average of the survey period CPI)
-	replace pline190 = pline190_2011 * (166.299/121.1654) if kihbs==2015
-	replace pline190 = pline190_2011 * (74.2557 / 121.1654) if kihbs==2005
-	drop pline190_2011
-	
-gen poor190 = (cons_pp < pline190) 
-label var poor190 "Poor under $1.90 a day poverty line (line = pline190)"
-
+*Poverty at 1.90 a day line
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio at 1.90 line, by kihbs year) replace
 
-*Poverty Gap
+*Poverty gap at 1.90 a day line
 gen pgi = (pline190 - cons_pp)/pline190 if !mi(cons_pp) & cons_pp < pline190
 replace pgi = 0 if cons_pp>pline190 & !mi(cons_pp) 
 la var pgi "Poverty Gap Index, 1.90 poverty line"
-
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi se lb ub) sebnone f(3) h2(Poverty Gap Index at 1.90 line, by kihbs year) append
 	
 *Poverty at 1.25 a day line
-*Calculate $1.25 a day poverty line (monthly)
-	gen pline125_2011 = 35.4296 * 1.25 * (365/12)
-	gen pline125 = pline125_2011 * (166.299/121.1654) if kihbs==2015
-	replace pline125 = pline125_2011 * (74.2557 / 121.1654) if kihbs==2005
-	drop pline125_2011
-	
-gen poor125 = (cons_pp < pline125) 
-label var poor125 "Poor under $1.25 a day poverty line (line = pline125)"
-order poor125, after(pline125)
-
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor125 se lb ub) sebnone f(3) h2(Poverty rate at 1.25 line, by kihbs year) append
 
-*Poverty Gap
+*Poverty gap at 1.25 a day line
 gen pgi_125 = (pline125 - cons_pp)/pline125 if !mi(cons_pp) & cons_pp < pline125
 replace pgi = 0 if cons_pp>pline125 & !mi(cons_pp) 
 la var pgi "Poverty Gap Index, 1.25 poverty line"
-
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_125 se lb ub) sebnone f(3) h2(Poverty gap at 1.25 line, by kihbs year) append
 
 *Inequality (GINI)
@@ -77,20 +49,10 @@ return list
 gen gini_overall_05=r(gini)
 qui tabout gini_overall_05 using "${gsdOutput}/Monetary_Poverty_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005) append
 
-*Poverty at Lower Middle Income Class line of $3.20 USD PPP / day 
-*Calculate 3.20 a day poverty line
-	gen pline320_2011 = 35.4296 * 3.20 * (365/12)
-	gen pline320 = pline320_2011 * (166.299/121.1654) if kihbs==2015
-	replace pline320 = pline320_2011 * (74.2557 / 121.1654) if kihbs==2005
-	drop pline320_2011
-	
-gen poor320 = (cons_pp < pline320) 
-label var poor320 "Poor under $3.20 a day poverty line (line = pline320)"
-order poor125, after(pline320)
-
+*Poverty at 3.20 a day line 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320 se lb ub) sebnone f(3) h2(Poverty rate at LMIC line, by kihbs year) append
 
-*Poverty gap at LMIC line
+*Poverty gap at 3.20 a day line
 gen pgi_320 = (pline320 - cons_pp)/pline320 if !mi(cons_pp) & cons_pp < pline320
 replace pgi_320 = 0 if cons_pp>pline320 & !mi(cons_pp)
 la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
@@ -98,9 +60,9 @@ la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
 
 *Average percentile consumption, at 5% distribution interval
-xtile percentiles = y2_i [pweight=wta_pop], n(20)
-qui tabout percentiles if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i se ) sebnone f(3) h2(Total imputed consumption by quintiles, 2015) append
-qui tabout percentiles if kihbs==2005 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean y2_i se ) sebnone f(3) h2(Total imputed consumption by quintiles, 2005) append
+xtile percentiles = cons_pp [pweight=wta_pop], n(20)
+qui tabout percentiles if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp se ) sebnone f(3) h2(Total imputed consumption by quintiles, 2015) append
+qui tabout percentiles if kihbs==2005 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp se ) sebnone f(3) h2(Total imputed consumption by quintiles, 2005) append
 
 *Consumption shock
 gen cons_pp_shock = cons_pp*0.9 if kihbs==2015
@@ -116,17 +78,7 @@ qui tabout percentiles_s using "${gsdOutput}/Monetary_Poverty_source.xls", svy s
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190_shock se) sebnone f(3) h2(Poverty headcount at IPL, 10% Shock, 2015) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320_shock se) sebnone f(3) h2(Poverty headcount at LMIC, 10% Shock, 2015) append
 
-*Mean consumption shortfall and poverty line for poverty gap
-
-gen cons_shortfall_190 = pline190 - cons_pp if poor190 == 1
-replace cons_shortfall_190 = 0 if poor190 == 0
-gen cons_shortfall_320 = pline320 - cons_pp if poor320 == 1
-replace cons_shortfall_320 = 0 if poor320 == 0
-
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_shortfall_190 se) sebnone f(3) h2(Mean consumption shortfall, pline 1.90, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_shortfall_320 se) sebnone f(3) h2(Mean consumption shortfall, pline 3.20, by kihbs year) append
-qui tabout kihbs if poor190==1 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp se) sebnone f(3) h2(Mean consumption expenditure, poor under 1.90, by kihbs year) append
-qui tabout kihbs if poor320==1 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp se) sebnone f(3) h2(Mean consumption expenditure, poor under 3.20, by kihbs year) append
+*Poverty lines in 2011 PPP
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline190 se) sebnone f(3) h2(Poverty line 1.90 in LCU, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline320 se) sebnone f(3) h2(Poverty line 3.20 in LCU, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline125 se) sebnone f(3) h2(Poverty line 1.25 in LCU, by kihbs year) append

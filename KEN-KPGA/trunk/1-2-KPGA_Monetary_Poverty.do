@@ -59,22 +59,22 @@ la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
 
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
 
+save "${gsdData}/1-CleanOutput/clean_hh_0515.dta", replace
+
 *Average percentile consumption, at 5% distribution interval
-xtile percentiles = cons_pp [pweight=wta_pop], n(20)
-qui tabout percentiles if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp se ) sebnone f(3) h2(Total imputed consumption by quintiles, 2015) append
-qui tabout percentiles if kihbs==2005 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp se ) sebnone f(3) h2(Total imputed consumption by quintiles, 2005) append
+drop if kihbs==2005
+xtile percentiles = cons_pp [pweight=wta_pop], n(100)
+qui tabout percentiles if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp se) sebnone f(3) h2(Total imputed consumption by quintiles, 2015) append
 
 *Consumption shock
 gen cons_pp_shock = cons_pp*0.9 if kihbs==2015
-xtile percentiles_s = cons_pp_shock [pweight=wta_pop], n(20)
 
 gen poor190_shock = (cons_pp_shock < pline190) 
 label var poor190_shock "10% consumption shock, poor under $1.90 a day LMIC poverty line (line = pline320)"
-
 gen poor320_shock = (cons_pp_shock < pline320)
 label var poor320_shock "10% consumption shock, poor under $3.20 a day LMIC poverty line (line = pline320)"
 
-qui tabout percentiles_s using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp_shock se) sebnone f(3) h2(Total imputed consumption by quintiles, 10% Shock, 2015) append
+qui tabout percentiles if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp_shock se) sebnone f(3) h2(Total imputed consumption by quintiles, 10% Shock, 2015) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190_shock se) sebnone f(3) h2(Poverty headcount at IPL, 10% Shock, 2015) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320_shock se) sebnone f(3) h2(Poverty headcount at LMIC, 10% Shock, 2015) append
 
@@ -83,8 +83,17 @@ qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mea
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline320 se) sebnone f(3) h2(Poverty line 3.20 in LCU, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline125 se) sebnone f(3) h2(Poverty line 1.25 in LCU, by kihbs year) append
 
-save "${gsdData}/1-CleanOutput/clean_hh_0515.dta", replace
+*Growth-Inequality Redistribution
+*Separate the cleaned dataset for the two years
+use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
+drop if kihbs==2015
+save "${gsdData}/1-CleanOutput/clean_hh_15.dta", replace
+use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
+drop if kihbs==2005
+save "${gsdData}/1-CleanOutput/clean_hh_05.dta", replace	
 
+gidecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta", var1(cons_pp) var2(cons_pp) pline1(pline190) pline2(pline190) pg
+*Odd results??
 
 **********************************
 *TRAJECTORY OF POVERTY 
@@ -100,12 +109,17 @@ label val tsector ltsector
 
 save "${gsdData}/1-CleanOutput/clean_hh_0515.dta", replace
 
+
+
 *Separate the cleaned dataset for the two years
 drop if kihbs==2015
 save "${gsdData}/1-CleanOutput/clean_hh_05.dta", replace
 use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
 drop if kihbs==2005
 save "${gsdData}/1-CleanOutput/clean_hh_15.dta", replace	
+
+
+
 	
 *Increase hh consumption expenditure with sectoral growth and elasticity assumptions
 use "${gsdData}/1-CleanOutput/clean_hh_05.dta", clear

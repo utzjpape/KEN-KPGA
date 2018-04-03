@@ -84,15 +84,8 @@ qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mea
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline125 se) sebnone f(3) h2(Poverty line 1.25 in LCU, by kihbs year) append
 
 *Growth-Inequality Redistribution
-*Separate the cleaned dataset for the two years
 use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
-drop if kihbs==2015
-save "${gsdData}/1-CleanOutput/clean_hh_15.dta", replace
-use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
-drop if kihbs==2005
-save "${gsdData}/1-CleanOutput/clean_hh_05.dta", replace	
-
-gidecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta", var1(cons_pp) var2(cons_pp) pline1(pline190) pline2(pline190) pg
+drdecomp cons_pp [aw=wta_pop], by(kihbs) varpl(pline)
 *Odd results??
 
 **********************************
@@ -109,17 +102,12 @@ label val tsector ltsector
 
 save "${gsdData}/1-CleanOutput/clean_hh_0515.dta", replace
 
-
-
 *Separate the cleaned dataset for the two years
 drop if kihbs==2015
 save "${gsdData}/1-CleanOutput/clean_hh_05.dta", replace
 use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
 drop if kihbs==2005
 save "${gsdData}/1-CleanOutput/clean_hh_15.dta", replace	
-
-
-
 	
 *Increase hh consumption expenditure with sectoral growth and elasticity assumptions
 use "${gsdData}/1-CleanOutput/clean_hh_05.dta", clear

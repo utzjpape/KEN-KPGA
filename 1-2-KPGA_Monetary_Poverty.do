@@ -85,7 +85,7 @@ qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mea
 
 *Growth-Inequality Redistribution
 use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
-drdecomp cons_pp [aw=wta_pop], by(kihbs) varpl(pline)
+drdecomp cons_pp [aw=wta_pop], by(kihbs) varpl(pline190)
 *Odd results??
 
 **********************************
@@ -442,7 +442,7 @@ use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
 svyset clid [pweight=wta_pop], strata(strata)
 
 *Poverty by gender of household head
-qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor190_1 se lb ub) sebnone f(3) h2(2015 Poverty rate, by gender of hh head) replace 
+qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean poor190 se lb ub) sebnone f(3) h2(2015 Poverty rate, by gender of hh head) replace 
 qui tabout malehead using "${gsdOutput}/Multidimensional_Poverty_source.xls" if kihbs==2015, svy sum c(mean pgi se lb ub) sebnone f(3) h2(2015 Poverty gap, by gender of hh head) append  
 
 *Access to improved water, sanitation, and electricity
@@ -945,31 +945,65 @@ qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy s
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean stunted se lb ub) sebnone f(3) h2(Children aged 6 - 59 months stunted, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean malnourished se lb ub) sebnone f(3) h2(Adults aged 18+ malnourished, by kihbs year) append
  
-*Other indicators for Multidimensional Poverty Index (MPI)
 
-*Access to water source on premise & sanitation not shared with other households
+*Multidimensional Poverty Index (MPI), 2015
+*Education and health
+use "${gsdTemp}/eduhealth_indicators_15.dta", clear
+collapse (min) mpi_primary_enrollment = primary_enrollment (max) mpi_complete_primary = complete_primary mpi_malnourished = malnourished mpi_stunted = stunted, by(clid hhid)
+
+*Recode so = 1 if HH is deprived
+recode mpi_primary_enrollment mpi_complete_primary (0 = 1) (1 = 0)
+
+label var mpi_primary_enrollment "HH deprived - Any primary school-aged child in HH are not attending primary school"
+label var mpi_complete_primary "HH deprived - No adults aged 25+ in HH have completed primary school"
+label var mpi_stunted "HH deprived - Any children aged 6-59 months in HH are stunted"
+label var mpi_malnourished "HH deprived - Any adult aged 18+ in HH is malnourished (BMI<18.5)"
+
+merge 1:1 clid hhid using "${gsdData}/1-CleanOutput/clean_hh_15.dta", nogen
+
+svyset clid [pweight=wta_pop], strata(strata)
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean mpi_primary_enrollment se lb ub) sebnone f(3) h2(HH deprived, primary enrollment) replace
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean mpi_complete_primary se lb ub) sebnone f(3) h2(HH deprived, adult primary education attainment) append
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean mpi_stunted se lb ub) sebnone f(3) h2(HH deprived, child stunting) append
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean mpi_malnourished se lb ub) sebnone f(3) h2(HH deprived, adult malnourishment) append
+
+save "${gsdTemp}/mpi_eduhealth_15.dta", replace
+
+*Access to services
 use "${gsdDataRaw}/KIHBS15/hh.dta", clear
 
 gen water_onpremise = .
 	replace water_onpremise = 1 if j05 == 0
 	replace water_onpremise = 0 if j05 > 0 & !missing(j05)
-
+label var water_onpremise "HH not deprived - drinking water source on premise"
+	
 codebook j11
 gen san_notshared = .
 	replace san_notshared = 1 if j11 == 2
 	replace san_notshared = 0 if j11 == 1 & !missing(j11)
-	
+label var san_notshared "HH not deprived - toilet facility not shared with other households"
+
 keep clid hhid water_onpremise san_notshared
 save "${gsdTemp}/wash_indicators_15.dta", replace
 use "${gsdData}/1-CleanOutput/hh.dta", clear
 drop if kihbs==2005
 merge 1:1 clid hhid using "${gsdTemp}/wash_indicators_15.dta", assert(match) nogen
-save "${gsdTemp}/wash_indicators_15.dta", replace
+save "${gsdTemp}/mpi_wash_15.dta", replace
+
+*Recode so = 1 if HH is deprived
+gen mpi_water_onpremise = water_onpremise
+gen mpi_san_notshared = san_notshared
+gen mpi_impwater = impwater
+gen mpi_impsan = impsan
+gen mpi_elec_acc = elec_acc
+recode mpi_water_onpremise mpi_san_notshared mpi_impwater mpi_impsan mpi_elec_acc (0 = 1) (1 = 0)
 
 svyset clid [pweight=wta_pop], strata(strata)
-
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean water_onpremise se lb ub) sebnone f(3) h2(Water source on premise, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean san_notshared se lb ub) sebnone f(3) h2(Sanitation not shared with other households, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean mpi_impwater se lb ub) sebnone f(3) h2(HH deprived, no access to improved water source) append
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean mpi_impsan se lb ub) sebnone f(3) h2(HH deprived, no access to improved sanitation) append
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean mpi_elec_acc se lb ub) sebnone f(3) h2(HH deprived, no access to electricity) append
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean mpi_water_onpremise se lb ub) sebnone f(3) h2(HH deprived, no water source on premise) append
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean mpi_san_notshared se lb ub) sebnone f(3) h2(HH deprived, sanitation is shared with other households) append
 
 *Security
 use "${gsdDataRaw}/KIHBS15/qb.dta", clear
@@ -980,12 +1014,14 @@ tab qb03
 gen dom_violence = .
 	replace dom_violence = 1 if qb02 == 9
 	replace dom_violence = 0 if qb02 != 9 & !missing(qb02)
-	
+
 gen crime = .
 	replace crime = 1 if qb02 == 5
 	replace crime = 0 if qb02 != 5 & !missing(qb02)
 
 collapse (max) dom_violence crime, by(clid hhid)
+label var dom_violence "HH deprived - experienced domestic violence in past 2 years"
+label var crime "HH deprived - experienced crime in past 2 years"
 
 save "${gsdTemp}/security_indicators_15.dta", replace
 use "${gsdData}/1-CleanOutput/hh.dta", clear
@@ -995,5 +1031,8 @@ save "${gsdTemp}/security_indicators_15.dta", replace
 
 svyset clid [pweight=wta_pop], strata(strata)
 
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean dom_violence se lb ub) sebnone f(3) h2(Experienced domestic violence in past two years, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Multidimensional_Poverty_source.xls", svy sum c(mean crime se lb ub) sebnone f(3) h2(Experienced crime in past two years, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean dom_violence se lb ub) sebnone f(3) h2(HH deprived, experienced domestic violence in past two years) append
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean crime se lb ub) sebnone f(3) h2(HH deprived, experienced crime in past two years) append
+
+*Monetary 
+qui tabout kihbs using "${gsdOutput}/MPI_source.xls", svy sum c(mean poor190 se lb ub) sebnone f(3) h2(HH deprived, per capita consumption < $1.90 a day) append

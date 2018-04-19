@@ -27,14 +27,22 @@ replace pgi = 0 if cons_pp>pline190 & !mi(cons_pp)
 la var pgi "Poverty Gap Index, 1.90 poverty line"
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi se lb ub) sebnone f(3) h2(Poverty Gap Index at 1.90 line, by kihbs year) append
 	
-*Poverty at 1.25 a day line
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor125 se lb ub) sebnone f(3) h2(Poverty rate at 1.25 line, by kihbs year) append
+*Poverty at 1.20 poverty
+*Calculate share of food in total consumption to define line
+gen food_share = y_i / y2_i
+svy: mean food_share if kihbs==2005
+svy: mean food_share if kihbs==2015
+*Use the more conservative estimate of 63% from 2005
+gen pline120 = pline190 * 0.63
+gen poor120 = (cons_pp < pline120)
 
-*Poverty gap at 1.25 a day line
-gen pgi_125 = (pline125 - cons_pp)/pline125 if !mi(cons_pp) & cons_pp < pline125
-replace pgi = 0 if cons_pp>pline125 & !mi(cons_pp) 
-la var pgi "Poverty Gap Index, 1.25 poverty line"
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_125 se lb ub) sebnone f(3) h2(Poverty gap at 1.25 line, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor120 se lb ub) sebnone f(3) h2(Poverty rate at 1.20 line, by kihbs year) append
+
+*Poverty gap at 1.20 a day line
+gen pgi_120 = (pline120 - cons_pp)/pline120 if !mi(cons_pp) & cons_pp < pline120
+replace pgi_120 = 0 if cons_pp > pline120 & !mi(cons_pp)
+la var pgi "Poverty Gap Index, 1.20 poverty line"
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_120 se lb ub) sebnone f(3) h2(Poverty gap at 1.20 line, by kihbs year) append
 
 *Inequality (GINI)
 *2015
@@ -56,7 +64,6 @@ qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mea
 gen pgi_320 = (pline320 - cons_pp)/pline320 if !mi(cons_pp) & cons_pp < pline320
 replace pgi_320 = 0 if cons_pp>pline320 & !mi(cons_pp)
 la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
-
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
 
 save "${gsdData}/1-CleanOutput/clean_hh_0515.dta", replace
@@ -81,12 +88,8 @@ qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mea
 *Poverty lines in 2011 PPP
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline190 se) sebnone f(3) h2(Poverty line 1.90 in LCU, by kihbs year) append
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline320 se) sebnone f(3) h2(Poverty line 3.20 in LCU, by kihbs year) append
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline125 se) sebnone f(3) h2(Poverty line 1.25 in LCU, by kihbs year) append
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pline120 se) sebnone f(3) h2(Poverty line 1.20 in LCU, by kihbs year) append
 
-*Growth-Inequality Redistribution
-use "${gsdData}/1-CleanOutput/clean_hh_0515.dta", clear
-drdecomp cons_pp [aw=wta_pop], by(kihbs) varpl(pline190)
-*Odd results??
 
 **********************************
 *TRAJECTORY OF POVERTY 
@@ -114,7 +117,7 @@ use "${gsdData}/1-CleanOutput/clean_hh_05.dta", clear
 
 sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline190) pline2(pline190) var1(cons_pp) var2(cons_pp) hc
 sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline320) pline2(pline320) var1(cons_pp) var2(cons_pp) hc
-sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline125) pline2(pline125) var1(cons_pp) var2(cons_pp) hc
+sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline120) pline2(pline120) var1(cons_pp) var2(cons_pp) hc
 
 *Merge GDP sector growth rates  
 merge m:1 tsector using "/Users/marinatolchinsky/Documents/WB Poverty GP/KPGA/sector_agg_growth.dta", nogen	
@@ -176,7 +179,7 @@ foreach i of numlist 6/15 {
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor320_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 3.20 line, `i') append
 	}
 
-*Poverty at 1.25 line	
+*Poverty at 1.20 line	
 *Assumptions for sector-specific growth elasticity 
 gen sector_elasticity_ex = 0.75 if tsector == 1
 replace sector_elasticity_ex = 0.1 if tsector == 2
@@ -199,8 +202,8 @@ gen cons_pp_15_ex = cons_pp_14_ex * (1 + (sgrowth_2015 * sector_elasticity_ex/10
 svyset clid [pweight=wta_pop], strata(strata)
  
 foreach i of numlist 6/15 {
-	gen proj_poor125_`i' = (cons_pp_`i'_ex < pline125)
-	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor125_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.25 line, `i') append
+	gen proj_poor120_`i' = (cons_pp_`i'_ex < pline120)
+	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor120_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.20 line, `i') append
 	}
 	
 *Calculate projected poverty gaps
@@ -217,9 +220,9 @@ foreach i of numlist 6/15 {
 	}
 	
 foreach i of numlist 6/15 {
-	gen proj_pgi_`i'_ex = (pline125 - cons_pp_`i'_ex)/pline125 if !mi(cons_pp_`i'_ex) & cons_pp_`i'_lm < pline125
-	replace proj_pgi_`i'_ex = 0 if cons_pp_`i'_ex > pline125 & !mi(cons_pp_`i'_ex) 
-	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_pgi_`i'_ex se lb ub) sebnone f(3) h2(Projected Poverty Gap, 1.25 line, `i') append
+	gen proj_pgi_`i'_ex = (pline120 - cons_pp_`i'_ex)/pline120 if !mi(cons_pp_`i'_ex) & cons_pp_`i'_lm < pline120
+	replace proj_pgi_`i'_ex = 0 if cons_pp_`i'_ex > pline120 & !mi(cons_pp_`i'_ex) 
+	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_pgi_`i'_ex se lb ub) sebnone f(3) h2(Projected Poverty Gap, 1.20 line, `i') append
 	}
 	
 *Trajectory of poverty to 2030 with annualized poverty change 2005-2015 (-3.82)
@@ -281,7 +284,7 @@ foreach i of numlist 6/15 {
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor320_`i' se lb ub) sebnone f(3) h2(Non-sectoral Simulation, Projected Poverty Headcount, 3.20 line, `i') append
 	}
 
-*Poverty at 1.25 line	
+*Poverty at 1.20 line	
 *Pass-through rate assumption
 gen gdp_passthrough_ex = 0.43
 
@@ -301,8 +304,8 @@ gen cons_pp_15_ex = cons_pp_14_ex * (1 + (sgrowth_2015 * gdp_passthrough_ex/100)
 svyset clid [pweight=wta_pop], strata(strata)
  
 foreach i of numlist 6/15 {
-	gen proj_poor125_`i' = (cons_pp_`i'_ex < pline125)
-	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor125_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.25 line, `i') append
+	gen proj_poor120_`i' = (cons_pp_`i'_ex < pline120)
+	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor120_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.20 line, `i') append
 	}
 
 *Growth-redistribution to 2030 simulation

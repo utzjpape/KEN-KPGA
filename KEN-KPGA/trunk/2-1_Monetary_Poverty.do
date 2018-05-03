@@ -18,12 +18,21 @@ use "${gsdData}/1-CleanOutput/hh.dta", clear
 
 svyset clid [pweight=wta_pop], strata(strata)
 
-*Poverty at 1.90 a day line
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190 se lb ub) sebnone f(3) h2(Poverty headcount ratio at 1.90 line, by kihbs year) replace
+*Poverty at 1.90 a day line with no spatial deflation of consumption aggregate
+*Subtracting rent to ensure both rural and urban aggregates are composed the same.
+replace y2_i = y2_i - nfdrent if urban==1 & kihbs==2015
+replace y2_i = y2_i - rent if urban==1 & kihbs==2005
+*Consumption aggregate with no spatial deflation 
+gen cons_pp_nodef = ((y2_i*fpindex*ctry_adq)/hhsize)
+gen ppp_agg_nodef = cons_pp_nodef/(35.4296)
+label var ppp_agg_nodef "Consumption aggregate (2005 US$) - no spatial deflation"
+*Poverty
+gen poor190_nodef = (ppp_agg_nodef < pline190)
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor190_nodef se lb ub) sebnone f(3) h2(Poverty headcount ratio at 1.90 line, by kihbs year) replace
 
 *Poverty gap at 1.90 a day line
-gen pgi = (pline190 - cons_pp)/pline190 if !mi(cons_pp) & cons_pp < pline190
-replace pgi = 0 if cons_pp>pline190 & !mi(cons_pp) 
+gen pgi = (pline190 - ppp_agg_nodef)/pline190 if !mi(ppp_agg_nodef) & ppp_agg_nodef < pline190
+replace pgi = 0 if ppp_agg_nodef>pline190 & !mi(ppp_agg_nodef) 
 la var pgi "Poverty Gap Index, 1.90 poverty line"
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi se lb ub) sebnone f(3) h2(Poverty Gap Index at 1.90 line, by kihbs year) append
 	
@@ -34,35 +43,35 @@ svy: mean food_share if kihbs==2005
 svy: mean food_share if kihbs==2015
 *Use the more conservative estimate of 63% from 2005
 gen pline120 = pline190 * 0.63
-gen poor120 = (cons_pp < pline120)
-
+gen poor120 = (ppp_agg_nodef < pline120)
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor120 se lb ub) sebnone f(3) h2(Poverty rate at 1.20 line, by kihbs year) append
 
 *Poverty gap at 1.20 a day line
-gen pgi_120 = (pline120 - cons_pp)/pline120 if !mi(cons_pp) & cons_pp < pline120
-replace pgi_120 = 0 if cons_pp > pline120 & !mi(cons_pp)
+gen pgi_120 = (pline120 - ppp_agg_nodef)/pline120 if !mi(ppp_agg_nodef) & ppp_agg_nodef < pline120
+replace pgi_120 = 0 if ppp_agg_nodef > pline120 & !mi(ppp_agg_nodef)
 la var pgi "Poverty Gap Index, 1.20 poverty line"
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_120 se lb ub) sebnone f(3) h2(Poverty gap at 1.20 line, by kihbs year) append
 
 *Inequality (GINI)
 *2015
-fastgini cons_pp [pweight=wta_pop] if kihbs==2015
+fastgini ppp_agg_nodef [pweight=wta_pop] if kihbs==2015
 return list 
 gen gini_overall_15=r(gini)
 qui tabout gini_overall_15 using "${gsdOutput}/Monetary_Poverty_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2015) append
 
 *2005
-fastgini cons_pp [pweight=wta_pop] if kihbs==2005
+fastgini ppp_agg_nodef [pweight=wta_pop] if kihbs==2005
 return list 
 gen gini_overall_05=r(gini)
 qui tabout gini_overall_05 using "${gsdOutput}/Monetary_Poverty_source.xls" , svy c(freq se) sebnone f(3) npos(col) h1(GINI coefficient 2005) append
 
 *Poverty at 3.20 a day line 
-qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320 se lb ub) sebnone f(3) h2(Poverty rate at LMIC line, by kihbs year) append
+gen poor320_nodef = (ppp_agg_nodef < pline320)
+qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean poor320_nodef se lb ub) sebnone f(3) h2(Poverty rate at LMIC line, by kihbs year) append
 
 *Poverty gap at 3.20 a day line
-gen pgi_320 = (pline320 - cons_pp)/pline320 if !mi(cons_pp) & cons_pp < pline320
-replace pgi_320 = 0 if cons_pp>pline320 & !mi(cons_pp)
+gen pgi_320 = (pline320 - ppp_agg_nodef)/pline320 if !mi(ppp_agg_nodef) & ppp_agg_nodef < pline320
+replace pgi_320 = 0 if ppp_agg_nodef>pline320 & !mi(ppp_agg_nodef)
 la var pgi_320 "Poverty Gap Index at LMIC poverty line (line = pline320)"
 qui tabout kihbs using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean pgi_320 se lb ub) sebnone f(3) h2(Poverty Gap Index at LMIC line, by kihbs year) append
 
@@ -70,11 +79,11 @@ save "${gsdData}/1-CleanOutput/clean_hh_0515.dta", replace
 
 *Average percentile consumption, at 5% distribution interval
 drop if kihbs==2005
-xtile percentiles = cons_pp [pweight=wta_pop], n(100)
-qui tabout percentiles if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean cons_pp se) sebnone f(3) h2(Total imputed consumption by quintiles, 2015) append
+xtile percentiles = ppp_agg_nodef [pweight=wta_pop], n(100)
+qui tabout percentiles if kihbs==2015 using "${gsdOutput}/Monetary_Poverty_source.xls", svy sum c(mean ppp_agg_nodef se) sebnone f(3) h2(Total imputed consumption by quintiles, 2015) append
 
 *Consumption shock
-gen cons_pp_shock = cons_pp*0.9 if kihbs==2015
+gen cons_pp_shock = ppp_agg_nodef*0.9 if kihbs==2015
 
 gen poor190_shock = (cons_pp_shock < pline190) 
 label var poor190_shock "10% consumption shock, poor under $1.90 a day LMIC poverty line (line = pline320)"
@@ -115,24 +124,24 @@ save "${gsdData}/1-CleanOutput/clean_hh_15.dta", replace
 *Increase hh consumption expenditure with sectoral growth and elasticity assumptions
 use "${gsdData}/1-CleanOutput/clean_hh_05.dta", clear
 
-sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline190) pline2(pline190) var1(cons_pp) var2(cons_pp) hc
-sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline320) pline2(pline320) var1(cons_pp) var2(cons_pp) hc
-sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline120) pline2(pline120) var1(cons_pp) var2(cons_pp) hc
+sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline190) pline2(pline190) var1(ppp_agg_nodef) var2(ppp_agg_nodef) hc
+sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline320) pline2(pline320) var1(ppp_agg_nodef) var2(ppp_agg_nodef) hc
+sedecomposition using "${gsdData}/1-CleanOutput/clean_hh_15.dta" [w=wta_pop], sector(tsector) pline1(pline120) pline2(pline120) var1(ppp_agg_nodef) var2(ppp_agg_nodef) hc
 
 *Merge GDP sector growth rates  
-merge m:1 tsector using "/Users/marinatolchinsky/Documents/WB Poverty GP/KPGA/sector_agg_growth.dta", nogen	
+merge m:1 tsector using "/Users/marinatolchinsky/Documents/WB Poverty & Equity/KPGA/sector_agg_growth.dta", nogen	
 	*no sectoral breakdown for 2006, use overall GDP
 	gen sgrowth_2006 = 3.6 
 
 *Poverty at 1.90 line
 *Assumptions for sector-specific growth elasticity 
-gen sector_elasticity = 0.5 if tsector == 1
+gen sector_elasticity = 0.45 if tsector == 1
 replace sector_elasticity = 0.1 if tsector == 2
-replace sector_elasticity = 0.3 if tsector == 3 
+replace sector_elasticity = 0.2 if tsector == 3 
 replace sector_elasticity = 0.25 if tsector == 4
 
 *Augment hh consumption expenditure 
-gen cons_pp_6 = cons_pp * (1 + (sgrowth_2006 * sector_elasticity/100))
+gen cons_pp_6 = ppp_agg_nodef * (1 + (sgrowth_2006 * sector_elasticity/100))
 gen cons_pp_7 = cons_pp_6 * (1 + (sgrowth_2007 * sector_elasticity/100))
 gen cons_pp_8 = cons_pp_7 * (1 + (sgrowth_2008 * sector_elasticity/100))
 gen cons_pp_9 = cons_pp_8 * (1 + (sgrowth_2009 * sector_elasticity/100))
@@ -157,11 +166,11 @@ foreach i of numlist 7/15 {
 *Assumptions for sector-specific growth elasticity 
 gen sector_elasticity_lm = 0.2 if tsector == 1
 replace sector_elasticity_lm = 0.1 if tsector == 2
-replace sector_elasticity_lm = 0.3 if tsector == 3 
-replace sector_elasticity_lm = 0.4 if tsector == 4
+replace sector_elasticity_lm = 0.2 if tsector == 3 
+replace sector_elasticity_lm = 0.2 if tsector == 4
 
 *Augment hh consumption expenditure 
-gen cons_pp_6_lm = cons_pp * (1 + (sgrowth_2006 * sector_elasticity_lm/100))
+gen cons_pp_6_lm = ppp_agg_nodef * (1 + (sgrowth_2006 * sector_elasticity_lm/100))
 gen cons_pp_7_lm = cons_pp_6_lm * (1 + (sgrowth_2007 * sector_elasticity_lm/100))
 gen cons_pp_8_lm = cons_pp_7_lm * (1 + (sgrowth_2008 * sector_elasticity_lm/100))
 gen cons_pp_9_lm = cons_pp_8_lm * (1 + (sgrowth_2009 * sector_elasticity_lm/100))
@@ -187,7 +196,7 @@ replace sector_elasticity_ex = 0.4 if tsector == 3
 replace sector_elasticity_ex = 0.35 if tsector == 4
 
 *Augment hh consumption expenditure 
-gen cons_pp_6_ex = cons_pp * (1 + (sgrowth_2006 * sector_elasticity_ex/100))
+gen cons_pp_6_ex = ppp_agg_nodef * (1 + (sgrowth_2006 * sector_elasticity_ex/100))
 gen cons_pp_7_ex = cons_pp_6_ex * (1 + (sgrowth_2007 * sector_elasticity_ex/100))
 gen cons_pp_8_ex = cons_pp_7_ex * (1 + (sgrowth_2008 * sector_elasticity_ex/100))
 gen cons_pp_9_ex = cons_pp_8_ex * (1 + (sgrowth_2009 * sector_elasticity_ex/100))
@@ -225,9 +234,9 @@ foreach i of numlist 6/15 {
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_pgi_`i'_ex se lb ub) sebnone f(3) h2(Projected Poverty Gap, 1.20 line, `i') append
 	}
 	
-*Trajectory of poverty to 2030 with annualized poverty change 2005-2015 (-3.82)
+*Trajectory of poverty to 2030 with annualized poverty change 2005-2015 ()
 use "${gsdData}/1-CleanOutput/clean_hh_05.dta", clear
-gen proj_poor190_30 = poor190 * (1 - (0.0183*15))
+gen proj_poor190_30 = poor190 * (1 - (0.0158*15))
 qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor190_30`i' se lb ub) sebnone f(3) h2(Projected Poverty Rate 2030, annualized percentage reduction poverty) append
 	
 *Non-sector simulation, with general GDP pass-through rate
@@ -235,16 +244,16 @@ use "${gsdData}/1-CleanOutput/clean_hh_05.dta", clear
 
 replace tsector = 4
 
-merge m:1 tsector using "/Users/marinatolchinsky/Documents/WB Poverty GP/KPGA/sector_agg_growth.dta", nogen	
+merge m:1 tsector using "/Users/marinatolchinsky/Documents/WB Poverty & Equity/KPGA/sector_agg_growth.dta", nogen	
 	*GDP for 2006
 	gen sgrowth_2006 = 3.6 
 
 *Poverty at 1.90 line
 *Pass-through rate assumption
-gen gdp_passthrough = 0.285
+gen gdp_passthrough = 0.26
 
 *Augment hh consumption expenditure 
-gen cons_pp_6 = cons_pp * (1 + (sgrowth_2006 * gdp_passthrough/100))
+gen cons_pp_6 = ppp_agg_nodef * (1 + (sgrowth_2006 * gdp_passthrough/100))
 gen cons_pp_7 = cons_pp_6 * (1 + (sgrowth_2007 * gdp_passthrough/100))
 gen cons_pp_8 = cons_pp_7 * (1 + (sgrowth_2008 * gdp_passthrough/100))
 gen cons_pp_9 = cons_pp_8 * (1 + (sgrowth_2009 * gdp_passthrough/100))
@@ -263,10 +272,10 @@ foreach i of numlist 6/15 {
 
 *Poverty at 3.20 line
 *Pass-through rate assumption
-gen gdp_passthrough_lm = 0.24
+gen gdp_passthrough_lm = 0.16
 
 *Augment hh consumption expenditure 
-gen cons_pp_6_lm = cons_pp * (1 + (sgrowth_2006 * gdp_passthrough_lm/100))
+gen cons_pp_6_lm = ppp_agg_nodef * (1 + (sgrowth_2006 * gdp_passthrough_lm/100))
 gen cons_pp_7_lm = cons_pp_6_lm * (1 + (sgrowth_2007 * gdp_passthrough_lm/100))
 gen cons_pp_8_lm = cons_pp_7_lm * (1 + (sgrowth_2008 * gdp_passthrough_lm/100))
 gen cons_pp_9_lm = cons_pp_8_lm * (1 + (sgrowth_2009 * gdp_passthrough_lm/100))
@@ -289,7 +298,7 @@ foreach i of numlist 6/15 {
 gen gdp_passthrough_ex = 0.43
 
 *Augment hh consumption expenditure 
-gen cons_pp_6_ex = cons_pp * (1 + (sgrowth_2006 * gdp_passthrough_ex/100))
+gen cons_pp_6_ex = ppp_agg_nodef * (1 + (sgrowth_2006 * gdp_passthrough_ex/100))
 gen cons_pp_7_ex = cons_pp_6_ex * (1 + (sgrowth_2007 * gdp_passthrough_ex/100))
 gen cons_pp_8_ex = cons_pp_7_ex * (1 + (sgrowth_2008 * gdp_passthrough_ex/100))
 gen cons_pp_9_ex = cons_pp_8_ex * (1 + (sgrowth_2009 * gdp_passthrough_ex/100))
@@ -307,19 +316,20 @@ foreach i of numlist 6/15 {
 	gen proj_poor120_`i' = (cons_pp_`i'_ex < pline120)
 	qui tabout kihbs using "${gsdOutput}/Poverty_Projections_source.xls", svy sum c(mean proj_poor120_`i' se lb ub) sebnone f(3) h2(Projected Poverty Headcount, 1.20 line, `i') append
 	}
-
+	
 *Growth-redistribution to 2030 simulation
 use "${gsdData}/1-CleanOutput/clean_hh_15.dta", clear	
 
 svyset clid [pweight=wta_pop], strata(strata)
+svy: mean ppp_agg_nodef
 
 *Growth with no redistribution to reach poverty < 3% in 2030
-gen gr_cons_2030 = cons_pp * (1 + (0.1138*15))
+gen gr_cons_2030 = ppp_agg_nodef * (1 + (0.1128*15))
 gen gr_poor_2030 = gr_cons_2030 < pline190
 svy: mean gr_poor_2030
 
 *Redistribution with no growth to reach poverty < 3% in 2030
-gen re_cons_2030 = cons_pp + (.0289 * 15) * (5120 - cons_pp)
+gen re_cons_2030 = ppp_agg_nodef + (.0306 * 15) * (138 - ppp_agg_nodef)
 gen re_poor_2030 = re_cons_2030 < pline190
 svy: mean re_poor_2030
 fastgini re_cons_2030 [pweight=wta_pop] 
@@ -327,112 +337,112 @@ fastgini re_cons_2030 [pweight=wta_pop]
 *Combination growth-redistribution to reach poverty < 3% in 2030
 
 *0.5% growth
-gen gi05_cons_2030 = cons_pp * (1 + (0.005*15)) + ((.0277 * 15) * (5120 - cons_pp))
+gen gi05_cons_2030 = ppp_agg_nodef * (1 + (0.005*15)) + ((.0292 * 15) * (138 - ppp_agg_nodef))
 gen gi05_poor_2030 = gi05_cons_2030 < pline190
 svy: mean gi05_poor_2030
 
 *1% growth
-gen gi1_cons_2030 = cons_pp * (1 + (0.01*15)) + ((.0264 * 15) * (5120 - cons_pp))
+gen gi1_cons_2030 = ppp_agg_nodef * (1 + (0.01*15)) + ((.0279 * 15) * (138 - ppp_agg_nodef))
 gen gi1_poor_2030 = gi1_cons_2030 < pline190
 svy: mean gi1_poor_2030
 
 *1.5% growth
-gen gi15_cons_2030 = cons_pp * (1 + (0.015*15)) + ((.0251 * 15) * (5120 - cons_pp))
+gen gi15_cons_2030 = ppp_agg_nodef * (1 + (0.015*15)) + ((.0265 * 15) * (138 - ppp_agg_nodef))
 gen gi15_poor_2030 = gi15_cons_2030 < pline190
 svy: mean gi15_poor_2030
 
 *2% growth
-gen gi2_cons_2030 = cons_pp * (1 + (0.02*15)) + ((.0238 * 15) * (5120 - cons_pp))
+gen gi2_cons_2030 = ppp_agg_nodef * (1 + (0.02*15)) + ((.0251 * 15) * (138 - ppp_agg_nodef))
 gen gi2_poor_2030 = gi2_cons_2030 < pline190
 svy: mean gi2_poor_2030
 
 *2.5% growth
-gen gi25_cons_2030 = cons_pp * (1 + (0.025*15)) + ((.0226 * 15) * (5120 - cons_pp))
+gen gi25_cons_2030 = ppp_agg_nodef * (1 + (0.025*15)) + ((.0238 * 15) * (138 - ppp_agg_nodef))
 gen gi25_poor_2030 = gi25_cons_2030 < pline190
 svy: mean gi25_poor_2030
 
 *3% growth
-gen gi3_cons_2030 = cons_pp * (1 + (0.03*15)) + ((.0212 * 15) * (5120 - cons_pp))
+gen gi3_cons_2030 = ppp_agg_nodef * (1 + (0.03*15)) + ((.0225 * 15) * (138 - ppp_agg_nodef))
 gen gi3_poor_2030 = gi3_cons_2030 < pline190
 svy: mean gi3_poor_2030
 
 *3.5% growth
-gen gi35_cons_2030 = cons_pp * (1 + (0.035*15)) + ((.02 * 15) * (5120 - cons_pp))
+gen gi35_cons_2030 = ppp_agg_nodef * (1 + (0.035*15)) + ((.0211 * 15) * (138 - ppp_agg_nodef))
 gen gi35_poor_2030 = gi35_cons_2030 < pline190
 svy: mean gi35_poor_2030
 
 *4% growth
-gen gi4_cons_2030 = cons_pp * (1 + (0.04*15)) + ((.0187 * 15) * (5120 - cons_pp))
+gen gi4_cons_2030 = ppp_agg_nodef * (1 + (0.04*15)) + ((.0195 * 15) * (138 - ppp_agg_nodef))
 gen gi4_poor_2030 = gi4_cons_2030 < pline190
 svy: mean gi4_poor_2030
 
 *4.5% growth
-gen gi45_cons_2030 = cons_pp * (1 + (0.045*15)) + ((.0175 * 15) * (5120 - cons_pp))
+gen gi45_cons_2030 = ppp_agg_nodef * (1 + (0.045*15)) + ((.0183 * 15) * (138 - ppp_agg_nodef))
 gen gi45_poor_2030 = gi45_cons_2030 < pline190
 svy: mean gi45_poor_2030
 
 *5% growth
-gen gi5_cons_2030 = cons_pp * (1 + (0.05*15)) + ((.0161 * 15) * (5120 - cons_pp))
+gen gi5_cons_2030 = ppp_agg_nodef * (1 + (0.05*15)) + ((.0169 * 15) * (138 - ppp_agg_nodef))
 gen gi5_poor_2030 = gi5_cons_2030 < pline190
 svy: mean gi5_poor_2030
 
 *5.5% growth
-gen gi55_cons_2030 = cons_pp * (1 + (0.055*15)) + ((.0148 * 15) * (5120 - cons_pp))
+gen gi55_cons_2030 = ppp_agg_nodef * (1 + (0.055*15)) + ((.0156 * 15) * (138 - ppp_agg_nodef))
 gen gi55_poor_2030 = gi55_cons_2030 < pline190
 svy: mean gi55_poor_2030
 
 *6% growth
-gen gi6_cons_2030 = cons_pp * (1 + (0.06*15)) + ((.0136 * 15) * (5120 - cons_pp))
+gen gi6_cons_2030 = ppp_agg_nodef * (1 + (0.06*15)) + ((.0144 * 15) * (138 - ppp_agg_nodef))
 gen gi6_poor_2030 = gi6_cons_2030 < pline190
 svy: mean gi6_poor_2030
 
 *6.5% growth
-gen gi65_cons_2030 = cons_pp * (1 + (0.065*15)) + ((.0124 * 15) * (5120 - cons_pp))
+gen gi65_cons_2030 = ppp_agg_nodef * (1 + (0.065*15)) + ((.013 * 15) * (138 - ppp_agg_nodef))
 gen gi65_poor_2030 = gi65_cons_2030 < pline190
 svy: mean gi65_poor_2030
 
 *7% growth
-gen gi7_cons_2030 = cons_pp * (1 + (0.07*15)) + ((.011 * 15) * (5120 - cons_pp))
+gen gi7_cons_2030 = ppp_agg_nodef * (1 + (0.07*15)) + ((.0116 * 15) * (138 - ppp_agg_nodef))
 gen gi7_poor_2030 = gi7_cons_2030 < pline190
 svy: mean gi7_poor_2030
 
 *7.5% growth
-gen gi75_cons_2030 = cons_pp * (1 + (0.075*15)) + ((.0097 * 15) * (5120 - cons_pp))
+gen gi75_cons_2030 = ppp_agg_nodef * (1 + (0.075*15)) + ((.0104 * 15) * (138 - ppp_agg_nodef))
 gen gi75_poor_2030 = gi75_cons_2030 < pline190
 svy: mean gi75_poor_2030
 
 *8% growth
-gen gi8_cons_2030 = cons_pp * (1 + (0.08*15)) + ((.0085 * 15) * (5120 - cons_pp))
+gen gi8_cons_2030 = ppp_agg_nodef * (1 + (0.08*15)) + ((.0089 * 15) * (138 - ppp_agg_nodef))
 gen gi8_poor_2030 = gi8_cons_2030 < pline190
 svy: mean gi8_poor_2030
 
 *8.5% growth
-gen gi85_cons_2030 = cons_pp * (1 + (0.085*15)) + ((.0073 * 15) * (5120 - cons_pp))
+gen gi85_cons_2030 = ppp_agg_nodef * (1 + (0.085*15)) + ((.0076 * 15) * (138 - ppp_agg_nodef))
 gen gi85_poor_2030 = gi85_cons_2030 < pline190
 svy: mean gi85_poor_203
 
 *9% growth
-gen gi9_cons_2030 = cons_pp * (1 + (0.09*15)) + ((.006 * 15) * (5120 - cons_pp))
+gen gi9_cons_2030 = ppp_agg_nodef * (1 + (0.09*15)) + ((.006 * 15) * (138 - ppp_agg_nodef))
 gen gi9_poor_2030 = gi9_cons_2030 < pline190
 svy: mean gi9_poor_2030
 
 *9.5% growth
-gen gi95_cons_2030 = cons_pp * (1 + (0.095*15)) + ((.0047 * 15) * (5120 - cons_pp))
+gen gi95_cons_2030 = ppp_agg_nodef * (1 + (0.095*15)) + ((.0047 * 15) * (138 - ppp_agg_nodef))
 gen gi95_poor_2030 = gi95_cons_2030 < pline190
 svy: mean gi95_poor_2030
 
 *10% growth
-gen gi10_cons_2030 = cons_pp * (1 + (0.10*15)) + ((.0035 * 15) * (5120 - cons_pp))
+gen gi10_cons_2030 = ppp_agg_nodef * (1 + (0.10*15)) + ((.0035 * 15) * (138 - ppp_agg_nodef))
 gen gi10_poor_2030 = gi10_cons_2030 < pline190
 svy: mean gi10_poor_2030
 
 *10.5% growth
-gen gi105_cons_2030 = cons_pp * (1 + (0.105*15)) + ((.002 * 15) * (5120 - cons_pp))
+gen gi105_cons_2030 = ppp_agg_nodef * (1 + (0.105*15)) + ((.002 * 15) * (138 - ppp_agg_nodef))
 gen gi105_poor_2030 = gi105_cons_2030 < pline190
 svy: mean gi105_poor_2030
 
 *11% growth
-gen gi11_cons_2030 = cons_pp * (1 + (0.11*15)) + ((.0009 * 15) * (5120 - cons_pp))
+gen gi11_cons_2030 = ppp_agg_nodef * (1 + (0.11*15)) + ((.0009 * 15) * (138 - ppp_agg_nodef))
 gen gi11_poor_2030 = gi11_cons_2030 < pline190
 svy: mean gi11_poor_2030
 

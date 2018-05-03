@@ -156,15 +156,15 @@ gen povertygap_320 = .
 replace povertygap_320 = 12.3 if countrycode=="GHA"
 replace povertygap_320 = 13.8 if countrycode=="ZAF"
 
-set obs 50
-replace countryname = "Lower Middle Income Countries" in 50
-replace countrycode = "LMIC" in 50
-replace poverty = 15.5 in 50
-replace l_y_poverty = 2013 in 50
-replace poverty_320 = 46.7 in 50
-replace l_y_poverty_320 = 2013 in 50
-replace gap = 3.8 in 50
-replace povertygap_320 = 15.1 in 50
+set obs 52
+replace countryname = "Lower Middle Income Countries" in 52
+replace countrycode = "LMIC" in 52
+replace poverty = 15.5 in 52
+replace l_y_poverty = 2013 in 52
+replace poverty_320 = 46.7 in 52
+replace l_y_poverty_320 = 2013 in 52
+replace gap = 3.8 in 52
+replace povertygap_320 = 15.1 in 52
 
 *Create log GDP per capita column for graphs
 gen log_gdppc = log(gdppc)
@@ -177,7 +177,7 @@ save "${gsdTemp}/WB_clean_all.dta", replace
 **********************************
 
 *A) import the gdp data and merge with poverty data
-wbopendata, language(en - English) country(KEN;GHA;RWA;UGA;TZA;SSF) year(2005:2015) indicator(NY.GDP.PCAP.PP.KD - GDP per capita, PPP (constant 2011 international $)) clear long
+wbopendata, language(en - English) country(KEN;GHA;RWA;UGA;TZA;SSF;BDI) year(2005:2015) indicator(NY.GDP.PCAP.PP.KD - GDP per capita, PPP (constant 2011 international $)) clear long
 save "${gsdTemp}/WB_data_gdp.dta", replace
 
 *create ID to merge with poverty data
@@ -188,6 +188,8 @@ gen idcode = 1 if countrycode == "GHA"
 	replace idcode = 5 if countrycode == "UGA"
 	replace idcode = 6 if countrycode == "ZAF"
 	replace idcode = 7 if countrycode == "KEN"
+	replace idcode = 8 if countrycode == "BDI"
+
 gen id = string(idcode) + string(year)
 destring id, replace
 sort id
@@ -195,7 +197,7 @@ rename ny_gdp_pcap_pp_kd gdp
 keep id countryname year gdp
 save "${gsdTemp}/WB_clean_gdp.dta", replace
 
-wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;SSF) year(2005:2015) indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
+wbopendata, language(en - English) country(KEN;GHA;ZAF;RWA;UGA;TZA;SSF;BDI) year(2005:2015) indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
 rename si_pov_dday poverty
 
 *create ID to merge with gdp data
@@ -206,7 +208,8 @@ gen idcode = 1 if countrycode == "GHA"
 	replace idcode = 5 if countrycode == "UGA"
 	replace idcode = 6 if countrycode == "ZAF"
 	replace idcode = 7 if countrycode == "KEN"
-
+	replace idcode = 8 if countrycode == "BDI"
+	
 gen id = string(idcode) + string(year)
 destring id, replace
 order id, first
@@ -214,8 +217,8 @@ sort id
 keep id countryname year poverty
 
 	*Kenya headcount ratio 2015 = 20.9; 2005 = 33.6 
-	replace poverty = 43.6 if id == 72005
-	replace poverty = 35.6 if id == 72015
+	replace poverty = 43.7 if id == 72005
+	replace poverty = 36.8 if id == 72015
 
 	*South Africa, drop 2008 poverty rate per country economist guidance
 	replace poverty = . if id == 62008

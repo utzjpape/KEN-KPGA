@@ -11,7 +11,7 @@ BASIC DESCRIPTIVE STATS
 svyset clid [pw=wta_pop] , strat(strat)
 
 *Absolute poor
-*generate hardcore poor dummy
+*generate extreme poor dummy
 gen hcpoor = (y2_i < z_i)
 *generate food poor dummy
 gen fdpoor = (y_i < z_i)
@@ -208,7 +208,7 @@ putexcel B40=matrix(rururb_2005)
 putexcel B44=matrix(rururb_2015)
 
 *-----------------------------------------------------------------------*
-*Hardcore poverty
+*extreme poverty
 putexcel set "${gsdOutput}/ch2_table3_hcore.xls" , replace
 
 povdeco $cons if kihbs==2005 [aw=wta_pop], varpl(z_i)
@@ -435,8 +435,8 @@ gen rent = (nfdrent / total)*100
 gen education = (nfdedcons / total)*100
 gen others = (nfdother / total)*100
 gen energy = (nfdegycons / total)*100
-keep kihbs urban food rent education energy others
-order kihbs urban food rent education energy others
+keep kihbs urban food rent education energy others y_i nfdrent nfdedcons nfdother nfdegycons
+order kihbs urban food rent education energy others y_i nfdrent nfdedcons nfdother nfdegycons
 export excel using "${gsdOutput}\ch2_cons_components.xls", firstrow(variables) sheet("Rururb") sheetreplace
 use "${gsdTemp}/cons.dta" , clear
 collapse (sum) y_i nfdrent nfdedcons nfdother nfdegycons [aw=wta_hh]  , by(kihbs)
@@ -446,8 +446,8 @@ gen rent = (nfdrent / total)*100
 gen education = (nfdedcons / total)*100
 gen others = (nfdother / total)*100
 gen energy = (nfdegycons / total)*100
-keep kihbs  food rent education energy others
-order kihbs food rent education energy others
+keep kihbs  food rent education energy others y_i nfdrent nfdedcons nfdother nfdegycons
+order kihbs food rent education energy others y_i nfdrent nfdedcons nfdother nfdegycons
 export excel using "${gsdOutput}\ch2_cons_components.xls", firstrow(variables) sheet("National") sheetreplace
 
 *Access to services by quintile
@@ -531,28 +531,28 @@ putexcel F2=matrix(prov_1_drdecomp) G2=matrix(prov_2_drdecomp) H2=matrix(prov_3_
 
 /*6.Inequality*/
 ******************
-*inequality measures are the 90th/10th & 75th/25th percentile ratios, the Gini coefficient and the Theil index.
+*inequality measures are the 90th/10th & 75th/25th percentile ratios, the Gini coefficient, Theil index, Atkinson (epsilon = 1), Atkinson (epsilon = 2).
 foreach var in 2005 2015  {
 	ineqdeco y2_i if kihbs == `var' [aw = wta_pop]
-	matrix total_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1) ]
+	matrix total_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1), r(a1), r(a2)]
 		
 	ineqdeco y2_i if kihbs == `var' & urban == 0 [aw = wta_pop]
-    matrix rural_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1) ] 
+    matrix rural_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1), r(a1), r(a2)] 
  	
 	ineqdeco y2_i if kihbs == `var' & urban == 1 [aw = wta_pop]
-	matrix urban_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1) ]
+	matrix urban_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1), r(a1), r(a2) ]
 }
 foreach var in 2005 2015  {
 	forvalues i = 1 / 8{
 		ineqdeco y2_i if kihbs == `var' & province==`i'  [aw = wta_pop]
-		matrix prov_`i'_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1) ]	
+		matrix prov_`i'_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1) , r(a1), r(a2) ]	
 	}
 }
 
 foreach var in 2005 2015  {
 	forvalues i = 0 / 1{
 		ineqdeco y2_i if kihbs == `var' & nedi==`i'  [aw = wta_pop]
-		matrix nedi_`i'_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1) ]	
+		matrix nedi_`i'_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1) , r(a1), r(a2) ]	
 	}
 }
 matrix nedi_2005 = [nedi_0_2005 \ nedi_1_2005]
@@ -569,7 +569,7 @@ matrix prov = [prov_2005 \ prov_2015]
 matrix nedi = [nedi_2005 \ nedi_2015]
 
 putexcel set "${gsdOutput}/ch2_table6.xls" , replace
-putexcel A2=("2005") A3=("2015") A1=("National") A5=("Rural")  A6=("2005") A7=("2015") A9=("Urban") A13=("Province") A10=("2005") A11=("2015") A14=("2005") A15=("Coast") A16=("North Eastern") A17=("Eastern") A18=("Central") A19=("Rift Valley") A20=("Western") A21=("Nyanza") A22=("Nairobi") A24=("2015") A25=("Coast") A26=("North Eastern") A27=("Eastern") A28=("Central") A29=("Rift Valley") A30=("Western") A31=("Nyanza") A32=("Nairobi") A34=("2005") A35=("Non-Nedi") A36=("Nedi") A38=("2015") A39=("Non-Nedi") A40=("Nedi") B1=("p90p10") C1=("p75p25") D1=("gini") E1=("Theil")
+putexcel A2=("2005") A3=("2015") A1=("National") A5=("Rural")  A6=("2005") A7=("2015") A9=("Urban") A13=("Province") A10=("2005") A11=("2015") A14=("2005") A15=("Coast") A16=("North Eastern") A17=("Eastern") A18=("Central") A19=("Rift Valley") A20=("Western") A21=("Nyanza") A22=("Nairobi") A24=("2015") A25=("Coast") A26=("North Eastern") A27=("Eastern") A28=("Central") A29=("Rift Valley") A30=("Western") A31=("Nyanza") A32=("Nairobi") A34=("2005") A35=("Non-Nedi") A36=("Nedi") A38=("2015") A39=("Non-Nedi") A40=("Nedi") B1=("p90p10") C1=("p75p25") D1=("gini") E1=("Theil") F1=("Atkinson (e=1)") G1=("Atkinson (e=2)")
 
 putexcel B2=matrix(total)
 putexcel B6=matrix(rural)
@@ -587,14 +587,14 @@ forvalues i = 1/8{
 levelsof kihbs , local(years)
 foreach year of local years {
 	ineqdeco y2_i if kihbs == `year' [aw = wta_pop]  , bygroup(urban)
-	matrix rururb_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1)]
+	matrix rururb_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1), r(between_a1), r(within_a1),r(a1), r(between_a2), r(within_a2),r(a2)]
 	
 	ineqdeco y2_i if kihbs == `year' [aw = wta_pop]  , bygroup(province)
-	matrix prov_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1)]
+	matrix prov_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1), r(between_a1), r(within_a1),r(a1), r(between_a2), r(within_a2),r(a2)]
 	*same decompositions as above done for each province
 	forvalues i = 1 / 8 {
 		ineqdeco y2_i if kihbs == `year' [aw = wta_pop] , bygroup(prov_`i')
-		matrix prov_`i'_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1)]
+		matrix prov_`i'_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1), r(between_a1), r(within_a1),r(a1), r(between_a2), r(within_a2),r(a2)]
 		}
 }
 matrix rururb_ge1 = [rururb_ge1_2005 \ rururb_ge1_2015]
@@ -603,15 +603,16 @@ forvalues i = 1/8 {
 	matrix prov_`i'_ge1 = [prov_`i'_ge1_2005 \ prov_`i'_ge1_2015]
 }
 
-putexcel set "${gsdOutput}/ch2_table6_gedecomp.xls" , replace
-putexcel B1=("rural / urban decomp.") A3=("2005/06") A4=("2015/16") B2=("Between Group") C2=("Within Group") D2=("Total pop.") B6=("provincial decomp.") A8=("2005/06") A9=("2015/16") B7=("Between Group") C7=("Within Group") D7=("Total pop.")
+putexcel set "${gsdOutput}/ch2_table6_ineqdecomp.xls" , replace
+putexcel B1=("rural / urban decomp.") A3=("2005/06") A4=("2015/16") B2=("Between Group") C2=("Within Group") D2=("Total pop.") B6=("provincial decomp.") A8=("2005/06") A9=("2015/16") B7=("Between Group") C7=("Within Group") D7=("Total pop.") 
+putexcel E2=("Between Group (Atk e=1)") F2=("Within Group (Atk e=1)") G2=("Total pop. (Atk e=1)") H2=("Between Group (Atk e=2)") I2=("Within Group (Atk e=2)") J2=("Total pop. (Atk e=2)")
 local i = 11
 local j = 12
 local k = 13
 local l = 14
 local m = 1
 foreach s in Coast NorthEastern Eastern Central RiftValley Western Nyanza Nairobi {
-	putexcel A`k'=("2005/06") A`l'=("2015/16") B`j'=("Between Group") C`j'=("Within Group") D`j'=("Total pop.")  B`i'=("`s'")
+	putexcel A`k'=("2005/06") A`l'=("2015/16") B`j'=("Between Group (GE1)") C`j'=("Within Group (GE1)") D`j'=("Total pop. (GE1)")
 	putexcel B`k'=matrix(prov_`m'_ge1)
 	local i = `i' + 5
 	local j = `j' + 5
@@ -724,12 +725,18 @@ local mean_change3 = (((mean2015_urban / mean2005_urban)^(1/10)-1)*100)
 *National, rural and urban GICs
 local i = 1
 foreach s in National Rural Urban  {
-        line schange`i' x, lcolor(navy) lpattern(solid) yline(`mean_change`i'') subtitle("Growth incidence (2005/06 - 2015/16),  `s'")  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`i', replace)
+        line schange`i' x, lcolor(navy) lpattern(solid) yline(`mean_change`i'') yline(0	, lstyle(foreground)) xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`i', replace)
 		local i = `i' + 1
 }
-graph combine gic1 gic2 gic3, iscale(*0.9) title("2005/06-2015/16")
-graph export "${gsdOutput}\GIC_1.png", as(png) replace
+graph combine gic1 gic2 gic3, iscale(*0.9)
+graph export "${gsdOutput}\GIC_natrururb.png", as(png) replace
 graph save "${gsdOutput}/GIC_nat_rur_urb.gph", replace
+graph combine gic1, iscale(*0.9)
+graph export "${gsdOutput}/GIC_nat.png", replace
+graph combine gic2, iscale(*0.9)
+graph export "${gsdOutput}/GIC_rur.png", replace
+graph combine gic3, iscale(*0.9)
+graph export "${gsdOutput}/GIC_urb.png", replace
 
 *Provincial level GICs 
 use "${gsdTemp}/ch2_analysis2.dta" , clear
@@ -796,6 +803,7 @@ graph combine gic2  gic4  gic6  gic7, iscale(*0.9) title("Provincial GICs 2005/0
 graph save "${gsdOutput}/GIC_provinces_select2.gph", replace
 graph export "${gsdOutput}/GIC_prov2.png", as(png) replace
 drop pctile* schange* change* x 
+
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 *NEDI / Non-Nedi GICs 
 global cons = "rcons"
@@ -852,13 +860,17 @@ local k = 1
 local nedis "Non-NEDI NEDI"
 
 foreach s of local nedis  {
-        line schange`k' x, lcolor(navy) lpattern(solid) yline(`mean_change_nedi`k'') subtitle("Growth incidence (2005/06 - 2015/16), `s'")  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`k', replace)
+        line schange`k' x, lcolor(navy) lpattern(solid) yline(`mean_change_nedi`k'') yline(0 , lstyle(foreground))  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`k', replace)
 		local k = `k'+1
 }
-graph combine gic1 gic2, iscale(*0.9) title("NEDI Category GICs 2005/06-2015/16")
+graph combine gic1 gic2, iscale(*0.9)
 graph save "${gsdOutput}/GIC_nedi.gph", replace
+graph export "${gsdOutput}/GIC_nedi_both.png", as(png) replace
+graph combine gic1, iscale(*0.9)
+graph export "${gsdOutput}/GIC_non-nedi.png", as(png) replace
+graph combine gic2, iscale(*0.9)
 graph export "${gsdOutput}/GIC_nedi.png", as(png) replace
-drop pctile* schange* change* x 
+drop pctile* schange* change* x
 /*6.Sectoral decompoosition*/
 *****************************
 *Sectoral decomposition using sedecomposition command and 2 seperate datasets (one for each year) for rural and for urban.

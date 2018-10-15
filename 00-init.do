@@ -12,10 +12,10 @@ set sortseed 11041955
 if (inlist("${suser}","wb390290","WB390290")) {
 	*Utz
 	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\KPGA\SV-KPGA"
+	local swdLocal = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\FY17-KPGA\SV-KPGA"
 	*Box directory where the Data folder can be located
 	*Full Dataset
-	local swdBox = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\KPGA\DataBoxFull"
+	local swdBox = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\FY17-KPGA\DataBoxFull"
 	*Team Dataset
 *	local swdBox = "C:\Users\WB390290\WBG\Carolina Mejia-Mantilla - KPGA\DataBox"
 }

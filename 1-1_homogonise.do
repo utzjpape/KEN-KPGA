@@ -1422,7 +1422,7 @@ merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/land15.dta" ,keep(match master
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/transfers15.dta", keep(match master) nogen
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/assets15.dta", keep(match master) nogen
 merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/shocks15.dta", keep(match master) nogen
-merge 1:1 clid hhid using "${gsdData}\0-RawInput\KIHBS15\nfexpcat.dta" , keepusing(nfdrent) assert(match) nogen
+merge 1:1 clid hhid using "${gsdDataRaw}\KIHBS15\nfexpcat.dta" , keepusing(nfdrent) assert(match) nogen
 
 *Generating survey dummy
 gen kihbs = 2015

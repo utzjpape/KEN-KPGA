@@ -744,17 +744,15 @@ graph save "${gsdOutput}/GIC_nat.gph", replace
 
 graph combine gic3
 graph save "${gsdOutput}/GIC_urb.gph", replace
-/*
-graph export "${gsdOutput}\GIC_natrururb.png", as(png) replace
-graph save "${gsdOutput}/GIC_nat_rur_urb.gph", replace
-*/
+
 graph combine gic1, iscale(*0.9)
 graph export "${gsdOutput}/GIC_nat.png", replace
-graph combine gic2, iscale(*0.9)
-graph export "${gsdOutput}/GIC_rur.png", replace
+
 graph combine gic3, iscale(*0.9)
 graph export "${gsdOutput}/GIC_urb.png", replace
 
+*running Rural GIC seperately
+run "${gsdDo}/gic_rururb.do"
 *Provincial level GICs 
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 /*6.Growth Incidence curve*/
@@ -821,6 +819,7 @@ graph save "${gsdOutput}/GIC_provinces_select2.gph", replace
 graph export "${gsdOutput}/GIC_prov2.png", as(png) replace
 drop pctile* schange* change* x 
 
+
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 *NEDI / Non-Nedi GICs 
 global cons = "rcons"
@@ -834,57 +833,42 @@ label var nedi_cat "1=Non-NEDI County 2=NEDI county - FOR matrix in GIC"
 
 /*** Generating Percentiles ***/
 foreach var in 2005 2015 {
-	forvalues i = 1 / 2 {
-        xtile pctile_`i'_`var' = $cons if kihbs == `var' & nedi_cat == `i' [aw = wta_hh], nq(100)
+        xtile pctile_2_`var' = $cons if kihbs == `var' & nedi_cat == 2 [aw = wta_hh], nq(100)
 }
-}
-forvalues i = 1 / 2 {
-	egen pctile_nedi`i' = rowtotal(pctile_`i'_2005 pctile_`i'_2015)
-}
+egen pctile_nedi2 = rowtotal(pctile_2_2005 pctile_2_2015)
+	
 *Between 2005 and 2015
 *create (100x8) matrix full of zeros. Each column will populated with the percentile change in real consumption
 *for the 2 NEDI categories).
 matrix change = J(100, 2, 0)
 
 forvalues x = 1/100 {
-		  forvalues i = 1 / 2 {
-		  	quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_nedi`i' == `x'& nedi_cat == `i'
-			matrix change[`x', (`i')] = r(mean)
+		  	quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_nedi2 == `x'& nedi_cat == 2
+			matrix change[`x', (2)] = r(mean)
 			
-			quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_nedi`i' == `x'   & nedi_cat == `i'
-			matrix change[`x', (`i')] = (((r(mean) / change[`x', `i'])^(1/10)-1)*100)	
+			quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_nedi2 == `x'   & nedi_cat == 2
+			matrix change[`x', (2)] = (((r(mean) / change[`x', 2])^(1/10)-1)*100)	
 }
-}
+
 svmat change, names(change)
 gen x = _n if _n <= 100
 
-forvalues i = 1/2 {
-          lowess change`i' x, gen(schange`i') nograph
-}
-*
+lowess change2 x, gen(schange2) nograph
+		  
 foreach x in 05 15 {
-	forvalues i = 1/2 {
-		sum $cons if kihbs == 20`x' & nedi_cat == `i' [aw = wta_hh]
-		scalar mean20`x'_nedi`i' = r(mean)
+		sum $cons if kihbs == 20`x' & nedi_cat == 2 [aw = wta_hh]
+		scalar mean20`x'_nedi2 = r(mean)
 }
-}
-forvalues i = 1/2 {
-	local mean_change_nedi`i' = (((mean2015_nedi`i' / mean2005_nedi`i')^(1/10)-1)*100)
-}
+	local mean_change_nedi2 = (((mean2015_nedi2 / mean2005_nedi2)^(1/10)-1)*100)
+
 /*** Generating graph ***/
 *NEDI GICs
-local k = 1
-local nedis "Non-NEDI NEDI"
 
-foreach s of local nedis  {
-        line schange`k' x, lcolor(navy) lpattern(solid) yline(`mean_change_nedi`k'') yline(0 , lstyle(foreground))  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`k', replace)
-		local k = `k'+1
-}
-graph combine gic1, iscale(*0.9)
-graph save "${gsdOutput}/GIC_nonnedi.gph", replace
-graph combine gic1, iscale(*0.9)
-graph export "${gsdOutput}/GIC_non-nedi.png", as(png) replace
-/*
+ line schange2 x, lcolor(navy) lpattern(solid) yline(`mean_change_nedi2') yscale(range(8 0)) ylabel(#8) yline(0 , lstyle(foreground))  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic2, replace)
+
+ graph combine gic2, iscale(*0.9)
+ graph save "${gsdOutput}/GIC_nedi.gph", replace
+graph export "${gsdOutput}/GIC_nedi.png", as(png) replace
 graph combine gic2, iscale(*0.9)
 graph export "${gsdOutput}/GIC_nedi.png", as(png) replace
 */

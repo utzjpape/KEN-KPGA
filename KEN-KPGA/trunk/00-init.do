@@ -30,9 +30,9 @@ else if (inlist("${suser}","wb445085","WB445085")) {
 else if (inlist("${suser}","nduati", "wb475840", "WB475840")) {
 	*Nduati
 	*Local directory of your checked out copy of the code
-	local swdLocal = "/Users/nduati/Box Sync/Countries/Kenya/KPGA"
+	local swdLocal = "C:\Users\wb475840\OneDrive - WBG\Countries\Kenya\KPGA"
 	*Box directory where the Data folder can be located
-	local swdBox = "/Users/nduati/Box Sync/Countries/Kenya/KPGA/Data/0-RawInput"
+	local swdBox = "C:\Users\wb475840\WBG\Utz Johann Pape - Kenya\Projects\FY17-KPGA\DataBox"
 
 }
 else if (inlist("${suser}","nduati", "wb495217", "WB495217")) {

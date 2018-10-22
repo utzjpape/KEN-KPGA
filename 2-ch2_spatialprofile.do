@@ -81,7 +81,18 @@ tabout  province kihbs if fdpoor==1 using "${gsdOutput}/ch2_table1_fd.xls"  , sv
 tabout  province kihbs using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
 tabout  nedi kihbs if fdpoor==1 using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Number_of_fdpoor)  nwt(weight) append
 tabout  nedi kihbs using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
+
 *-------------------------------------------------------------------------------*
+*Poor by sex of household head by NEDI category
+*Absolute
+tabout nedi malehead if kihbs==2005 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean poor) f(3 3 3) sum  clab(2005_ABS_Poverty SE) sebnone replace
+tabout nedi malehead if kihbs==2015 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean poor) f(3 3 3) sum  clab(2015_ABS_Poverty SE) sebnone append
+*Extreme
+tabout nedi malehead if kihbs==2005 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean hcpoor) f(3 3 3) sum  clab(2005_Ext_Poverty SE) sebnone append
+tabout nedi malehead if kihbs==2015 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean hcpoor) f(3 3 3) sum  clab(2015_Ext_Poverty SE) sebnone append
+*Food
+tabout nedi malehead if kihbs==2005 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean fdpoor) f(3 3 3) sum  clab(2005_FD_Poverty SE) sebnone append
+tabout nedi malehead if kihbs==2015 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean fdpoor) f(3 3 3) sum  clab(2015_FD_Poverty SE) sebnone append
 svyset , clear
 
 	
@@ -728,9 +739,15 @@ foreach s in National Rural Urban  {
         line schange`i' x, lcolor(navy) lpattern(solid) yline(`mean_change`i'') yline(0	, lstyle(foreground)) xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`i', replace)
 		local i = `i' + 1
 }
-graph combine gic1 gic2 gic3, iscale(*0.9)
+graph combine gic1 
+graph save "${gsdOutput}/GIC_nat.gph", replace
+
+graph combine gic3
+graph save "${gsdOutput}/GIC_urb.gph", replace
+/*
 graph export "${gsdOutput}\GIC_natrururb.png", as(png) replace
 graph save "${gsdOutput}/GIC_nat_rur_urb.gph", replace
+*/
 graph combine gic1, iscale(*0.9)
 graph export "${gsdOutput}/GIC_nat.png", replace
 graph combine gic2, iscale(*0.9)
@@ -863,13 +880,14 @@ foreach s of local nedis  {
         line schange`k' x, lcolor(navy) lpattern(solid) yline(`mean_change_nedi`k'') yline(0 , lstyle(foreground))  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`k', replace)
 		local k = `k'+1
 }
-graph combine gic1 gic2, iscale(*0.9)
-graph save "${gsdOutput}/GIC_nedi.gph", replace
-graph export "${gsdOutput}/GIC_nedi_both.png", as(png) replace
+graph combine gic1, iscale(*0.9)
+graph save "${gsdOutput}/GIC_nonnedi.gph", replace
 graph combine gic1, iscale(*0.9)
 graph export "${gsdOutput}/GIC_non-nedi.png", as(png) replace
+/*
 graph combine gic2, iscale(*0.9)
 graph export "${gsdOutput}/GIC_nedi.png", as(png) replace
+*/
 drop pctile* schange* change* x
 /*6.Sectoral decompoosition*/
 *****************************
@@ -889,7 +907,7 @@ keep if kihbs==2015
 saveold "${gsdTemp}/decomp_nat_15.dta" , replace
 
 *rural sectoral decomposition
-use "${gsdTemp}/ch2_analysis3.dta" , clear
+use "${gsdTemp}/ch2_analysis2.dta" , clear
 
 keep if urban ==0 & kihbs==2005
 saveold "${gsdTemp}/decomp_rur_05.dta" , replace

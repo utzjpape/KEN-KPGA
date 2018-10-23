@@ -137,7 +137,7 @@ twoway (kdensity $cons if kihbs==2005, lw(medthick) lc(magenta) xmlab(, labs(sma
 twoway (kdensity $cons if kihbs==2005, lw(medthick) lc(magenta) xmlab(, labs(small)) )  (kdensity $cons if kihbs==2015, lw(medthick) lp(shortdash)) if ($cons <=100000 & urban==0), xtitle("Real Consumption Aggregate (2015 prices)") ytitle("Probability Dens. Function") legend(label(1 "2005") label(2 "2015")) scale(.9) title("Rural")	ylabel(none) name(g3, replace)
 
 graph combine g1 g2 g3, title("Distribution Graphs of Consumption")
-graph save "${gsdOutput}/cons_distr.gph", replace
+graph save "${gsdOutput}/ch2_cons_distr.gph", replace
 
 
 /*3.Poverty gap and severity*/
@@ -736,24 +736,27 @@ local mean_change3 = (((mean2015_urban / mean2005_urban)^(1/10)-1)*100)
 *National, rural and urban GICs
 local i = 1
 foreach s in National Rural Urban  {
-        line schange`i' x, lcolor(navy) lpattern(solid) yline(`mean_change`i'') yline(0	, lstyle(foreground)) xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`i', replace)
+        line schange`i' x, lcolor(navy) lpattern(solid) yline(`mean_change`i'') yscale(range(5 0)) ylabel(#5) yline(0	, lstyle(foreground)) xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`i', replace)
 		local i = `i' + 1
 }
 graph combine gic1 
-graph save "${gsdOutput}/GIC_nat.gph", replace
+graph save "${gsdOutput}/ch2_GIC_nat.gph", replace
 
 graph combine gic3
-graph save "${gsdOutput}/GIC_urb.gph", replace
-
+graph save "${gsdOutput}/ch2_GIC_urb.gph", replace
+/*
+graph export "${gsdOutput}\GIC_natrururb.png", as(png) replace
+graph save "${gsdOutput}/GIC_nat_rur_urb.gph", replace
+*/
 graph combine gic1, iscale(*0.9)
-graph export "${gsdOutput}/GIC_nat.png", replace
-
+graph export "${gsdOutput}/ch2_GIC_nat.png", replace
+graph combine gic2, iscale(*0.9)
+graph export "${gsdOutput}/ch2_GIC_rur.png", replace
 graph combine gic3, iscale(*0.9)
-graph export "${gsdOutput}/GIC_urb.png", replace
+graph export "${gsdOutput}/ch2_GIC_urb.png", replace
 
-*running Rural GIC seperately
-run "${gsdDo}/gic_rururb.do"
-*Provincial level GICs 
+*Provincial level GICs [not included in final KPGA]
+/*
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 /*6.Growth Incidence curve*/
 *****************************
@@ -810,16 +813,16 @@ foreach s of local provinces  {
 		local k = `k'+1
 }
 graph combine gic1 gic2 gic3 gic4 gic5 gic6 gic7 gic8, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
-graph save "${gsdOutput}/GIC_provinces.gph", replace
+graph save "${gsdOutput}/ch2_GIC_provinces.gph", replace
 graph combine gic1  gic3  gic5  gic8, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
-graph save "${gsdOutput}/GIC_provinces_select.gph", replace
-graph export "${gsdOutput}/GIC_prov1.png", as(png) replace
+graph save "${gsdOutput}/ch2_GIC_provinces_select.gph", replace
+graph export "${gsdOutput}/ch2_GIC_prov1.png", as(png) replace
 graph combine gic2  gic4  gic6  gic7, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
-graph save "${gsdOutput}/GIC_provinces_select2.gph", replace
-graph export "${gsdOutput}/GIC_prov2.png", as(png) replace
+graph save "${gsdOutput}/ch2_GIC_provinces_select2.gph", replace
+graph export "${gsdOutput}/ch2_GIC_prov2.png", as(png) replace
 drop pctile* schange* change* x 
 
-
+*/
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 *NEDI / Non-Nedi GICs 
 global cons = "rcons"
@@ -867,10 +870,10 @@ foreach x in 05 15 {
  line schange2 x, lcolor(navy) lpattern(solid) yline(`mean_change_nedi2') yscale(range(8 0)) ylabel(#8) yline(0 , lstyle(foreground))  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic2, replace)
 
  graph combine gic2, iscale(*0.9)
- graph save "${gsdOutput}/GIC_nedi.gph", replace
-graph export "${gsdOutput}/GIC_nedi.png", as(png) replace
+ graph save "${gsdOutput}/ch2_GIC_nedi.gph", replace
+graph export "${gsdOutput}/ch2_GIC_nedi.png", as(png) replace
 graph combine gic2, iscale(*0.9)
-graph export "${gsdOutput}/GIC_nedi.png", as(png) replace
+graph export "${gsdOutput}/ch2_GIC_nedi.png", as(png) replace
 */
 drop pctile* schange* change* x
 /*6.Sectoral decompoosition*/
@@ -883,7 +886,7 @@ drop pctile* schange* change* x
 *National sectoral decomposition
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 log close _all
-log using "${gsdOutput}/sdecomp", text replace
+log using "${gsdOutput}/ch2_sdecomp", text replace
 keep if kihbs==2005
 saveold "${gsdTemp}/decomp_nat_05.dta" , replace
 use "${gsdTemp}/ch2_analysis2.dta" , clear
@@ -968,26 +971,26 @@ replace hhsize=. if hhsize>15
 *regressing log of real consumption on geographic / household characteristics
 reg lnrcons urban ib8.province hhsize malehead agehead agehead_sq depen i.relhead married i.hhedu i.hhsector dive , robust
 estimates store reg_lncons_0
-esttab reg_lncons_0 using "${gsdOutput}/reg_lncons_0.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+esttab reg_lncons_0 using "${gsdOutput}/ch2_reg_lncons_0.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 reg lnrcons ib5.province hhsize malehead agehead agehead_sq depen i.relhead married i.hhedu i.hhsector dive if urban==0 , robust
 estimates store reg_lncons_1
-esttab reg_lncons_1 using "${gsdOutput}/reg_lncons_1.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+esttab reg_lncons_1 using "${gsdOutput}/ch2_reg_lncons_1.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 reg lnrcons ib5.province hhsize malehead agehead agehead_sq depen i.relhead married i.hhedu i.hhsector dive if urban==1 , robust
 estimates store reg_lncons_2
-esttab reg_lncons_2 using "${gsdOutput}/reg_lncons_2.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+esttab reg_lncons_2 using "${gsdOutput}/ch2_reg_lncons_2.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 *regress poor household dummy on geographic / household characteristics
 svy: probit poor ib5.province hhsize malehead agehead agehead_sq  depen i.relhead married i.hhedu i.hhsector dive  if urban==0
 margins, dydx(*)
 estimates store probit
-esttab probit using "${gsdOutput}/probit_rural.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+esttab probit using "${gsdOutput}/ch2_probit_rural.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 svy: probit poor ib5.province hhsize malehead agehead agehead_sq  depen i.relhead married i.hhedu i.hhsector dive  if urban==1
 margins, dydx(*)
 estimates store probit
-esttab probit using "${gsdOutput}/probit_urban.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+esttab probit using "${gsdOutput}/ch2_probit_urban.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 clear
 

@@ -39,11 +39,11 @@ rename cons_share cons_share05
 egen pop_05 = total(wta_pop_05)
 gen prop_pop_05 = wta_pop_05/pop_05
 tempfile cons_p05
-save `"cons_p05"', replace
+save "`cons_p05'", replace
 
 restore
 
-merge 1:1 cons_p using `"cons_p05"'
+merge 1:1 cons_p using "`cons_p05'"
 
 
 clear
@@ -83,13 +83,13 @@ egen pop_05 = total( wta_pop_05)
 gen prop_pop_05 = wta_pop_05/pop_05
 
 tempfile Ag_p05
-save `"Ag_p05"', replace
+save "`Ag_p05'", replace
 
 
 restore
 
 
-merge 1:1 Ag_emp_p using `"Ag_p05"'
+merge 1:1 Ag_emp_p using "`Ag_p05'"
 sort Ag_emp_p
 
 export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("Figure 4-5") sheetreplace firstrow(varlabels)

@@ -69,13 +69,13 @@ keep uhhid sex_dmaker
 rename sex_dmaker primary_DM
 
 tempfile gender_land
-save `"gender_land"', replace
+save "`gender_land'", replace
 
 restore
 
 
 
-merge m:1 uhhid using `"gender_land"'
+merge m:1 uhhid using "`gender_land'"
 drop _merge
 
 

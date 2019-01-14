@@ -479,10 +479,10 @@ use "${gsdDataRaw}/KIHBS05/consumption aggregated data", clear
 egen uhhid = concat(id_clust id_hh)				//Unique HH ID
 keep uhhid fdtotby fdtotpr
 tempfile poverty_uhhid
-save `"poverty_uhhid"', replace
+save "`poverty_uhhid'", replace
 restore
 
-merge 1:1 uhhid using `"poverty_uhhid"'
+merge 1:1 uhhid using "`poverty_uhhid'"
 drop if _m == 2
 drop _m
 

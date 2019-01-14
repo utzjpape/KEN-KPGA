@@ -30,9 +30,9 @@ else if (inlist("${suser}","wb445085","WB445085")) {
 else if (inlist("${suser}","nduati", "wb475840", "WB475840")) {
 	*Nduati
 	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\wb475840\OneDrive - WBG\Countries\Kenya\KPGA"
+	local swdLocal = "C:\Users\WB475840\Documents\KPGA"
 	*Box directory where the Data folder can be located
-	local swdBox = "C:\Users\wb475840\WBG\Utz Johann Pape - Kenya\Projects\FY17-KPGA\DataBox"
+	local swdBox = "C:\Users\WB475840\WBG\Utz Johann Pape - KPGA-DB\0-RawInput"
 
 }
 else if (inlist("${suser}","nduati", "wb495217", "WB495217")) {
@@ -79,8 +79,12 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdData}/1-CleanInput"
 	mkdir "${gsdData}/1-CleanTemp"
 	mkdir "${gsdData}/1-CleanOutput"
+	mkdir "${gsdData}/2-AnalysisOutput"
+	mkdir "${gsdData}/2-AnalysisOutput/C4-Rural"
+	mkdir "${gsdData}/2-AnalysisTemp"
 	mkdir "${gsdTemp}"
 	mkdir "${gsdOutput}"
+	mkdir "${gsdOutput}/C4-Rural"
 
 	*install packages used in the process
 	ssc install distinct

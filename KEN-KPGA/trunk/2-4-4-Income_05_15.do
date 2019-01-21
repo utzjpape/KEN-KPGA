@@ -966,7 +966,23 @@ gen Service_wage = prop_salary_serv3
 gen Transfers = prop_transfer_income3
 gen Enterprise_Income = prop_Non_Ag_income3
 
-keep year Agriculture Industry_wage Service_wage Transfers Enterprise_Income
+keep year poor Agriculture Industry_wage Service_wage Transfers Enterprise_Income
 export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("fig4-6") sheetreplace firstrow(varlabels)
 
-exit
+*Additional Rural analysis
+export excel using "${gsdOutput}/C4-Rural/add_rural.xlsx", sheet("Income") sheetreplace firstrow(varlabels)
+
+use "${gsdData}/2-AnalysisOutput/C4-Rural/Income15.dta", clear
+keep if rural == 1
+merge m:1 uhhid using "${gsdData}/1-CleanTemp/hhfarmsub15.dta"
+collapse year prop_Ag_income3 prop_livestock_income3 prop_salary_income3 prop_salary_agr3 prop_salary_ind3 prop_salary_serv3 prop_transfer_income3 prop_Non_Ag_income3 [aw = wta_pop], by(subfarm)
+gen Agriculture = prop_Ag_income3 + prop_livestock_income3 + prop_salary_agr3
+gen Industry_wage = prop_salary_ind3
+gen Service_wage = prop_salary_serv3
+gen Transfers = prop_transfer_income3
+gen Enterprise_Income = prop_Non_Ag_income3
+keep year subfarm Agriculture Industry_wage Service_wage Transfers Enterprise_Income
+export excel using "${gsdOutput}/C4-Rural/add_rural.xlsx", sheet("Income_subfarm") sheetreplace firstrow(varlabels)
+
+
+

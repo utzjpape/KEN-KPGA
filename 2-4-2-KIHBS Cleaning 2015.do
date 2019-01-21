@@ -166,10 +166,6 @@ label value dmaker_p* dmakerl
  
 save "${gsdData}/2-AnalysisOutput/C4-Rural/c_Agricultural_Holding15.dta", replace
 
-
-
-
-
 ************************************************
 		*SECTION O: AGRICULTURE OUTPUT
 ************************************************
@@ -183,7 +179,7 @@ drop _merge
 merge m:1 hhid clid using "${gsdDataRaw}\KIHBS15\hh.dta", keepusing(county)
 *keep if _merge == 3
 drop _merge
-merge m:1 hhid clid using "${gsdData}/1-CleanOutput/kihbs15_16.dta", keepus(wta_pop province poor)
+merge m:1 hhid clid using "${gsdData}/1-CleanOutput/kihbs15_16.dta", keepus(wta_pop province poor urban)
 keep if _merge == 3
 drop _merge
 
@@ -483,7 +479,7 @@ label var price_`var' "Price of `var' per kg"
 
 
 /* Collapse Land + Production + Yield */
-local firstnm land_ar_MaizeCereals land_ar_TubersRoots land_ar_BeansLegumesNuts 
+local firstnm county urban land_ar_MaizeCereals land_ar_TubersRoots land_ar_BeansLegumesNuts 
 land_ar_FruitsVegetables land_ar_TeaCoffee land_ar_OtherCash  land_ar_OtherCrops 
 land_num_MaizeCereals land_num_TubersRoots land_num_BeansLegumesNuts 
 land_num_FruitsVegetables land_num_TeaCoffee land_num_OtherCash land_num_OtherCrops 
@@ -560,6 +556,7 @@ label var consumed_crop "Value of household consumption of own crop"
 
 label var area_total "Total land area cultivated"
 
+
 #delimit ;
 foreach var in area_total land_ar_MaizeCereals land_ar_TubersRoots land_ar_BeansLegumesNuts 
 land_ar_FruitsVegetables land_ar_TeaCoffee land_ar_OtherCash land_ar_OtherCrops land_num_MaizeCereals 
@@ -596,8 +593,7 @@ drop _m
 
 
 save "${gsdData}/2-AnalysisOutput/C4-Rural/c_Agricultural_Output15.dta", replace
-
-
-keep uhhid land_a* i* wta_pop area_total poor
+label val county lcounty
+keep uhhid land_a* i* wta_pop area_total poor county urban
 gen year = 2
 save "${gsdData}/2-AnalysisOutput/C4-Rural/c_Agricultural_Output_li15.dta", replace

@@ -130,9 +130,8 @@ merge m:1 uhhid using "${gsdData}/2-AnalysisOutput/C4-Rural/c_Section N.dta"
 drop _merge
 ren (id_clust id_hh) (clid hhid)
 
-merge m:1 clid hhid using "${gsdData}/1-CleanOutput/kihbs05_06.dta", keepus(wta_pop poor prov)
+merge m:1 clid hhid using "${gsdData}/1-CleanOutput/kihbs05_06.dta", keepus(wta_pop poor prov county urban)
 ren (clid hhid) (id_clust id_hh)
-
 keep if _merge == 3
 drop _merge
 
@@ -337,10 +336,6 @@ bysort crop: egen price_np1_r = max(price_np1)
 bysort crop: egen price_np5_r = max(price_np5)
 
 
-
-
-
-
 /*Note: Prices varry substantial by HH, cluster
 	and natonal levels. tabstat price*, by(m_crop) stat(mean count)  */
 
@@ -438,10 +433,11 @@ foreach var in whitemaize hybridemaize othermaize ///
 	millet sorghum potatoes beans cowpea tea coffee {
 label var price_`var' "Price of `var' per kg"
 }
+
 keep if n01 == 1
 #delimit ;
 
-local firstnm e_seed land_ar_MaizeCereals land_ar_TubersRoots
+local firstnm county urban e_seed land_ar_MaizeCereals land_ar_TubersRoots
 land_ar_BeansLegumesNuts land_ar_FruitsVegetables land_ar_TeaCoffee
 land_ar_OtherCash land_ar_OtherCrops land_whitemaize land_hybridemaize land_othermaize
 land_allMaize land_millet land_sorghum land_potatoes 
@@ -470,9 +466,7 @@ land_tea land_coffee land_allMaize area_total ///
 cons_MaizeCereals cons_TubersRoots cons_BeansLegumesNuts cons_FruitsVegetables cons_TeaCoffee cons_OtherCash cons_OtherCrops{;
 replace `var'=0 if `var'==.;
 };
-
 #delimit cr	
-
 preserve 
 
 use "${gsdDataRaw}/KIHBS05/consumption aggregated data", clear
@@ -486,11 +480,9 @@ merge 1:1 uhhid using "`poverty_uhhid'"
 drop if _m == 2
 drop _m
 
-
 save "${gsdData}/2-AnalysisOutput/C4-Rural/c_Agricultural_Output05.dta", replace
-
-
-keep uhhid land* i* wta_pop area_total poor
+label val county lcounty
+keep uhhid land* i* wta_pop area_total poor county urban
 gen year = 1
 save "${gsdData}/2-AnalysisOutput/C4-Rural/c_Agricultural_Output_li05.dta", replace
 

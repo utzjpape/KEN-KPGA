@@ -27,20 +27,19 @@ label define c_cropl 1 "Maize & Other Cereals" 2 "Tubers & Roots" 3 "Beans, Legu
 					 5 "Tea & Coffee" 6 "Other Cash Crops" 7 "Other Crops" 
 label value maj_crop c_cropl
 
-
-
 preserve
 collapse (sum) land* ///
 [aw = wta_pop], by(year)
 export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("fig4-11") sheetreplace firstrow(varlabels)
 restore
 
-
 preserve
-
 
 collapse poor (sem) poor_se = poor [aw = wta_pop] , by(year maj_crop)
 
 export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("fig4-19") sheetreplace firstrow(varlabels)
 
 restore 
+
+
+

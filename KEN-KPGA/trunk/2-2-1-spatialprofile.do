@@ -1,3 +1,8 @@
+*-------------------------------------------------------------------------*
+* Chapter 2: THE EXTENT AND EVOLUTION OF POVERTY AND INEQUALITY IN KENYA
+*	Spatial profile
+*By Nduati Kariuki (nkariuki@worldbank.org)
+*-------------------------------------------------------------------------*
 clear all
 cap log close
 
@@ -22,77 +27,77 @@ replace old05_hcpoor = .  if kihbs==2015
 *-------------------------------------------------------------------------------*
 *Absolute poverty
 *Incidence
-tabout urban kihbs  using "${gsdOutput}/ch2_table1.xls" [aw=wta_pop], svy c(mean poor se poor) f(3 3 3) sum  clab(Poverty SE) sebnone replace 
-tabout province kihbs  using "${gsdOutput}/ch2_table1.xls" , svy c(mean poor se poor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
-tabout nedi kihbs using "${gsdOutput}/ch2_table1.xls" , svy c(mean poor se poor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
+tabout urban kihbs  using "${gsdOutput}/C2-Trends/ch2_table1.xls" [aw=wta_pop], svy c(mean poor se poor) f(3 3 3) sum  clab(Poverty SE) sebnone replace 
+tabout province kihbs  using "${gsdOutput}/C2-Trends/ch2_table1.xls" , svy c(mean poor se poor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
+tabout nedi kihbs using "${gsdOutput}/C2-Trends/ch2_table1.xls" , svy c(mean poor se poor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
 *Distribution of poor / population
-tabout urban   kihbs if poor==1 using "${gsdOutput}/ch2_table1.xls", svy c(col) f(3)  clab(Distribution_of_poor) append
-tabout urban   kihbs using "${gsdOutput}/ch2_table1.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
-tabout province   kihbs if poor==1 using "${gsdOutput}/ch2_table1.xls" , svy c(col) f(3)  clab(Distribution_of_poor) append
-tabout province   kihbs using "${gsdOutput}/ch2_table1.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
-tabout nedi kihbs if poor==1 using "${gsdOutput}/ch2_table1.xls" ,svy c(col) f(3)  clab(Distribution_of_poor) append
-tabout nedi kihbs using "${gsdOutput}/ch2_table1.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
+tabout urban   kihbs if poor==1 using "${gsdOutput}/C2-Trends/ch2_table1.xls", svy c(col) f(3)  clab(Distribution_of_poor) append
+tabout urban   kihbs using "${gsdOutput}/C2-Trends/ch2_table1.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
+tabout province   kihbs if poor==1 using "${gsdOutput}/C2-Trends/ch2_table1.xls" , svy c(col) f(3)  clab(Distribution_of_poor) append
+tabout province   kihbs using "${gsdOutput}/C2-Trends/ch2_table1.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
+tabout nedi kihbs if poor==1 using "${gsdOutput}/C2-Trends/ch2_table1.xls" ,svy c(col) f(3)  clab(Distribution_of_poor) append
+tabout nedi kihbs using "${gsdOutput}/C2-Trends/ch2_table1.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
 *absolute number of poor / population
-tabout  urban kihbs if poor==1 using "${gsdOutput}/ch2_table1.xls"  , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
-tabout  urban kihbs using "${gsdOutput}/ch2_table1.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
-tabout  province kihbs if poor==1 using "${gsdOutput}/ch2_table1.xls"  , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
-tabout  province kihbs using "${gsdOutput}/ch2_table1.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
-tabout  nedi kihbs if poor==1 using "${gsdOutput}/ch2_table1.xls"  , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
-tabout  nedi kihbs using "${gsdOutput}/ch2_table1.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
+tabout  urban kihbs if poor==1 using "${gsdOutput}/C2-Trends/ch2_table1.xls"  , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
+tabout  urban kihbs using "${gsdOutput}/C2-Trends/ch2_table1.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
+tabout  province kihbs if poor==1 using "${gsdOutput}/C2-Trends/ch2_table1.xls"  , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
+tabout  province kihbs using "${gsdOutput}/C2-Trends/ch2_table1.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
+tabout  nedi kihbs if poor==1 using "${gsdOutput}/C2-Trends/ch2_table1.xls"  , svy npos(col) c(freq) clab(Number_of_poor)  nwt(weight) append
+tabout  nedi kihbs using "${gsdOutput}/C2-Trends/ch2_table1.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
 *-------------------------------------------------------------------------------*
 *-------------------------------------------------------------------------------*
 *Extreme poverty
 *Incidence
-tabout urban kihbs  using "${gsdOutput}/ch2_table1_hc.xls" , svy c(mean hcpoor se hcpoor) f(3 3 3) sum  clab(Poverty SE) sebnone replace 
-tabout province kihbs  using "${gsdOutput}/ch2_table1_hc.xls" , svy c(mean hcpoor se hcpoor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
-tabout nedi kihbs using "${gsdOutput}/ch2_table1_hc.xls" , svy c(mean hcpoor se hcpoor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
+tabout urban kihbs  using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls" , svy c(mean hcpoor se hcpoor) f(3 3 3) sum  clab(Poverty SE) sebnone replace 
+tabout province kihbs  using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls" , svy c(mean hcpoor se hcpoor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
+tabout nedi kihbs using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls" , svy c(mean hcpoor se hcpoor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
 *Distribution of hcpoor / population
-tabout urban   kihbs if hcpoor==1 using "${gsdOutput}/ch2_table1_hc.xls", svy c(col) f(3)  clab(Distribution_of_hcpoor) append
-tabout urban   kihbs using "${gsdOutput}/ch2_table1_hc.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
-tabout province   kihbs if hcpoor==1 using "${gsdOutput}/ch2_table1_hc.xls" , svy c(col) f(3)  clab(Distribution_of_hcpoor) append
-tabout province   kihbs using "${gsdOutput}/ch2_table1_hc.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
-tabout nedi kihbs if hcpoor==1 using "${gsdOutput}/ch2_table1_hc.xls" ,svy c(col) f(3)  clab(Distribution_of_hcpoor) append
-tabout nedi kihbs using "${gsdOutput}/ch2_table1_hc.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
+tabout urban   kihbs if hcpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls", svy c(col) f(3)  clab(Distribution_of_hcpoor) append
+tabout urban   kihbs using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
+tabout province   kihbs if hcpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls" , svy c(col) f(3)  clab(Distribution_of_hcpoor) append
+tabout province   kihbs using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
+tabout nedi kihbs if hcpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls" ,svy c(col) f(3)  clab(Distribution_of_hcpoor) append
+tabout nedi kihbs using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
 *absolute number of hcpoor / population
-tabout  urban kihbs if hcpoor==1 using "${gsdOutput}/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Number_of_hcpoor)  nwt(weight) append
-tabout  urban kihbs using "${gsdOutput}/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
-tabout  province kihbs if hcpoor==1 using "${gsdOutput}/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Number_of_hcpoor)  nwt(weight) append
-tabout  province kihbs using "${gsdOutput}/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
-tabout  nedi kihbs if hcpoor==1 using "${gsdOutput}/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Number_of_hcpoor)  nwt(weight) append
-tabout  nedi kihbs using "${gsdOutput}/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
+tabout  urban kihbs if hcpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Number_of_hcpoor)  nwt(weight) append
+tabout  urban kihbs using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
+tabout  province kihbs if hcpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Number_of_hcpoor)  nwt(weight) append
+tabout  province kihbs using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
+tabout  nedi kihbs if hcpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Number_of_hcpoor)  nwt(weight) append
+tabout  nedi kihbs using "${gsdOutput}/C2-Trends/ch2_table1_hc.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
 *-------------------------------------------------------------------------------*
 *-------------------------------------------------------------------------------*
 *Food poverty
 *Incidence
-tabout urban kihbs  using "${gsdOutput}/ch2_table1_fd.xls" , svy c(mean fdpoor se fdpoor) f(3 3 3) sum  clab(Poverty SE) sebnone replace 
-tabout province kihbs  using "${gsdOutput}/ch2_table1_fd.xls" , svy c(mean fdpoor se fdpoor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
-tabout nedi kihbs using "${gsdOutput}/ch2_table1_fd.xls" , svy c(mean fdpoor se fdpoor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
+tabout urban kihbs  using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls" , svy c(mean fdpoor se fdpoor) f(3 3 3) sum  clab(Poverty SE) sebnone replace 
+tabout province kihbs  using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls" , svy c(mean fdpoor se fdpoor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
+tabout nedi kihbs using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls" , svy c(mean fdpoor se fdpoor) f(3 3 3 3) sum clab(Poverty SE) sebnone append 
 *Distribution of fdpoor / population
-tabout urban   kihbs if fdpoor==1 using "${gsdOutput}/ch2_table1_fd.xls", svy c(col) f(3)  clab(Distribution_of_fdpoor) append
-tabout urban   kihbs using "${gsdOutput}/ch2_table1_fd.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
-tabout province   kihbs if fdpoor==1 using "${gsdOutput}/ch2_table1_fd.xls" , svy c(col) f(3)  clab(Distribution_of_fdpoor) append
-tabout province   kihbs using "${gsdOutput}/ch2_table1_fd.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
-tabout nedi kihbs if fdpoor==1 using "${gsdOutput}/ch2_table1_fd.xls" ,svy c(col) f(3)  clab(Distribution_of_fdpoor) append
-tabout nedi kihbs using "${gsdOutput}/ch2_table1_fd.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
+tabout urban   kihbs if fdpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls", svy c(col) f(3)  clab(Distribution_of_fdpoor) append
+tabout urban   kihbs using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
+tabout province   kihbs if fdpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls" , svy c(col) f(3)  clab(Distribution_of_fdpoor) append
+tabout province   kihbs using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
+tabout nedi kihbs if fdpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls" ,svy c(col) f(3)  clab(Distribution_of_fdpoor) append
+tabout nedi kihbs using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls" ,svy c(col) f(3)  clab(Distribution_of_population) append
 *absolute number of fdpoor / population
-tabout  urban kihbs if fdpoor==1 using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Number_of_fdpoor)  nwt(weight) append
-tabout  urban kihbs using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
-tabout  province kihbs if fdpoor==1 using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Number_of_fdpoor)  nwt(weight) append
-tabout  province kihbs using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
-tabout  nedi kihbs if fdpoor==1 using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Number_of_fdpoor)  nwt(weight) append
-tabout  nedi kihbs using "${gsdOutput}/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
+tabout  urban kihbs if fdpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Number_of_fdpoor)  nwt(weight) append
+tabout  urban kihbs using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
+tabout  province kihbs if fdpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Number_of_fdpoor)  nwt(weight) append
+tabout  province kihbs using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
+tabout  nedi kihbs if fdpoor==1 using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Number_of_fdpoor)  nwt(weight) append
+tabout  nedi kihbs using "${gsdOutput}/C2-Trends/ch2_table1_fd.xls"  , svy npos(col) c(freq) clab(Total_population)  nwt(weight) append
 
 *-------------------------------------------------------------------------------*
 *Poor by sex of household head by NEDI category
 *Absolute
-tabout nedi malehead if kihbs==2005 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean poor) f(3 3 3) sum  clab(2005_ABS_Poverty SE) sebnone replace
-tabout nedi malehead if kihbs==2015 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean poor) f(3 3 3) sum  clab(2015_ABS_Poverty SE) sebnone append
+tabout nedi malehead if kihbs==2005 using "${gsdOutput}/C2-Trends/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean poor) f(3 3 3) sum  clab(2005_ABS_Poverty SE) sebnone replace
+tabout nedi malehead if kihbs==2015 using "${gsdOutput}/C2-Trends/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean poor) f(3 3 3) sum  clab(2015_ABS_Poverty SE) sebnone append
 *Extreme
-tabout nedi malehead if kihbs==2005 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean hcpoor) f(3 3 3) sum  clab(2005_Ext_Poverty SE) sebnone append
-tabout nedi malehead if kihbs==2015 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean hcpoor) f(3 3 3) sum  clab(2015_Ext_Poverty SE) sebnone append
+tabout nedi malehead if kihbs==2005 using "${gsdOutput}/C2-Trends/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean hcpoor) f(3 3 3) sum  clab(2005_Ext_Poverty SE) sebnone append
+tabout nedi malehead if kihbs==2015 using "${gsdOutput}/C2-Trends/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean hcpoor) f(3 3 3) sum  clab(2015_Ext_Poverty SE) sebnone append
 *Food
-tabout nedi malehead if kihbs==2005 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean fdpoor) f(3 3 3) sum  clab(2005_FD_Poverty SE) sebnone append
-tabout nedi malehead if kihbs==2015 using "${gsdOutput}/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean fdpoor) f(3 3 3) sum  clab(2015_FD_Poverty SE) sebnone append
+tabout nedi malehead if kihbs==2005 using "${gsdOutput}/C2-Trends/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean fdpoor) f(3 3 3) sum  clab(2005_FD_Poverty SE) sebnone append
+tabout nedi malehead if kihbs==2015 using "${gsdOutput}/C2-Trends/ch2_table1_hh.xls" [aw=wta_pop], svy c(mean fdpoor) f(3 3 3) sum  clab(2015_FD_Poverty SE) sebnone append
 svyset , clear
 
 	
@@ -115,11 +120,11 @@ forvalues i = 1/8 {
 }	
 *
 *Kenya
-tabout kihbs using "${gsdOutput}/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3 3) sum  clab(Vulnerability) replace 
+tabout kihbs using "${gsdOutput}/C2-Trends/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3 3) sum  clab(Vulnerability) replace 
 *Kenya/Urban Rural
-tabout urban kihbs  using "${gsdOutput}/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3) sum  clab(Vulnerability) append
+tabout urban kihbs  using "${gsdOutput}/C2-Trends/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3) sum  clab(Vulnerability) append
 *Provinces
-tabout province kihbs  using "${gsdOutput}/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3 3) sum  clab(Vulnerability) append 
+tabout province kihbs  using "${gsdOutput}/C2-Trends/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3 3) sum  clab(Vulnerability) append 
 
 
 /*3.Kernel Density plots*/
@@ -137,7 +142,7 @@ twoway (kdensity $cons if kihbs==2005, lw(medthick) lc(magenta) xmlab(, labs(sma
 twoway (kdensity $cons if kihbs==2005, lw(medthick) lc(magenta) xmlab(, labs(small)) )  (kdensity $cons if kihbs==2015, lw(medthick) lp(shortdash)) if ($cons <=100000 & urban==0), xtitle("Real Consumption Aggregate (2015 prices)") ytitle("Probability Dens. Function") legend(label(1 "2005") label(2 "2015")) scale(.9) title("Rural")	ylabel(none) name(g3, replace)
 
 graph combine g1 g2 g3, title("Distribution Graphs of Consumption")
-graph save "${gsdOutput}/ch2_cons_distr.gph", replace
+graph save "${gsdOutput}/C2-Trends/ch2_cons_distr.gph", replace
 
 
 /*3.Poverty gap and severity*/
@@ -190,7 +195,7 @@ foreach var in 2005 2015 	{
 matrix nedi_2005= [nedi_0_2005 \ nedi_1_2005  ]
 matrix nedi_2015= [nedi_0_2015 \ nedi_1_2015  ]
 
-putexcel set "${gsdOutput}/ch2_table3.xls" , replace
+putexcel set "${gsdOutput}/C2-Trends/ch2_table3.xls" , replace
 putexcel A2=("2005") A3=("Kenya") A4=("Rural") A5=("Peri - Urban") A6=("Core - Urban")
 putexcel B1=("FGT^0") C1=("FGT^1") D1=("FGT^2")
 
@@ -220,7 +225,7 @@ putexcel B44=matrix(rururb_2015)
 
 *-----------------------------------------------------------------------*
 *extreme poverty
-putexcel set "${gsdOutput}/ch2_table3_hcore.xls" , replace
+putexcel set "${gsdOutput}/C2-Trends/ch2_table3_hcore.xls" , replace
 
 povdeco $cons if kihbs==2005 [aw=wta_pop], varpl(z_i)
 matrix national_hc_2005 = [$S_FGT0*100, $S_FGT1*100, $S_FGT2*100]
@@ -298,19 +303,19 @@ label var b40_prov "Bottom 40 percent (Provincially)"
 gen double nfcons = y2_i - y_i
 
 *Bottom 40%
-tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40_nat==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) replace
-tabout urban kihbs using "${gsdOutput}/ch2_table4.xls"[aw=wta_hh]if b40_rurb==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) append
-tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40_prov==1, c(mean $cons) f(3 3 3 3) sum  clab(B40_Cons) append
+tabout kihbs using "${gsdOutput}/C2-Trends/ch2_table4.xls" [aw=wta_hh] if b40_nat==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) replace
+tabout urban kihbs using "${gsdOutput}/C2-Trends/ch2_table4.xls"[aw=wta_hh]if b40_rurb==1, c(mean $cons) f(3 3 3) sum  clab(B40_Cons) append
+tabout province kihbs  using "${gsdOutput}/C2-Trends/ch2_table4.xls" [aw=wta_hh] if b40_prov==1, c(mean $cons) f(3 3 3 3) sum  clab(B40_Cons) append
 
 *Top60%
-tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40_nat==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
-tabout urban kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40_rurb==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
-tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh] if b40_prov==0, c(mean $cons) f(3 3 3 3) sum  clab(T60_Cons)append
+tabout kihbs using "${gsdOutput}/C2-Trends/ch2_table4.xls" [aw=wta_hh] if b40_nat==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
+tabout urban kihbs using "${gsdOutput}/C2-Trends/ch2_table4.xls" [aw=wta_hh] if b40_rurb==0, c(mean $cons) f(3 3 3) sum  clab(T60_Cons) append
+tabout province kihbs  using "${gsdOutput}/C2-Trends/ch2_table4.xls" [aw=wta_hh] if b40_prov==0, c(mean $cons) f(3 3 3 3) sum  clab(T60_Cons)append
 
 *Total population
-tabout kihbs using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh], c(mean $cons) f(3 3 3) sum  clab(All_Cons) append
-tabout urban kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh], c(mean $cons) f(3 3 3) sum  clab(All_Cons) append
-tabout province kihbs  using "${gsdOutput}/ch2_table4.xls" [aw=wta_hh],	c(mean $cons) f(3 3 3 3) sum  clab(All_Cons) append
+tabout kihbs using "${gsdOutput}/C2-Trends/ch2_table4.xls" [aw=wta_hh], c(mean $cons) f(3 3 3) sum  clab(All_Cons) append
+tabout urban kihbs  using "${gsdOutput}/C2-Trends/ch2_table4.xls" [aw=wta_hh], c(mean $cons) f(3 3 3) sum  clab(All_Cons) append
+tabout province kihbs  using "${gsdOutput}/C2-Trends/ch2_table4.xls" [aw=wta_hh],	c(mean $cons) f(3 3 3 3) sum  clab(All_Cons) append
 
 save  "${gsdTemp}/ch2_0.dta" , replace
 use "${gsdTemp}/ch2_0.dta" , clear
@@ -320,7 +325,7 @@ egen double total = rsum( y_i  nfcons)
 gen fshare = (y_i / total)*100
 gen nfshare = (nfcons / total)*100
 keep kihbs fshare nfshare
-export excel using "${gsdOutput}/fshare.xls" , sheet("National") first(var) replace
+export excel using "${gsdOutput}/C2-Trends/ch2_fshare.xls" , sheet("National") first(var) replace
 
 use "${gsdTemp}/ch2_0.dta" , clear
 collapse (sum) y_i nfcons [aw=wta_hh] , by(kihbs county)
@@ -328,7 +333,7 @@ egen double total = rsum( y_i  nfcons)
 gen fshare = (y_i / total)*100
 gen nfshare = (nfcons / total)*100
 keep kihbs county fshare nfshare
-export excel using "${gsdOutput}/fshare.xls" , sheet("County") sheetreplace first(var)
+export excel using "${gsdOutput}/C2-Trends/ch2_fshare.xls" , sheet("County") sheetreplace first(var)
 
 *real consumptions deciles per year
 use "${gsdTemp}/ch2_0.dta" , clear
@@ -336,13 +341,13 @@ egen texp_nat_rdec = xtile(rcons) , weights(wta_hh) by(kihbs) p(10(10)90)
 collapse (mean) mean_cons=rcons , by(kihbs texp_nat_rdec)
 ren texp_nat_rdec decile
 
-export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("national") replace first(var)
+export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("national") replace first(var)
 *Rural / Urban
 use "${gsdTemp}/ch2_0.dta" , clear
 egen texp_rurb_rdec = xtile(rcons) , weights(wta_hh) by(kihbs urban) p(10(10)90)
 collapse (mean) mean_cons=rcons , by(kihbs urban texp_rurb_rdec)
 ren texp_rurb_rdec decile
-export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("Rural_Urban") sheetreplace first(var)
+export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("Rural_Urban") sheetreplace first(var)
 
 *Nairobi
 *Total consumption deciles
@@ -352,7 +357,7 @@ keep if county==47
 egen texp_nbo_rdec = xtile(rcons) , weights(wta_hh) by(kihbs) p(10(10)90)
 collapse (mean) mean_cons=rcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
-export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("nairobi deciles") sheetreplace first(var)
+export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi deciles") sheetreplace first(var)
 *Food consumption deciles
 use "${gsdTemp}/ch2_0.dta" , clear
 assert province == 8 if county == 47
@@ -363,7 +368,7 @@ replace rfcons = y_i * pfactor if (kihbs==2005)
 egen texp_nbo_rdec = xtile(rfcons) , weights(wta_hh) by(kihbs) p(10(10)90)
 collapse (mean) mean_cons=rfcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
-export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("nairobi food deciles") sheetreplace first(var)
+export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi food deciles") sheetreplace first(var)
 *Non - food consumption deciles
 use "${gsdTemp}/ch2_0.dta" , clear
 assert province == 8 if county == 47
@@ -374,7 +379,7 @@ replace rnfcons = nfcons * pfactor if (kihbs==2005)
 egen texp_nbo_rdec = xtile(rnfcons) , weights(wta_hh) by(kihbs) p(10(10)90)
 collapse (mean) mean_cons=rnfcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
-export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("nairobi non-food deciles") sheetreplace first(var)
+export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi non-food deciles") sheetreplace first(var)
 
 *20 xtiles
 use "${gsdTemp}/ch2_0.dta" , clear
@@ -383,7 +388,7 @@ keep if county==47
 egen texp_nbo_rdec = xtile(rcons) , weights(wta_hh) by(kihbs) p(5(5)95)
 collapse (mean) mean_cons=rcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
-export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("nairobi 20 xtiles") sheetreplace first(var)
+export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi 20 xtiles") sheetreplace first(var)
 *Top 10% broken into percentiles
 use "${gsdTemp}/ch2_0.dta" , clear
 assert province == 8 if county == 47
@@ -392,17 +397,16 @@ egen texp_nbo_rdec = xtile(rcons) , weights(wta_hh) by(kihbs) p(1(1)99)
 keep if inrange(texp_nbo_rdec,91,100)
 collapse (mean) mean_cons=rcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
-export excel using "${gsdOutput}/ch2_table4_rdec.xls" , sheet("nairobi top 10%") sheetreplace first(var)  
+export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi top 10%") sheetreplace first(var)  
 
 
 *consumption components
 use "${gsdData}/1-CleanOutput/kihbs15_16.dta" , clear
-merge 1:1 clid hhid using "${gsdData}/0-RawInput/kihbs15/nfexpcat.dta" , keep(match master) nogen assert(match master)
+merge 1:1 clid hhid using "${gsdData}/1-CleanOutput/nfexpcat15.dta", keep(match master) nogen assert(match master)
 keep clid hhid kihbs y_i y2_i nfdrent nfdtrans-nfdegycons wta_hh wta_pop fpindex ctry_adq urban strata
 save "${gsdTemp}/16cons.dta" , replace
 
-use "${gsdDataRaw}/KIHBS05/consumption aggregated data.dta", clear
-keep id_clust id_hh nfdfoth nfdrnthh nfdtrans nfdcloth nfdutil nfdfuel nfdwater y_i y2_i edtexp fpindex
+use"${gsdData}/1-CleanOutput/nfexpcat05.dta", clear
 ren (id_clust id_hh) (clid hhid)
 *13,212 observations in cons agg dataset yet only 13158 are used in pov measurement. hence keep only those 13158 that match.
 merge 1:1 clid hhid using "${gsdData}/1-CleanOutput/kihbs05_06.dta" , nogen keep(match) keepusing(strata urban ctry_adq kihbs wta_hh wta_pop)
@@ -464,40 +468,40 @@ export excel using "${gsdOutput}\ch2_cons_components.xls", firstrow(variables) s
 *Access to services by quintile
 use "${gsdTemp}/ch2_0.dta" , clear
 
-tabout kihbs texp_nat_quint  using "${gsdOutput}/ch2_table9_nat.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+tabout kihbs texp_nat_quint  using "${gsdOutput}/C2-Trends/ch2_table9_nat.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
 foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
-	tabout kihbs texp_nat_quint  using "${gsdOutput}/ch2_table9_nat.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+	tabout kihbs texp_nat_quint  using "${gsdOutput}/C2-Trends/ch2_table9_nat.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
 }
-tabout kihbs poor  using "${gsdOutput}/ch2_table9_nat_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+tabout kihbs poor  using "${gsdOutput}/C2-Trends/ch2_table9_nat_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
 foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
-	tabout kihbs poor  using "${gsdOutput}/ch2_table9_nat_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+	tabout kihbs poor  using "${gsdOutput}/C2-Trends/ch2_table9_nat_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
 }
 *rural households
-tabout kihbs texp_rurb_quint if urban==0  using "${gsdOutput}/ch2_table9_rur.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+tabout kihbs texp_rurb_quint if urban==0  using "${gsdOutput}/C2-Trends/ch2_table9_rur.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
 foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
-	tabout kihbs texp_rurb_quint if urban==0   using "${gsdOutput}/ch2_table9_rur.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+	tabout kihbs texp_rurb_quint if urban==0   using "${gsdOutput}/C2-Trends/ch2_table9_rur.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
 }
-tabout kihbs poor if urban==0  using "${gsdOutput}/ch2_table9_rur_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+tabout kihbs poor if urban==0  using "${gsdOutput}/C2-Trends/ch2_table9_rur_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
 foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
-	tabout kihbs poor if urban==0   using "${gsdOutput}/ch2_table9_rur_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+	tabout kihbs poor if urban==0   using "${gsdOutput}/C2-Trends/ch2_table9_rur_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
 }
 *urban households
-tabout kihbs texp_nat_quint if urban==1  using "${gsdOutput}/ch2_table9_urb.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+tabout kihbs texp_nat_quint if urban==1  using "${gsdOutput}/C2-Trends/ch2_table9_urb.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
 foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
-	tabout kihbs texp_rurb_quint if urban==1  using "${gsdOutput}/ch2_table9_urb.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+	tabout kihbs texp_rurb_quint if urban==1  using "${gsdOutput}/C2-Trends/ch2_table9_urb.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
 }
-tabout kihbs poor if urban==1  using "${gsdOutput}/ch2_table9_urb_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+tabout kihbs poor if urban==1  using "${gsdOutput}/C2-Trends/ch2_table9_urb_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
 foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
-	tabout kihbs poor if urban==1  using "${gsdOutput}/ch2_table9_urb_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+	tabout kihbs poor if urban==1  using "${gsdOutput}/C2-Trends/ch2_table9_urb_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
 }
 *Nairobi households
-tabout kihbs texp_prov_quint if province==8  using "${gsdOutput}/ch2_table9_nbo.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+tabout kihbs texp_prov_quint if province==8  using "${gsdOutput}/C2-Trends/ch2_table9_nbo.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
 foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
-	tabout kihbs texp_prov_quint if province==8  using "${gsdOutput}/ch2_table9_nbo.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+	tabout kihbs texp_prov_quint if province==8  using "${gsdOutput}/C2-Trends/ch2_table9_nbo.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
 }
-tabout kihbs poor if province==8  using "${gsdOutput}/ch2_table9_nbo_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
+tabout kihbs poor if province==8  using "${gsdOutput}/C2-Trends/ch2_table9_nbo_poor.xls" [aw=wta_hh], c(mean hhsize) f(3) sum  clab(HHsize) replace
 foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
-	tabout kihbs poor if province==8  using "${gsdOutput}/ch2_table9_nbo_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
+	tabout kihbs poor if province==8  using "${gsdOutput}/C2-Trends/ch2_table9_nbo_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
 }
  /*5.Decompositions*/
 **********************
@@ -516,7 +520,7 @@ drdecomp $cons [aw=wta_pop], by(kihbs) varpl(z2_i_pp_2015)
 matrix b = [r(b)]
 matselrc b nat_drdecomp ,  r(1/3,) c(3/3)
 
-putexcel set "${gsdOutput}/ch2_table5.xls" , replace
+putexcel set "${gsdOutput}/C2-Trends/ch2_table5.xls" , replace
 
 putexcel A2=("Growth") A3=("Distribution") A4=("Total change in p.p.") B1=("National")  C1=("Rural")  D1=("Core-Urban") E1=("Peri-Urban")  F1=("Coast")  G1=("North Eastern") H1=("Eastern")  I1=("Central")  J1=("Rift Valley") K1=("Western") L1=("Nyanza") M1=("Nairobi")
 putexcel B2=matrix(nat_drdecomp)
@@ -579,7 +583,7 @@ matrix urban = [urban_2005 \ urban_2015]
 matrix prov = [prov_2005 \ prov_2015]
 matrix nedi = [nedi_2005 \ nedi_2015]
 
-putexcel set "${gsdOutput}/ch2_table6.xls" , replace
+putexcel set "${gsdOutput}/C2-Trends/ch2_table6.xls" , replace
 putexcel A2=("2005") A3=("2015") A1=("National") A5=("Rural")  A6=("2005") A7=("2015") A9=("Urban") A13=("Province") A10=("2005") A11=("2015") A14=("2005") A15=("Coast") A16=("North Eastern") A17=("Eastern") A18=("Central") A19=("Rift Valley") A20=("Western") A21=("Nyanza") A22=("Nairobi") A24=("2015") A25=("Coast") A26=("North Eastern") A27=("Eastern") A28=("Central") A29=("Rift Valley") A30=("Western") A31=("Nyanza") A32=("Nairobi") A34=("2005") A35=("Non-Nedi") A36=("Nedi") A38=("2015") A39=("Non-Nedi") A40=("Nedi") B1=("p90p10") C1=("p75p25") D1=("gini") E1=("Theil") F1=("Atkinson (e=1)") G1=("Atkinson (e=2)")
 
 putexcel B2=matrix(total)
@@ -614,7 +618,7 @@ forvalues i = 1/8 {
 	matrix prov_`i'_ge1 = [prov_`i'_ge1_2005 \ prov_`i'_ge1_2015]
 }
 
-putexcel set "${gsdOutput}/ch2_table6_ineqdecomp.xls" , replace
+putexcel set "${gsdOutput}/C2-Trends/ch2_table6_ineqdecomp.xls" , replace
 putexcel B1=("rural / urban decomp.") A3=("2005/06") A4=("2015/16") B2=("Between Group") C2=("Within Group") D2=("Total pop.") B6=("provincial decomp.") A8=("2005/06") A9=("2015/16") B7=("Between Group") C7=("Within Group") D7=("Total pop.") 
 putexcel E2=("Between Group (Atk e=1)") F2=("Within Group (Atk e=1)") G2=("Total pop. (Atk e=1)") H2=("Between Group (Atk e=2)") I2=("Within Group (Atk e=2)") J2=("Total pop. (Atk e=2)")
 local i = 11
@@ -740,20 +744,20 @@ foreach s in National Rural Urban  {
 		local i = `i' + 1
 }
 graph combine gic1 
-graph save "${gsdOutput}/ch2_GIC_nat.gph", replace
+graph save "${gsdOutput}/C2-Trends/ch2_GIC_nat.gph", replace
 
 graph combine gic3
-graph save "${gsdOutput}/ch2_GIC_urb.gph", replace
+graph save "${gsdOutput}/C2-Trends/ch2_GIC_urb.gph", replace
 /*
 graph export "${gsdOutput}\GIC_natrururb.png", as(png) replace
-graph save "${gsdOutput}/GIC_nat_rur_urb.gph", replace
+graph save "${gsdOutput}/C2-Trends/GIC_nat_rur_urb.gph", replace
 */
 graph combine gic1, iscale(*0.9)
-graph export "${gsdOutput}/ch2_GIC_nat.png", replace
+graph export "${gsdOutput}/C2-Trends/ch2_GIC_nat.png", replace
 graph combine gic2, iscale(*0.9)
-graph export "${gsdOutput}/ch2_GIC_rur.png", replace
+graph export "${gsdOutput}/C2-Trends/ch2_GIC_rur.png", replace
 graph combine gic3, iscale(*0.9)
-graph export "${gsdOutput}/ch2_GIC_urb.png", replace
+graph export "${gsdOutput}/C2-Trends/ch2_GIC_urb.png", replace
 
 *Provincial level GICs [not included in final KPGA]
 /*
@@ -813,13 +817,13 @@ foreach s of local provinces  {
 		local k = `k'+1
 }
 graph combine gic1 gic2 gic3 gic4 gic5 gic6 gic7 gic8, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
-graph save "${gsdOutput}/ch2_GIC_provinces.gph", replace
+graph save "${gsdOutput}/C2-Trends/ch2_GIC_provinces.gph", replace
 graph combine gic1  gic3  gic5  gic8, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
-graph save "${gsdOutput}/ch2_GIC_provinces_select.gph", replace
-graph export "${gsdOutput}/ch2_GIC_prov1.png", as(png) replace
+graph save "${gsdOutput}/C2-Trends/ch2_GIC_provinces_select.gph", replace
+graph export "${gsdOutput}/C2-Trends/ch2_GIC_prov1.png", as(png) replace
 graph combine gic2  gic4  gic6  gic7, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
-graph save "${gsdOutput}/ch2_GIC_provinces_select2.gph", replace
-graph export "${gsdOutput}/ch2_GIC_prov2.png", as(png) replace
+graph save "${gsdOutput}/C2-Trends/ch2_GIC_provinces_select2.gph", replace
+graph export "${gsdOutput}/C2-Trends/ch2_GIC_prov2.png", as(png) replace
 drop pctile* schange* change* x 
 
 */
@@ -870,10 +874,10 @@ foreach x in 05 15 {
  line schange2 x, lcolor(navy) lpattern(solid) yline(`mean_change_nedi2') yscale(range(8 0)) ylabel(#8) yline(0 , lstyle(foreground))  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic2, replace)
 
  graph combine gic2, iscale(*0.9)
- graph save "${gsdOutput}/ch2_GIC_nedi.gph", replace
-graph export "${gsdOutput}/ch2_GIC_nedi.png", as(png) replace
+ graph save "${gsdOutput}/C2-Trends/ch2_GIC_nedi.gph", replace
+graph export "${gsdOutput}/C2-Trends/ch2_GIC_nedi.png", as(png) replace
 graph combine gic2, iscale(*0.9)
-graph export "${gsdOutput}/ch2_GIC_nedi.png", as(png) replace
+graph export "${gsdOutput}/C2-Trends/ch2_GIC_nedi.png", as(png) replace
 */
 drop pctile* schange* change* x
 /*6.Sectoral decompoosition*/
@@ -886,7 +890,7 @@ drop pctile* schange* change* x
 *National sectoral decomposition
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 log close _all
-log using "${gsdOutput}/ch2_sdecomp", text replace
+log using "${gsdOutput}/C2-Trends/ch2_sdecomp", text replace
 keep if kihbs==2005
 saveold "${gsdTemp}/decomp_nat_05.dta" , replace
 use "${gsdTemp}/ch2_analysis2.dta" , clear
@@ -971,26 +975,26 @@ replace hhsize=. if hhsize>15
 *regressing log of real consumption on geographic / household characteristics
 reg lnrcons urban ib8.province hhsize malehead agehead agehead_sq depen i.relhead married i.hhedu i.hhsector dive , robust
 estimates store reg_lncons_0
-esttab reg_lncons_0 using "${gsdOutput}/ch2_reg_lncons_0.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+esttab reg_lncons_0 using "${gsdOutput}/C2-Trends/ch2_reg_lncons_0.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 reg lnrcons ib5.province hhsize malehead agehead agehead_sq depen i.relhead married i.hhedu i.hhsector dive if urban==0 , robust
 estimates store reg_lncons_1
-esttab reg_lncons_1 using "${gsdOutput}/ch2_reg_lncons_1.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+esttab reg_lncons_1 using "${gsdOutput}/C2-Trends/ch2_reg_lncons_1.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 reg lnrcons ib5.province hhsize malehead agehead agehead_sq depen i.relhead married i.hhedu i.hhsector dive if urban==1 , robust
 estimates store reg_lncons_2
-esttab reg_lncons_2 using "${gsdOutput}/ch2_reg_lncons_2.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+esttab reg_lncons_2 using "${gsdOutput}/C2-Trends/ch2_reg_lncons_2.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(r2 N, fmt(%9.2f %12.0f) labels("R-squared" "Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 *regress poor household dummy on geographic / household characteristics
 svy: probit poor ib5.province hhsize malehead agehead agehead_sq  depen i.relhead married i.hhedu i.hhsector dive  if urban==0
 margins, dydx(*)
 estimates store probit
-esttab probit using "${gsdOutput}/ch2_probit_rural.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+esttab probit using "${gsdOutput}/C2-Trends/ch2_probit_rural.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 svy: probit poor ib5.province hhsize malehead agehead agehead_sq  depen i.relhead married i.hhedu i.hhsector dive  if urban==1
 margins, dydx(*)
 estimates store probit
-esttab probit using "${gsdOutput}/ch2_probit_urban.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
+esttab probit using "${gsdOutput}/C2-Trends/ch2_probit_urban.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 clear
 

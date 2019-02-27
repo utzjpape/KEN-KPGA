@@ -1,4 +1,8 @@
-
+*-------------------------------------------------------------------------*
+* Chapter 2: THE EXTENT AND EVOLUTION OF POVERTY AND INEQUALITY IN KENYA
+*	Household profile
+*By Nduati Kariuki (nkariuki@worldbank.org)
+*-------------------------------------------------------------------------*
 *Do-file calculates household head poverty profile and runs Wald test on differneces in attributes of poor vs. non poor.
 use "${gsdData}/1-CleanOutput/hh.dta" , clear
 svyset clid [pw=wta_hh] , strata(strata)

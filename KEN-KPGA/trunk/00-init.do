@@ -95,6 +95,8 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdData}/1-CleanOutput"
 	mkdir "${gsdData}/2-AnalysisOutput"
 	mkdir "${gsdData}/2-AnalysisOutput/C4-Rural"
+	mkdir "${gsdData}/2-AnalysisOutput/C3-Gender"
+	mkdir "${gsdData}/2-AnalysisOutput/C2-Trends"
 	mkdir "${gsdData}/2-AnalysisTemp"
 	mkdir "${gsdTemp}"
 	mkdir "${gsdOutput}"
@@ -114,5 +116,7 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	ssc install logout
 	ssc install svylorenz
 	ssc install shp2dta
-    ssc install spmap   
+    ssc install spmap  
+	ssc install drdecomp
+	ssc install dm79
 }

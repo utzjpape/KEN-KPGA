@@ -1,3 +1,13 @@
+*==============================================================================*
+**Predicting KIHBS 2015/16 consumption using returns to characteristics based on
+*KIHBS 2005/06 and 2015/16 characteristics.
+*Consumption is predicted using 2 different methods
+*i) backward stepwise regression
+*ii) multiple imputations
+
+*By: Nduati Kariuki (nkariuki@worldbank.org)						  05/03/2019
+*==============================================================================*
+
 use "${gsdData}/1-CleanOutput/kihbs05_06.dta"  , clear
 ren (clid hhid) (id_clust id_hh) 
 *Merge does not match all observations for 3 reasons:
@@ -318,6 +328,8 @@ sepov yhat if kihbs==2015 [pw=weight_pop] , p(pline) psu(clid) strata(strata)
 sepov yhat if kihbs==2015 [pw=weight_pop] , p(pline) psu(clid) strata(strata) by(urban)
 save "${gsdTemp}/predcons_1.dta" , replace
 use "${gsdTemp}/predcons_1.dta" , clear
+*Predicting consumption using multiple imputation 
+
 gen cons_pp = exp(ln_y)
 local n = 100
 
@@ -326,7 +338,6 @@ mi set wide
 mi register imputed cons_pp
 mi register regular county clid hhid hhsize urban weight malehead ageheadg marhead hhedu impwater impsan elec_acc motorcycle bicycle radio cell_phone kero_stove mnet kihbs strata wall roof floor hhsize_cat depen_cat hhh_empstat z2_i weight_pop pline
 
-*Using imputation methods
 local model = "i.county urban impsan impwater i.elec_acc i.hhedu i.depen_cat i.hhsize_cat malehead i.roof i.wall i.floor i.ageheadg i.marhead motorcycle radio kero_stove mnet bicycle cell_phone"
 mi impute reg cons_pp = `model',  add(`n')
 mi passive: egen mi_cons_pp = rowtotal(cons_pp)

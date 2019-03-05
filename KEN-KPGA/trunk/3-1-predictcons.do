@@ -125,7 +125,12 @@ local cat_vars "impsan impwater hhedu ageheadg marhead elec_acc depen_cat hhh_em
 *Access to electricity (elec_acc) - 175
 *Depenency ratio - 7
 *Employment status - 957
-*Motorcycle ownership - 
+*Motorcycle - 298
+*radio - 298
+*kerosene stove - 298
+*mosquito net - 298 
+*bicycle - 298
+*cell_phone - 298
 
 foreach var of local cat_vars  {
 	egen mode_`var' = mode(`var')
@@ -142,10 +147,10 @@ foreach var of varlist _all {
 	assert !mi(`var')
 }	
 
-
 tempfile predcons05
 save `predcons05'.dta , replace
 
+*Backwards stepwise regression with log of per capita consumption as the dependent variable. 
 xi: stepwise , pr(0.05): reg ln_y i.county urban impsan impwater i.hhh_empstat i.elec_acc i.hhedu i.depen_cat i.hhsize_cat malehead i.roof i.wall i.floor i.ageheadg i.marhead motorcycle radio kero_stove mnet bicycle cell_phone [aw=weight], robust
 *===============================================================================*
 					*Prep 2015 - dataset as above*
@@ -311,6 +316,21 @@ bys urban: egen pline = max(z2_i)
 
 sepov yhat if kihbs==2015 [pw=weight_pop] , p(pline) psu(clid) strata(strata)
 sepov yhat if kihbs==2015 [pw=weight_pop] , p(pline) psu(clid) strata(strata) by(urban)
+save "${gsdTemp}/predcons_1.dta" , replace
+use "${gsdTemp}/predcons_1.dta" , clear
+gen cons_pp = exp(ln_y)
+local n = 100
 
+xtset, clear
+mi set wide
+mi register imputed cons_pp
+mi register regular county clid hhid hhsize urban weight malehead ageheadg marhead hhedu impwater impsan elec_acc motorcycle bicycle radio cell_phone kero_stove mnet kihbs strata wall roof floor hhsize_cat depen_cat hhh_empstat z2_i weight_pop pline
 
+*Using imputation methods
+local model = "i.county urban impsan impwater i.elec_acc i.hhedu i.depen_cat i.hhsize_cat malehead i.roof i.wall i.floor i.ageheadg i.marhead motorcycle radio kero_stove mnet bicycle cell_phone"
+mi impute reg cons_pp = `model',  add(`n')
+mi passive: egen mi_cons_pp = rowtotal(cons_pp)
+mi passive: gen poor = cons_pp<pline
+mi estimate: mean poor [pweight=weight_pop]
+mi estimate: mean poor [pweight=weight_pop], over(urban)
 

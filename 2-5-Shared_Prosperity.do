@@ -69,8 +69,7 @@ putexcel B39=matrix(nedi_2015)
 *********************************************************
 
 //Response rates by county
-*****|||||||||||=CHANGE PATH BELOW TO RAWINPUT=|||||||||||||||******
-use "${gsdOutput}/Inequality/response1.dta" ,clear
+use "${gsdDataRaw}/KIHBS15/response1.dta",clear
 keep if urban == 1
 
 *Generate county weight to incease size of scatter points accordingly
@@ -102,8 +101,7 @@ collapse (mean) province county hhsize agehead malehead (median) y2_i, by(clid)
 save "${gsdTemp}/2015-PSU-Urban.dta", replace
 
 *Use data with non-response
-*****|||||||||||=CHANGE PATH BELOW TO RAWINPUT=|||||||||||||||******
-use "${gsdOutput}/Inequality/response1.dta" ,clear
+use "${gsdDataRaw}/KIHBS15/response1.dta",clear
 gen non_resp=(response==0)
 bys clid: egen sum_nresp=sum(non_resp)
 bys clid: egen sum_resp=sum(response)

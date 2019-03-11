@@ -95,12 +95,13 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdData}/1-CleanOutput"
 	mkdir "${gsdData}/2-AnalysisOutput"
 	mkdir "${gsdData}/2-AnalysisOutput/C4-Rural"
-	mkdir "${gsdData}/2-AnalysisOutput/C3-Gender"
-	mkdir "${gsdData}/2-AnalysisOutput/C2-Trends"
 	mkdir "${gsdData}/2-AnalysisTemp"
 	mkdir "${gsdTemp}"
 	mkdir "${gsdOutput}"
+	mkdir "${gsdOutput}/C2-Trends"
+	mkdir "${gsdOutput}/C3-Gender"
 	mkdir "${gsdOutput}/C4-Rural"
+	mkdir "${gsdOutput}/Inequality"
 
 	*install packages used in the process
 	ssc install distinct
@@ -119,4 +120,6 @@ if ((check!=0) & ("${suser}"!="nduati")) {
     ssc install spmap  
 	ssc install drdecomp
 	ssc install dm79
+	ssc install sdecode
+	ssc install fitstat
 }

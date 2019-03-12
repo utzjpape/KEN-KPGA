@@ -65,7 +65,7 @@ putexcel B39=matrix(nedi_2015)
 
 
 *********************************************************
-* 2| RESPONSE RATES AND CONSUMPTION IN URBAN AREAS
+* 2| RESPONSE RATES AND CONSUMPTION BY ENUMERATION AREA
 *********************************************************
 
 //Response rates by county
@@ -78,6 +78,8 @@ bys county: egen double countyhh = total(wta_hh)
 gen countypw = countyhh/tothh
 
 collapse (mean) response mean_cons=y2_i (median) median_cons=y2_i , by(county countypw)
+merge 1:m county using "${gsdData}/1-CleanOutput/hh.dta", nogen keep(match) keepusing(province)
+duplicates drop
 label var median_cons "Median consumption"
 replace response = response*100
 twoway scatter  median_cons response [pw=countypw] || lfit median_cons response [pw=countypw]  || scatter  median_cons response [pw=countypw] ///
@@ -85,6 +87,21 @@ twoway scatter  median_cons response [pw=countypw] || lfit median_cons response 
 			   xlabel(, labsize(small)) ytitle("Median consumption per county (Monthly 2016 Kshs per AE)", size(small)) ylabel(, angle(horizontal) labsize(small)) ///
 			   name(response2, replace) graphregion(color(white)) bgcolor(white)
 graph save "${gsdOutput}/Inequality/Response-rate_Consumption_Urban", replace
+
+*Rural areas
+use "${gsdDataRaw}/KIHBS15/response1.dta",clear
+keep if urban == 0
+egen double tothh = total(wta_hh)
+bys county: egen double countyhh = total(wta_hh)
+gen countypw = countyhh/tothh
+collapse (mean) response mean_cons=y2_i (median) median_cons=y2_i , by(county countypw)
+label var median_cons "Median consumption"
+replace response = response*100
+twoway scatter  median_cons response [pw=countypw] || lfit median_cons response [pw=countypw]  || scatter  median_cons response [pw=countypw] ///
+               , mlabel(county) msize(tiny) mlabsize(tiny) legend(off) ||,  xtitle("Response rate (%) - Urban", size(small)) ///
+			   xlabel(, labsize(small)) ytitle("Median consumption per county (Monthly 2016 Kshs per AE)", size(small)) ylabel(, angle(horizontal) labsize(small)) ///
+			   name(response2, replace) graphregion(color(white)) bgcolor(white)
+graph save "${gsdOutput}/Inequality/Response-rate_Consumption_Rural", replace
 
 
 
@@ -95,9 +112,10 @@ graph save "${gsdOutput}/Inequality/Response-rate_Consumption_Urban", replace
 //Prepare the data to estimate the model at PSU level 
 
 *Keep data for 2015 only 
-use "${gsdData}/1-CleanOutput/hh.dta" ,clear
-keep if kihbs==2015 & urban==1
-collapse (mean) province county hhsize agehead malehead (median) y2_i, by(clid)
+use "${gsdData}/1-CleanOutput/hh.dta",clear
+keep if kihbs==2015 
+collapse (mean) province county hhsize agehead malehead urban (median) y2_i, by(clid)
+ta province, gen(province_)
 save "${gsdTemp}/2015-PSU-Urban.dta", replace
 
 *Use data with non-response
@@ -108,7 +126,6 @@ bys clid: egen sum_resp=sum(response)
 gen tot= sum_nresp+ sum_resp
 gen resp_rate=sum_resp/tot
 gen non_resp_rate=sum_nresp/tot
-keep if urban==1
 *Create month variable
 gen month=1 if iday<=td(30sep2015)
 replace month=2 if iday<=td(30oct2015) & iday>=td(01oct2015)
@@ -131,6 +148,8 @@ merge 1:1 clid using "${gsdTemp}/2015-PSU-Urban.dta", nogen assert(match)
 gen y2_i_sq=y2_i*y2_i
 gen ly2_i_sq=ln(y2_i_sq)
 gen ly2_i=ln(y2_i)
+ta month, gen(month_)
+save "${gsdTemp}/EA-data_response_model.dta", replace
 
 
 //Produce results with different specifications 
@@ -155,7 +174,7 @@ graph save "${gsdOutput}/Inequality/Response-Prob_1", replace
 restore
 
 *Model 2
-logit non_resp_rate y2_i, or robust
+logit non_resp_rate y2_i, or robust noconst
 outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
 predict prob_non_resp_2, pr
 estat ic
@@ -175,7 +194,7 @@ graph save "${gsdOutput}/Inequality/Response-Prob_2", replace
 restore 
 
 *Model 3
-logit non_resp_rate ly2_i, or robust noconst
+logit non_resp_rate ly2_i_sq, or robust 
 outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
 predict prob_non_resp_3, pr
 estat ic
@@ -195,7 +214,7 @@ graph save "${gsdOutput}/Inequality/Response-Prob_3", replace
 restore
 
 *Model 4
-logit non_resp_rate y2_i, robust noconst
+logit non_resp_rate ly2_i_sq i.province, or robust noconst
 outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
 predict prob_non_resp_4, pr
 estat ic
@@ -215,7 +234,7 @@ graph save "${gsdOutput}/Inequality/Response-Prob_4", replace
 restore
 
 *Model 5
-logit non_resp_rate y2_i ly2_i_sq, or robust
+logit non_resp_rate ly2_i_sq i.month, or robust noconst
 outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
 predict prob_non_resp_5, pr
 estat ic
@@ -235,7 +254,7 @@ graph save "${gsdOutput}/Inequality/Response-Prob_5", replace
 restore
 
 *Model 6
-logit non_resp_rate y2_i ly2_i_sq, or robust noconst
+logit non_resp_rate malehead y2_i province_1 province_4 province_6 province_7 , or robust noconst
 outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
 predict prob_non_resp_6, pr
 estat ic
@@ -247,51 +266,11 @@ gen max=r(max)
 gen x=1- max
 replace prob_resp_6=prob_resp_6+x
 drop max x
-drop if y2_i>40000 
+*drop if y2_i>40000 
 twoway scatter  prob_resp_6 y2_i,  xtitle("Mean consumption per PSU (Monthly 2016 Kshs per AE)", size(small)) ///
 			   xlabel(, labsize(small)) ytitle("Probability of responding KIHSB 2015/15", ///
 			   size(small)) ylabel(, angle(horizontal) labsize(small)) graphregion(color(white)) bgcolor(white)
 graph save "${gsdOutput}/Inequality/Response-Prob_6", replace
-restore
-
-*Model 7
-logit non_resp_rate ly2_i malehead i.province i.month, or robust noconst
-outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
-predict prob_non_resp_7, pr
-estat ic
-gen prob_resp_7=1-prob_non_resp_7
-*Obtain graph of rescaled probability of responding
-preserve
-sum prob_resp_7
-gen max=r(max)
-gen x=1- max
-replace prob_resp_7=prob_resp_7+x
-drop max x
-drop if y2_i>40000 
-twoway scatter  prob_resp_7 y2_i,  xtitle("Mean consumption per PSU (Monthly 2016 Kshs per AE)", size(small)) ///
-			   xlabel(, labsize(small)) ytitle("Probability of responding KIHSB 2015/15", ///
-			   size(small)) ylabel(, angle(horizontal) labsize(small)) graphregion(color(white)) bgcolor(white)
-graph save "${gsdOutput}/Inequality/Response-Prob_7", replace
-restore
-
-*Model 8
-logit non_resp_rate y2_i ly2_i_sq malehead i.province i.month, or robust
-outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
-predict prob_non_resp_8, pr
-estat ic
-gen prob_resp_8=1-prob_non_resp_8
-*Obtain graph of rescaled probability of responding
-preserve
-sum prob_resp_8
-gen max=r(max)
-gen x=1- max
-replace prob_resp_8=prob_resp_8+x
-drop max x
-drop if y2_i>40000 
-twoway scatter  prob_resp_8 y2_i,  xtitle("Mean consumption per PSU (Monthly 2016 Kshs per AE)", size(small)) ///
-			   xlabel(, labsize(small)) ytitle("Probability of responding KIHSB 2015/15", ///
-			   size(small)) ylabel(, angle(horizontal) labsize(small)) graphregion(color(white)) bgcolor(white)
-graph save "${gsdOutput}/Inequality/Response-Prob_8", replace
 restore
 
 
@@ -306,26 +285,33 @@ merge m:1 kihbs clid using "${gsdTemp}/Prob-response_Models.dta", nogen keep(mas
 
 *Obtain totals at different levels of aggregation
 bys kihbs urban: egen weight_urban=sum(wta_pop) 
+bys kihbs province: egen weight_province=sum(wta_pop) 
+bys kihbs urban province: egen weight_province_urban=sum(wta_pop) 
+bys kihbs urban county: egen weight_county_urban=sum(wta_pop) 
 bys kihbs: egen weight_total=sum(wta_pop)
 save "${gsdTemp}/Adjusted-weights.dta", replace
 
 
 //For each model-weights obtain final values and inequality measures
-forval m=1/8 {
+forval m=1/6 {
 	
 	use "${gsdTemp}/Adjusted-weights.dta", clear
+	merge m:1 clid using "${gsdTemp}/EA-data_response_model.dta", nogen keep(master match) keepusing(non_resp_rate)
 	
-	
-	*Obtain new weights but make sure they summ to the same totals as before
-	gen wta_pop_`m'=wta_pop*(1/prob_resp_`m') if urban==1 & kihbs==2015
+	*Obtain new weights for PSUs with non-response only but make sure they summ to the same totals 
+	gen wta_pop_`m'=wta_pop*(1/prob_resp_`m') if kihbs==2015 & non_resp_rate>0
 	replace wta_pop_`m'=wta_pop if wta_pop_`m'>=.
 	
-	*Scale uniformly to match totals at urban level 
-	bys kihbs urban: egen prelim_urban=sum(wta_pop_`m') 
-	gen scale_urban=weight_urban/prelim_urban
-	replace wta_pop_`m'=wta_pop_`m'*scale_urban
-	bys kihbs urban: egen check_urban=sum(wta_pop_`m') 
-	assert round(check_urban,0.9)==round(weight_urban,0.9)
+	*Scale uniformly to match totals at urban and county level 
+	bys kihbs urban county: egen prelim_ur_county=sum(wta_pop_`m') 
+	gen scale_factor=weight_county_urban/prelim_ur_county if kihbs==2015
+	replace wta_pop_`m'=wta_pop_`m'*scale_factor if scale_factor<.
+	bys kihbs urban county: egen check=sum(wta_pop_`m') 
+	assert round(check,10)==round(weight_county_urban,10)
+
+	*Check at the total levels
+	bys kihbs: egen check_total=sum(wta_pop_`m')
+	assert round(check_total,10)==round(weight_total ,10)
 	save "${gsdTemp}/Adjusted-weights_`m'.dta", replace
 
 	*Obtain new measures of inequality 
@@ -377,7 +363,24 @@ forval m=1/8 {
 //Obtain lorenz curve before-after corrections (using model 6 - best fit from AIC)
 use "${gsdTemp}/Adjusted-weights_6.dta", clear
 
+*National
+glcurve y2_i [aw = wta_pop], pvar(x_values) glvar(y_values) lorenz nograph
+glcurve y2_i [aw = wta_pop_6], pvar(x_values_adj) glvar(y_values_adj) lorenz nograph
+replace x_values=100*x_values 
+replace y_values=y_values*100
+replace x_values_adj=100*x_values_adj 
+replace y_values_adj=y_values_adj*100
+sort x_*
+graph twoway (line y_values x_values, yaxis(1 2) ) ///
+	  (line y_values_adj x_values_adj, yaxis(1 2) lpattern(-) ) ///
+	  (function y = x, range(0 100) yaxis(1 2) )   ///
+       , aspect(1) xtitle("Cumulative share of population (%)") ///
+	   ytitle("Share of total consumption expenditure (%)", axis(1)) ytitle(" ", axis(2)) ///
+	   legend(label(1 "Original") label(2 "Adjusted") label(3 "Equality")) graphregion(color(white)) bgcolor(white)
+graph save "${gsdOutput}/Inequality/Lorenz_national-2015_adjusted", replace	  
+
 *Urban
+use "${gsdTemp}/Adjusted-weights_6.dta", clear
 keep if kihbs==2015 & urban==1
 glcurve y2_i [aw = wta_pop], pvar(x_values) glvar(y_values) lorenz nograph
 glcurve y2_i [aw = wta_pop_6], pvar(x_values_adj) glvar(y_values_adj) lorenz nograph
@@ -394,6 +397,17 @@ graph twoway (line y_values x_values, yaxis(1 2) ) ///
 	   legend(label(1 "Original") label(2 "Adjusted") label(3 "Equality")) graphregion(color(white)) bgcolor(white)
 graph save "${gsdOutput}/Inequality/Lorenz_urban-2015_adjusted", replace	  
 
+
+//Plot the change in sampling weights 
+use "${gsdTemp}/Adjusted-weights_6.dta", clear
+collapse (sum) wta_pop_6 wta_pop (max) non_resp_rate, by(clid)
+keep if wta_pop_6<100000 & wta_pop<100000
+graph twoway (scatter wta_pop wta_pop_6 if non_resp_rate==0) ///
+        (scatter wta_pop wta_pop_6 if non_resp_rate!=0) ///
+	  (function y = x, range(0 100000) ) ///  
+      , xtitle("Sum of adjusted population weight by EA") legend(label(1 "EAs w/100% response rate") label(2 "EAs w/non-response") label(3 "Same population weight"))   ///
+	   ytitle("Sum of previous population weight by EA") graphregion(color(white)) bgcolor(white)
+graph save "${gsdOutput}/Inequality/Change_weights_overall", replace	  
 
 
 *********************************************************
@@ -413,10 +427,11 @@ gen wta_hh_adj=scale_factor*wta_hh
 *Scale uniformly to match totals at urban level 
 bys kihbs: egen total_hhweight=sum(wta_hh) 
 bys kihbs: egen prelim_tot=sum(wta_hh_adj) 
+
 gen scale_tot=total_hhweight/prelim_tot
 replace wta_hh_adj=wta_hh_adj*scale_tot
 bys kihbs: egen check_tot=sum(wta_hh_adj) 
-assert round(check_tot,0.9)==round(total_hhweight,.9)
+assert round(check_tot,1)==round(total_hhweight,1)
 drop scale_factor total_hhweight prelim_tot scale_tot check_tot
 la var wta_hh_adj "Adjusted household weight"
 svyset clid [pw=wta_pop_adj] , strat(strat)
@@ -841,7 +856,7 @@ erase "${gsdOutput}/Inequality/Logit_Non-response.txt"
 erase "${gsdOutput}/Inequality/Logit_Non-response.xls"
 
 *Results from each logit model
-forval i=1/8 { 
+forval i=1/6 { 
 	import excel "${gsdOutput}/Inequality/Raw_2_`i'.xls", clear 
 	export excel using "${gsdOutput}/Inequality/Figures_v1.xlsx", sheetreplace sheet("Logit_`i'")
 	erase "${gsdOutput}/Inequality/Raw_2_`i'.xls"

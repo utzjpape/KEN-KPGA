@@ -12,12 +12,9 @@ set sortseed 11041955
 if (inlist("${suser}","wb390290","WB390290")) {
 	*Utz
 	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\FY17-KPGA\SV-KPGA"
+	local swdLocal = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\FY17-KPGA\KPGA-SV"
 	*Box directory where the Data folder can be located
-	*Full Dataset
-	local swdBox = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\FY17-KPGA\DataBoxFull"
-	*Team Dataset
-*	local swdBox = "C:\Users\WB390290\WBG\Carolina Mejia-Mantilla - KPGA\DataBox"
+	local swdBox = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\FY17-KPGA\KPGA-DB\0-RawInput"
 }
 else if (inlist("${suser}","wb445085","WB445085")) {
 	*Carolina
@@ -117,9 +114,13 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	ssc install logout
 	ssc install svylorenz
 	ssc install shp2dta
-    ssc install spmap  
-	ssc install drdecomp
-	ssc install dm79
+    ssc install spmap
 	ssc install sdecode
 	ssc install fitstat
+	ssc install drdecomp
+	net install dm79.pkg
+	ssc install winsor
+	ssc install winsor2
+	ssc install oaxaca
+	ssc install strrec
 }

@@ -13,6 +13,7 @@ run "${gsdDo}/1-4-2-income_merge.do"
 
 
 *Chapter 2 - Trends
+*run files
 run "${gsdDo}/2-2-1-spatialprofile.do"
 run "${gsdDo}/2-2-2-income_decomp.do"
 run "${gsdDo}/2-2-3-hhdprofile.do"
@@ -20,12 +21,6 @@ run "${gsdDo}/2-2-4-nedimap.do"
 
 
 *Chapter 3 - Gender
-*Packages required
-ssc install winsor
-ssc install winsor2
-ssc install oaxaca
-ssc install strrec
-
 *directories
 run "${gsdDo}/2-3-0_KPGA_directories.do"	
 *graphs -> drawing on stats from 2009 census (MMR)				

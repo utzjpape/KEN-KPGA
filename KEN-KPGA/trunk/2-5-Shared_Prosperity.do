@@ -98,7 +98,7 @@ collapse (mean) response mean_cons=y2_i (median) median_cons=y2_i , by(county co
 label var median_cons "Median consumption"
 replace response = response*100
 twoway scatter  median_cons response [pw=countypw] || lfit median_cons response [pw=countypw]  || scatter  median_cons response [pw=countypw] ///
-               , mlabel(county) msize(tiny) mlabsize(tiny) legend(off) ||,  xtitle("Response rate (%) - Urban", size(small)) ///
+               , mlabel(county) msize(tiny) mlabsize(tiny) legend(off) ||,  xtitle("Response rate (%) - Rural", size(small)) ///
 			   xlabel(, labsize(small)) ytitle("Median consumption per county (Monthly 2016 Kshs per AE)", size(small)) ylabel(, angle(horizontal) labsize(small)) ///
 			   name(response2, replace) graphregion(color(white)) bgcolor(white)
 graph save "${gsdOutput}/Inequality/Response-rate_Consumption_Rural", replace
@@ -155,7 +155,7 @@ save "${gsdTemp}/EA-data_response_model.dta", replace
 //Produce results with different specifications 
 *Model 1
 logit non_resp_rate ly2_i, or robust
-outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel replace
+outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel eform cti(odds ration) replace 
 predict prob_non_resp_1, pr
 estat ic
 gen prob_resp_1=1-prob_non_resp_1
@@ -175,7 +175,7 @@ restore
 
 *Model 2
 logit non_resp_rate y2_i, or robust noconst
-outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
+outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel eform cti(odds ration) append
 predict prob_non_resp_2, pr
 estat ic
 gen prob_resp_2=1-prob_non_resp_2
@@ -194,8 +194,8 @@ graph save "${gsdOutput}/Inequality/Response-Prob_2", replace
 restore 
 
 *Model 3
-logit non_resp_rate ly2_i_sq, or robust 
-outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
+logit non_resp_rate ly2_i, or robust noconst
+outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel eform cti(odds ration) append
 predict prob_non_resp_3, pr
 estat ic
 gen prob_resp_3=1-prob_non_resp_3
@@ -215,7 +215,7 @@ restore
 
 *Model 4
 logit non_resp_rate ly2_i_sq i.province, or robust noconst
-outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
+outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel eform cti(odds ration) append
 predict prob_non_resp_4, pr
 estat ic
 gen prob_resp_4=1-prob_non_resp_4
@@ -235,7 +235,7 @@ restore
 
 *Model 5
 logit non_resp_rate ly2_i_sq i.month, or robust noconst
-outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
+outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel eform cti(odds ration) append
 predict prob_non_resp_5, pr
 estat ic
 gen prob_resp_5=1-prob_non_resp_5
@@ -255,7 +255,7 @@ restore
 
 *Model 6
 logit non_resp_rate malehead y2_i province_1 province_4 province_6 province_7 , or robust noconst
-outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel append
+outreg2 using "${gsdOutput}/Inequality/Logit_Non-response.xls", bdec(3) tdec(3) rdec(3) nolabel eform cti(odds ration) append
 predict prob_non_resp_6, pr
 estat ic
 gen prob_resp_6=1-prob_non_resp_6
@@ -580,20 +580,32 @@ egen pctile_nedi2 = rowtotal(pctile_2_2005 pctile_2_2015)
 *populated with the percentile change in real consumption for the 2 NEDI categories)
 matrix change = J(100, 2, 0)
 forvalues x = 1/100 {
-		  	quietly sum $cons [aw = wta_hh_adj] if kihbs == 2005 & pctile_nedi2 == `x'& nedi_cat == 2
+			quietly sum $cons [aw = wta_hh_adj] if kihbs == 2005 & pctile_nedi2 == `x' & nedi_cat == 1
+			matrix change[`x', (1)] = r(mean)
+			
+			quietly sum $cons [aw = wta_hh_adj] if kihbs == 2015 & pctile_nedi2 == `x'   & nedi_cat == 1
+			matrix change[`x', (1)] = (((r(mean) / change[`x', 2])^(1/10)-1)*100)	
+
+		  	quietly sum $cons [aw = wta_hh_adj] if kihbs == 2005 & pctile_nedi2 == `x' & nedi_cat == 2
 			matrix change[`x', (2)] = r(mean)
 			
 			quietly sum $cons [aw = wta_hh_adj] if kihbs == 2015 & pctile_nedi2 == `x'   & nedi_cat == 2
 			matrix change[`x', (2)] = (((r(mean) / change[`x', 2])^(1/10)-1)*100)	
+			
 }
 svmat change, names(change)
 gen x = _n if _n <= 100
 lowess change2 x, gen(schange2) nograph
+lowess change1 x, gen(schange1) nograph
 foreach x in 05 15 {
 		sum $cons if kihbs == 20`x' & nedi_cat == 2 [aw = wta_hh_adj]
 		scalar mean20`x'_nedi2 = r(mean)
+		
+		sum $cons if kihbs == 20`x' & nedi_cat == 1 [aw = wta_hh_adj]
+		scalar mean20`x'_nedi1 = r(mean)
 }
 local mean_change_nedi2 = (((mean2015_nedi2 / mean2005_nedi2)^(1/10)-1)*100)
+local mean_change_nedi1 = (((mean2015_nedi1 / mean2005_nedi1)^(1/10)-1)*100)
 
 *Graphs: Non-NEDI and NEDI GICs
 line schange2 x, lcolor(navy) lpattern(solid) yline(`mean_change_nedi2') yscale(range(8 0)) ylabel(#8) yline(0 , lstyle(foreground))  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic2, replace) graphregion(color(white)) bgcolor(white)

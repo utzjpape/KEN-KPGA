@@ -5,13 +5,6 @@
 ******************************************************
 
 clear all
-global path "C:/Users/WB377460/Documents/KPGA/"
-global data "${path}data/"
-global graph "${path}graph/"
-global output "${path}output/"
-global GIS "${path}GIS/"
-cd "${path}"  
-
 
 **********************************************************
 **********                                        ********
@@ -19,7 +12,7 @@ cd "${path}"
 **********                                        ********
 **********************************************************
 
-use "${data}DHS2014\kemr70dt\KEMR70FL", clear // Men data
+use "${gsdDataRaw}/5-Urban/KEMR70FL", clear // Men data
 
 tab mv024 [fw=mv005] // province
 tab smregion mv025 [fw=mv005] // county and urban/rural
@@ -166,7 +159,7 @@ preserve
 	}
 	gen prev_u1_2 = prev_u1 + prev_u2
 	
-	export excel using "${GIS}kenya_DHS_GIS.xls", ///
+	export excel using "${gsdOutput}/C5-Urban/kenya_DHS_GIS.xls", ///
 		first(var) replace 
 	
 restore
@@ -193,7 +186,7 @@ preserve
 	gen prev_u1_2 = prev_u1 + prev_u2
 	gen prev_r1_2 = prev_r1 + prev_r2
 	
-	export excel using "${GIS}kenya_DHS_GIS2.xls", ///
+	export excel using "${gsdOutput}/C5-Urban/kenya_DHS_GIS2.xls", ///
 		first(var) replace 
 	
 restore
@@ -222,7 +215,7 @@ preserve
 	name(a1, replace) nodraw
 restore
 graph combine a1, ysize(6) iscale(0.6)
-graph export "${graph}duration2014.png", replace 
+graph export "${gsdOutput}/C5-Urban/duration2014.png", replace 
 
 
 // previous residence
@@ -280,7 +273,7 @@ preserve
 		name(a2, replace) nodraw
 restore
 graph combine a1 a2, ysize(5) iscale(0.6)
-graph export "${graph}prev2014.png", replace 
+graph export "${gsdOutput}/C5-Urban/prev2014.png", replace 
 
 
 ** Wealth index **
@@ -295,31 +288,31 @@ replace RtoU = 0 if mv105==.
 preserve
 	keep if mv025==1 // currently in urban
 	collapse (mean) ai_* [aw=mv005], by(migrant RtoU)
-	export excel using "${graph}kenya_DHS.xlsx", ///
+	export excel using "${gsdOutput}/C5-Urban/kenya_DHS.xlsx", ///
 		sheet("urban") sheetreplace first(var)
 restore
 preserve
 	keep if COUNTY3_ID == 41 // currently in Nairobi
 	collapse (mean) ai_* [aw=mv005], by(migrant RtoU)
-	export excel using "${graph}kenya_DHS.xlsx", ///
+	export excel using "${gsdOutput}/C5-Urban/kenya_DHS.xlsx", ///
 		sheet("nairobi") sheetreplace first(var)
 restore
 preserve
 	keep if COUNTY3_ID == 141 // currently in Mombasa
 	collapse (mean) ai_* [aw=mv005], by(migrant RtoU)
-	export excel using "${graph}kenya_DHS.xlsx", ///
+	export excel using "${gsdOutput}/C5-Urban/kenya_DHS.xlsx", ///
 		sheet("mombasa") sheetreplace first(var)
 restore
 preserve
 	drop if COUNTY3_ID == 41 | COUNTY3_ID == 141 // currently in other urban
 	collapse (mean) ai_* [aw=mv005], by(migrant RtoU)
-	export excel using "${graph}kenya_DHS.xlsx", ///
+	export excel using "${gsdOutput}/C5-Urban/kenya_DHS.xlsx", ///
 		sheet("other") sheetreplace first(var)
 restore
 preserve
 	keep if mv025==2 // currently in rural
 	collapse (mean) ai_* [aw=mv005]
-	export excel using "${graph}kenya_DHS.xlsx", ///
+	export excel using "${gsdOutput}/C5-Urban/kenya_DHS.xlsx", ///
 		sheet("rural") sheetreplace first(var)
 restore
 

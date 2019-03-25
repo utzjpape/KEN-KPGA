@@ -82,10 +82,11 @@ merge 1:m county using "${gsdData}/1-CleanOutput/hh.dta", nogen keep(match) keep
 duplicates drop
 label var median_cons "Median consumption"
 replace response = response*100
-twoway scatter  median_cons response [pw=countypw] || lfit median_cons response [pw=countypw]  || scatter  median_cons response [pw=countypw] ///
-               , mlabel(county) msize(tiny) mlabsize(tiny) legend(off) ||,  xtitle("Response rate (%) - Urban", size(small)) ///
-			   xlabel(, labsize(small)) ytitle("Median consumption per county (Monthly 2016 Kshs per AE)", size(small)) ylabel(, angle(horizontal) labsize(small)) ///
-			   name(response2, replace) graphregion(color(white)) bgcolor(white)
+gen nonresp=100-response
+twoway (scatter median_cons nonresp [pw=countypw]) (lfit median_cons nonresp [pw=countypw])  ///
+       ,  legend(off) xtitle("Nonresponse rate (%)", size(small)) ytitle("Median consumption per county" "(Monthly 2016 Kshs per adult equivalent)", size(small)) ///
+	    xlabel(, labsize(small)) ylabel(4000 "4,000" 6000 "6,000" 8000 "8,000" 10000 "10,000" 12000 "12,000", angle(0) labsize(small)) ///
+		name(response2, replace) graphregion(color(white)) bgcolor(white) 
 graph save "${gsdOutput}/Inequality/Response-rate_Consumption_Urban", replace
 
 *Rural areas
@@ -97,10 +98,11 @@ gen countypw = countyhh/tothh
 collapse (mean) response mean_cons=y2_i (median) median_cons=y2_i , by(county countypw)
 label var median_cons "Median consumption"
 replace response = response*100
-twoway scatter  median_cons response [pw=countypw] || lfit median_cons response [pw=countypw]  || scatter  median_cons response [pw=countypw] ///
-               , mlabel(county) msize(tiny) mlabsize(tiny) legend(off) ||,  xtitle("Response rate (%) - Rural", size(small)) ///
-			   xlabel(, labsize(small)) ytitle("Median consumption per county (Monthly 2016 Kshs per AE)", size(small)) ylabel(, angle(horizontal) labsize(small)) ///
-			   name(response2, replace) graphregion(color(white)) bgcolor(white)
+gen nonresp=100-response
+twoway (scatter median_cons nonresp [pw=countypw]) (lfit median_cons nonresp [pw=countypw])  ///
+       ,  legend(off) xtitle("Nonresponse rate (%)", size(small)) ytitle("Median consumption per county" "(Monthly 2016 Kshs per adult equivalent)", size(small)) ///
+	    xlabel(, labsize(small)) ylabel(0 "0" 2000 "2,000" 4000 "4,000" 6000 "6,000" 8000 "8,000", angle(0) labsize(small)) ///
+		name(response2, replace) graphregion(color(white)) bgcolor(white) 
 graph save "${gsdOutput}/Inequality/Response-rate_Consumption_Rural", replace
 
 
@@ -267,9 +269,10 @@ gen x=1- max
 replace prob_resp_6=prob_resp_6+x
 drop max x
 *drop if y2_i>40000 
-twoway scatter  prob_resp_6 y2_i,  xtitle("Mean consumption per PSU (Monthly 2016 Kshs per AE)", size(small)) ///
-			   xlabel(, labsize(small)) ytitle("Probability of responding KIHSB 2015/15", ///
-			   size(small)) ylabel(, angle(horizontal) labsize(small)) graphregion(color(white)) bgcolor(white)
+twoway (scatter  prob_resp_6 y2_i if urban==1) (scatter  prob_resp_6 y2_i if urban==0) ,  xtitle("Mean consumption per EA (Monthly 2016 Kshs per adult equivalent)", size(small)) ///
+		xlabel(, labsize(small)) ytitle("Probability of responding KIHBS 2015/16", ///
+		size(small)) ylabel(, angle(horizontal) labsize(small)) graphregion(color(white)) bgcolor(white) ///
+		legend(label(1 "Urban EAs") label(2 "Rural EAs")) xlabel(20000 "20,000" 40000 "40,000" 60000 "60,000")  
 graph save "${gsdOutput}/Inequality/Response-Prob_6", replace
 restore
 
@@ -371,13 +374,15 @@ replace y_values=y_values*100
 replace x_values_adj=100*x_values_adj 
 replace y_values_adj=y_values_adj*100
 sort x_*
-graph twoway (line y_values x_values, yaxis(1 2) ) ///
-	  (line y_values_adj x_values_adj, yaxis(1 2) lpattern(-) ) ///
-	  (function y = x, range(0 100) yaxis(1 2) )   ///
-       , aspect(1) xtitle("Cumulative share of population (%)") ///
-	   ytitle("Share of total consumption expenditure (%)", axis(1)) ytitle(" ", axis(2)) ///
+graph twoway (line y_values x_values, ylabel(, angle(0) labsize(small)) ) ///
+	  (line y_values_adj x_values_adj, yaxis(2) lpattern(-) ) ///
+	  (function y = x, range(0 100) )   ///
+       , aspect(1) xtitle("Cumulative share of population (%)")  ///
+	   ylabel(, angle(0) labsize(small)) xlabel(, labsize(small)) ylabel(none, axis(2)) ///
+	   ytitle("Share of total consumption expenditure (%)", axis(1)) ytitle(" ", axis(2)) ylabel(0 "" 20 "" 40 "" 60 "" 80 "" 100 "")  ///
 	   legend(label(1 "Original") label(2 "Adjusted") label(3 "Equality")) graphregion(color(white)) bgcolor(white)
 graph save "${gsdOutput}/Inequality/Lorenz_national-2015_adjusted", replace	  
+
 
 *Urban
 use "${gsdTemp}/Adjusted-weights_6.dta", clear
@@ -389,11 +394,12 @@ replace y_values=y_values*100
 replace x_values_adj=100*x_values_adj 
 replace y_values_adj=y_values_adj*100
 sort x_*
-graph twoway (line y_values x_values, yaxis(1 2) ) ///
-	  (line y_values_adj x_values_adj, yaxis(1 2) lpattern(-) ) ///
-	  (function y = x, range(0 100) yaxis(1 2) )   ///
-       , aspect(1) xtitle("Cumulative share of population (%)") ///
-	   ytitle("Share of total consumption expenditure (%)", axis(1)) ytitle(" ", axis(2)) ///
+graph twoway (line y_values x_values, ylabel(, angle(0) labsize(small)) ) ///
+	  (line y_values_adj x_values_adj, yaxis(2) lpattern(-) ) ///
+	  (function y = x, range(0 100) )   ///
+       , aspect(1) xtitle("Cumulative share of population (%)")  ///
+	   ylabel(, angle(0) labsize(small)) xlabel(, labsize(small)) ylabel(none, axis(2)) ///
+	   ytitle("Share of total consumption expenditure (%)", axis(1)) ytitle(" ", axis(2)) ylabel(0 "" 20 "" 40 "" 60 "" 80 "" 100 "")  ///
 	   legend(label(1 "Original") label(2 "Adjusted") label(3 "Equality")) graphregion(color(white)) bgcolor(white)
 graph save "${gsdOutput}/Inequality/Lorenz_urban-2015_adjusted", replace	  
 
@@ -401,12 +407,14 @@ graph save "${gsdOutput}/Inequality/Lorenz_urban-2015_adjusted", replace
 //Plot the change in sampling weights 
 use "${gsdTemp}/Adjusted-weights_6.dta", clear
 collapse (sum) wta_pop_6 wta_pop (max) non_resp_rate, by(clid)
-keep if wta_pop_6<100000 & wta_pop<100000
+keep if wta_pop_6<103000 & wta_pop<103000
 graph twoway (scatter wta_pop wta_pop_6 if non_resp_rate==0) ///
         (scatter wta_pop wta_pop_6 if non_resp_rate!=0) ///
-	  (function y = x, range(0 100000) ) ///  
-      , xtitle("Sum of adjusted population weight by EA") legend(label(1 "EAs w/100% response rate") label(2 "EAs w/non-response") label(3 "Same population weight"))   ///
-	   ytitle("Sum of previous population weight by EA") graphregion(color(white)) bgcolor(white)
+	  (function y = x, range(0 103000) ) ///  
+      , xtitle("Sum of adjusted population weight by EA") legend(label(1 "EAs w/100% response rate") label(2 "EAs with nonresponse") label(3 "Same population weight"))   ///
+	   ytitle("Sum of original population weight by EA") graphregion(color(white)) bgcolor(white) ///
+	  xlabel(20000 "20,000" 40000 "40,000" 60000 "60,000" 80000 "80,000" 100000 "100,000")  ///
+      ylabel(20000 "20,000" 40000 "40,000" 60000 "60,000" 80000 "80,000" 100000 "100,000", angle(0)) 
 graph save "${gsdOutput}/Inequality/Change_weights_overall", replace	  
 
 
@@ -439,18 +447,18 @@ save "${gsdData}/1-CleanOutput/hh_adj_weights.dta", replace
 
 
 //Consumption (Ksh) by decile 
-use "${gsdData}/1-CleanOutput/hh_adj_weights.dta", clear
+use "${gsdData}/1-CleanOutput/hh.dta", clear
 
 *National
 preserve
-egen texp_nat_rdec = xtile(rcons), weights(wta_hh_adj) by(kihbs) p(10(10)90)
+egen texp_nat_rdec = xtile(rcons), weights(wta_hh) by(kihbs) p(10(10)90)
 collapse (mean) mean_cons=rcons , by(kihbs texp_nat_rdec)
 ren texp_nat_rdec decile
 export excel using "${gsdOutput}/Inequality/Raw_3.xlsx", firstrow(variables) replace
 restore
 
 *Rural-Urban
-egen texp_rurb_rdec = xtile(rcons) , weights(wta_hh_adj) by(kihbs urban) p(10(10)90)
+egen texp_rurb_rdec = xtile(rcons) , weights(wta_hh) by(kihbs urban) p(10(10)90)
 collapse (mean) mean_cons=rcons , by(kihbs urban texp_rurb_rdec)
 ren texp_rurb_rdec decile
 export excel using "${gsdOutput}/Inequality/Raw_4.xlsx", firstrow(variables) replace
@@ -458,19 +466,19 @@ export excel using "${gsdOutput}/Inequality/Raw_4.xlsx", firstrow(variables) rep
 
 
 //Growth incidence curves
-use "${gsdData}/1-CleanOutput/hh_adj_weights.dta", clear
-svyset clid [pw=wta_pop_adj] , strat(strat)
+use "${gsdData}/1-CleanOutput/hh.dta", clear
+svyset clid [pw=wta_pop] , strat(strat)
 global cons = "rcons"
 
 *Generating Percentiles 
 foreach var in 2005 2015 {
-        xtile pctile_`var'_total = $cons if kihbs == `var' [aw = wta_hh_adj], nq(100)
-		xtile pctile_`var'_rural = $cons if kihbs == `var' & urban==0 [aw = wta_hh_adj], nq(100)
-		xtile pctile_`var'_urban = $cons if kihbs == `var' & urban==1 [aw = wta_hh_adj], nq(100) 
+        xtile pctile_`var'_total = $cons if kihbs == `var' [aw = wta_hh], nq(100)
+		xtile pctile_`var'_rural = $cons if kihbs == `var' & urban==0 [aw = wta_hh], nq(100)
+		xtile pctile_`var'_urban = $cons if kihbs == `var' & urban==1 [aw = wta_hh], nq(100) 
 }
 foreach var in 2005 2015 {
 	forvalues i = 1 / 8 {
-        xtile pctile_`i'_`var' = $cons if kihbs == `var' & province == `i' [aw = wta_hh_adj], nq(100)
+        xtile pctile_`i'_`var' = $cons if kihbs == `var' & province == `i' [aw = wta_hh], nq(100)
 }
 }
 egen pctile_total = rowtotal(pctile_2005_total pctile_2015_total)
@@ -480,41 +488,62 @@ forvalues i = 1 / 8 {
 	egen pctile_prov`i' = rowtotal(pctile_`i'_2005 pctile_`i'_2015)
 }
 
+*National level
+svyset clid [pw=wta_hh] , strat(strat) 
+qui tabout kihbs if pctile_total == 1 using "${gsdOutput}/Inequality/Raw_7.csv", svy sum c(mean rcons se) sebnone f(3) npos(col) h2(Real consumption - national percentil 1) replace
+qui forval i = 2/100 {
+	tabout kihbs if pctile_total == `i' using "${gsdOutput}/Inequality/Raw_7.csv", svy sum c(mean rcons se) sebnone f(3) npos(col) h2(Real consumption - national percentil `i') append
+}
+
+*Urban
+qui tabout kihbs if urban==1 & pctile_urban == 1 using "${gsdOutput}/Inequality/Raw_8.csv", svy sum c(mean rcons se) sebnone f(3) npos(col) h2(Real consumption - urban percentil 1) replace
+qui forval i = 2/100 {
+	tabout kihbs if urban==1 &  pctile_urban == `i' using "${gsdOutput}/Inequality/Raw_8.csv", svy sum c(mean rcons se) sebnone f(3) npos(col) h2(Real consumption - urban percentil `i') append
+}
+
+*Rural 
+qui tabout kihbs if urban==0 & pctile_rural == 1 using "${gsdOutput}/Inequality/Raw_9.csv", svy sum c(mean rcons se) sebnone f(3) npos(col) h2(Real consumption - rural percentil 1) replace
+qui forval i = 2/100 {
+	tabout kihbs if urban==0 &  pctile_rural == `i' using "${gsdOutput}/Inequality/Raw_9.csv", svy sum c(mean rcons se) sebnone f(3) npos(col) h2(Real consumption - rural percentil `i') append
+}
+
+
 *Between 2005 and 2015: create (100x11) matrix full of zeros. 
 *        Each column will populated with the percentile annualized change 
 *        in real consumption for a particular region (national, rural, urban 
 *         and the 8 provinces).
+svyset clid [pw=wta_pop] , strat(strat) 
 matrix change = J(100, 11, 0)
 forvalues x = 1/100 {
-          quietly sum $cons [aw = wta_hh_adj] if kihbs == 2005 & pctile_total == `x'
+          quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_total == `x'
 		  matrix change[`x', 1] = r(mean)
 		  
-		  quietly sum $cons [aw = wta_hh_adj] if kihbs == 2015 & pctile_total == `x'
+		  quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_total == `x'
 		matrix change[`x', 1] = (((r(mean) / change[`x', 1])^(1/10)-1)*100)
 
-		  quietly sum $cons [aw = wta_hh_adj] if kihbs == 2005 & pctile_rural == `x' ///
+		  quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_rural == `x' ///
 		   & [urban == 0 ] 
 		  matrix change[`x', 2] = r(mean)
 
-  		  quietly sum $cons [aw = wta_hh_adj] if kihbs == 2015 & pctile_rural == `x' ///
+  		  quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_rural == `x' ///
 		   & [urban == 0 ]
 			matrix change[`x', 2] = (((r(mean) / change[`x', 2])^(1/10)-1)*100)
 		   		 
-		  quietly sum $cons [aw = wta_hh_adj] if kihbs == 2005 & pctile_urban == `x' ///
+		  quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_urban == `x' ///
 		   & [urban == 1] 
 		  matrix change[`x', 3] = r(mean)
 		  
-		  quietly sum $cons [aw = wta_hh_adj] if kihbs == 2015 & pctile_urban == `x' ///
+		  quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_urban == `x' ///
 		   & [urban == 1]
 		matrix change[`x', 3] = (((r(mean) / change[`x', 3])^(1/10)-1)*100)
 		   
 		  forvalues i = 1 / 8 {
 		  
-		  	quietly sum $cons [aw = wta_hh_adj] if kihbs == 2005 & pctile_prov`i' == `x' ///
+		  	quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_prov`i' == `x' ///
 			& [province == `i'] 
 			matrix change[`x', (3+`i')] = r(mean)
 			
-			quietly sum $cons [aw = wta_hh_adj] if kihbs == 2015 & pctile_prov`i' == `x' ///
+			quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_prov`i' == `x' ///
 		   & [province == `i']
 			matrix change[`x', (3+`i')] = (((r(mean) / change[`x', 3+`i'])^(1/10)-1)*100)		  
 }
@@ -525,17 +554,17 @@ forvalues i = 1/11 {
           lowess change`i' x, gen(schange`i') nograph
 }
 foreach x in 05 15 {
-	sum $cons if kihbs == 20`x' [aw = wta_hh_adj]
+	sum $cons if kihbs == 20`x' [aw = wta_hh]
 	scalar mean20`x'_total = r(mean)
 
-	sum $cons if kihbs == 20`x' & urban == 0 [aw = wta_hh_adj]
+	sum $cons if kihbs == 20`x' & urban == 0 [aw = wta_hh]
 	scalar mean20`x'_rural = r(mean)
 
-	sum $cons if kihbs == 20`x' & urban == 1 [aw = wta_hh_adj]
+	sum $cons if kihbs == 20`x' & urban == 1 [aw = wta_hh]
 	scalar mean20`x'_urban = r(mean)
 	
 	forvalues i = 1/8 {
-		sum $cons if kihbs == 20`x' & province == `i' [aw = wta_hh_adj]
+		sum $cons if kihbs == 20`x' & province == `i' [aw = wta_hh]
 		scalar mean20`x'_prov`i' = r(mean)
 }
 }
@@ -561,7 +590,7 @@ graph save "${gsdOutput}/Inequality/GIC_urban", replace
 
 *NEDI and Non-Nedi GICs 
 use "${gsdData}/1-CleanOutput/hh_adj_weights.dta", clear
-svyset clid [pw=wta_pop_adj] , strat(strat)
+svyset clid [pw=wta_pop] , strat(strat)
 global cons = "rcons"
 gen nedi_cat = 1 if nedi==0
 replace nedi_cat = 2 if nedi==2
@@ -572,24 +601,32 @@ label var nedi_cat "1=Non-NEDI County 2=NEDI county - FOR matrix in GIC"
 
 *Generating Percentiles 
 foreach var in 2005 2015 {
-        xtile pctile_2_`var' = $cons if kihbs == `var' & nedi_cat == 2 [aw = wta_hh_adj], nq(100)
+        xtile pctile_2_`var' = $cons if kihbs == `var' & nedi_cat == 2 [aw = wta_hh], nq(100)
 }
 egen pctile_nedi2 = rowtotal(pctile_2_2005 pctile_2_2015)
+
+*NEDI
+svyset clid [pw=wta_hh] , strat(strat)
+qui tabout kihbs if nedi_cat==2 & pctile_nedi2 == 1 using "${gsdOutput}/Inequality/Raw_10.csv", svy sum c(mean rcons se) sebnone f(3) npos(col) h2(Real consumption - NEDI percentil 1) replace
+qui forval i = 2/100 {
+	tabout kihbs if nedi_cat==2 &  pctile_nedi2 == `i' using "${gsdOutput}/Inequality/Raw_10.csv", svy sum c(mean rcons se) sebnone f(3) npos(col) h2(Real consumption - NEDI percentil `i') append
+}
 	
 *Between 2005 and 2015: create (100x8) matrix full of zeros. Each column will 
 *populated with the percentile change in real consumption for the 2 NEDI categories)
+svyset clid [pw=wta_pop] , strat(strat)
 matrix change = J(100, 2, 0)
 forvalues x = 1/100 {
-			quietly sum $cons [aw = wta_hh_adj] if kihbs == 2005 & pctile_nedi2 == `x' & nedi_cat == 1
+			quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_nedi2 == `x' & nedi_cat == 1
 			matrix change[`x', (1)] = r(mean)
 			
-			quietly sum $cons [aw = wta_hh_adj] if kihbs == 2015 & pctile_nedi2 == `x'   & nedi_cat == 1
+			quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_nedi2 == `x'   & nedi_cat == 1
 			matrix change[`x', (1)] = (((r(mean) / change[`x', 2])^(1/10)-1)*100)	
 
-		  	quietly sum $cons [aw = wta_hh_adj] if kihbs == 2005 & pctile_nedi2 == `x' & nedi_cat == 2
+		  	quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_nedi2 == `x' & nedi_cat == 2
 			matrix change[`x', (2)] = r(mean)
 			
-			quietly sum $cons [aw = wta_hh_adj] if kihbs == 2015 & pctile_nedi2 == `x'   & nedi_cat == 2
+			quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_nedi2 == `x'   & nedi_cat == 2
 			matrix change[`x', (2)] = (((r(mean) / change[`x', 2])^(1/10)-1)*100)	
 			
 }
@@ -598,10 +635,10 @@ gen x = _n if _n <= 100
 lowess change2 x, gen(schange2) nograph
 lowess change1 x, gen(schange1) nograph
 foreach x in 05 15 {
-		sum $cons if kihbs == 20`x' & nedi_cat == 2 [aw = wta_hh_adj]
+		sum $cons if kihbs == 20`x' & nedi_cat == 2 [aw = wta_hh]
 		scalar mean20`x'_nedi2 = r(mean)
 		
-		sum $cons if kihbs == 20`x' & nedi_cat == 1 [aw = wta_hh_adj]
+		sum $cons if kihbs == 20`x' & nedi_cat == 1 [aw = wta_hh]
 		scalar mean20`x'_nedi1 = r(mean)
 }
 local mean_change_nedi2 = (((mean2015_nedi2 / mean2005_nedi2)^(1/10)-1)*100)
@@ -617,13 +654,13 @@ graph save "${gsdOutput}/Inequality/GIC_non-nedi", replace
 
 
 //Real consumption growth (bottom 40 vs. top 60)
-use "${gsdData}/1-CleanOutput/hh_adj_weights.dta", clear
-svyset clid [pw=wta_hh_adj] , strat(strat)
+use "${gsdData}/1-CleanOutput/hh.dta", clear
+svyset clid [pw=wta_hh] , strat(strat)
 
 *Total expenditure quintiles
-egen texp_nat_quint = xtile(rcons) , weights(wta_hh_adj) by(kihbs) p(20(20)80)
-egen texp_rurb_quint = xtile(rcons) , weights(wta_hh_adj) by(kihbs urban) p(20(20)80)
-egen texp_prov_quint = xtile(rcons) , weights(wta_hh_adj) by(kihbs province) p(20(20)80)
+egen texp_nat_quint = xtile(rcons) , weights(wta_hh) by(kihbs) p(20(20)80)
+egen texp_rurb_quint = xtile(rcons) , weights(wta_hh) by(kihbs urban) p(20(20)80)
+egen texp_prov_quint = xtile(rcons) , weights(wta_hh) by(kihbs province) p(20(20)80)
 label var texp_nat_quint "Total real monthly per adq expenditure quintiles (National)"
 label var texp_rurb_quint "Total real monthly per adq expenditure quintiles (Rural / Urban)"
 label var texp_prov_quint "Total real monthly per adq expenditure quintiles (Provincial)"
@@ -659,31 +696,31 @@ qui forval i=1/8 {
 *********************************************************
 
 //Prepare the dataset 
-use "${gsdData}/1-CleanOutput/hh_adj_weights.dta", clear
-svyset clid [pw=wta_pop_adj] , strat(strat)
+use "${gsdData}/1-CleanOutput/hh.dta", clear
+svyset clid [pw=wta_pop] , strat(strat)
 
 
 //Inequality measures in 2005/6 and 2015/16
 *Urban-Rural and by province
 qui foreach var in 2005 2015  {
-	ineqdeco y2_i if kihbs == `var' [aw = wta_pop_adj]
+	ineqdeco y2_i if kihbs == `var' [aw = wta_pop]
 	matrix total_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1), r(a1), r(a2)]
 		
-	ineqdeco y2_i if kihbs == `var' & urban == 0 [aw = wta_pop_adj]
+	ineqdeco y2_i if kihbs == `var' & urban == 0 [aw = wta_pop]
     matrix rural_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1), r(a1), r(a2)] 
  	
-	ineqdeco y2_i if kihbs == `var' & urban == 1 [aw = wta_pop_adj]
+	ineqdeco y2_i if kihbs == `var' & urban == 1 [aw = wta_pop]
 	matrix urban_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1), r(a1), r(a2) ]
 }
 qui foreach var in 2005 2015  {
 	forvalues i = 1 / 8{
-		ineqdeco y2_i if kihbs == `var' & province==`i'  [aw = wta_pop_adj]
+		ineqdeco y2_i if kihbs == `var' & province==`i'  [aw = wta_pop]
 		matrix prov_`i'_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1) , r(a1), r(a2) ]	
 }
 }
 qui foreach var in 2005 2015  {
 	forvalues i = 0 / 1{
-		ineqdeco y2_i if kihbs == `var' & nedi==`i'  [aw = wta_pop_adj]
+		ineqdeco y2_i if kihbs == `var' & nedi==`i'  [aw = wta_pop]
 		matrix nedi_`i'_`var' = [r(p90p10), r(p75p25), r(gini), r(ge1) , r(a1), r(a2) ]	
 }
 }
@@ -716,10 +753,10 @@ putexcel E44=("Between")
 putexcel A43=("Between/Within inequality: Overall by urban/rural") 
 putexcel A45=("2005/6") 
 putexcel A46=("2015/16") 
-ineqdeco y2_i if kihbs==2005 [aw = wta_pop_adj], bygroup(urban)
+ineqdeco y2_i if kihbs==2005 [aw = wta_pop], bygroup(urban)
 putexcel D45=`r(within_ge1)'
 putexcel E45=`r(between_ge1)'
-ineqdeco y2_i if kihbs==2015 [aw = wta_pop_adj], bygroup(urban)
+ineqdeco y2_i if kihbs==2015 [aw = wta_pop], bygroup(urban)
 putexcel D46=`r(within_ge1)'
 putexcel E46=`r(between_ge1)'
 
@@ -727,10 +764,10 @@ putexcel E46=`r(between_ge1)'
 putexcel A48=("Between/Within inequality: Overall by province") 
 putexcel A49=("2005/6") 
 putexcel A50=("2015/16") 
-ineqdeco y2_i if kihbs==2005 [aw = wta_pop_adj], bygroup(province)
+ineqdeco y2_i if kihbs==2005 [aw = wta_pop], bygroup(province)
 putexcel D49=`r(within_ge1)'
 putexcel E49=`r(between_ge1)'
-ineqdeco y2_i if kihbs==2015 [aw = wta_pop_adj], bygroup(province)
+ineqdeco y2_i if kihbs==2015 [aw = wta_pop], bygroup(province)
 putexcel D50=`r(within_ge1)'
 putexcel E50=`r(between_ge1)'
 
@@ -738,10 +775,10 @@ putexcel E50=`r(between_ge1)'
 putexcel A52=("Between/Within inequality: By urban counties") 
 putexcel A53=("2005/6") 
 putexcel A54=("2015/16") 
-ineqdeco y2_i if kihbs==2005 & urban==1 [aw = wta_pop_adj], bygroup(county)
+ineqdeco y2_i if kihbs==2005 & urban==1 [aw = wta_pop], bygroup(county)
 putexcel D53=`r(within_ge1)'
 putexcel E53=`r(between_ge1)'
-ineqdeco y2_i if kihbs==2015 & urban==1 [aw = wta_pop_adj], bygroup(county)
+ineqdeco y2_i if kihbs==2015 & urban==1 [aw = wta_pop], bygroup(county)
 putexcel D54=`r(within_ge1)'
 putexcel E54=`r(between_ge1)'
 
@@ -749,10 +786,10 @@ putexcel E54=`r(between_ge1)'
 putexcel A56=("Between/Within inequality: By rural counties") 
 putexcel A57=("2005/6") 
 putexcel A58=("2015/16") 
-ineqdeco y2_i if kihbs==2005 & urban==0 [aw = wta_pop_adj], bygroup(county)
+ineqdeco y2_i if kihbs==2005 & urban==0 [aw = wta_pop], bygroup(county)
 putexcel D57=`r(within_ge1)'
 putexcel E57=`r(between_ge1)'
-ineqdeco y2_i if kihbs==2015 & urban==0 [aw = wta_pop_adj], bygroup(county)
+ineqdeco y2_i if kihbs==2015 & urban==0 [aw = wta_pop], bygroup(county)
 putexcel D58=`r(within_ge1)'
 putexcel E58=`r(between_ge1)'
 
@@ -760,9 +797,9 @@ putexcel E58=`r(between_ge1)'
 
 //Map of changes in Gini coefficient by county 
 qui forval i=1/47 {
-	fastgini y2_i if kihbs==2005 & county==`i' [pw = wta_pop_adj]
+	fastgini y2_i if kihbs==2005 & county==`i' [pw = wta_pop]
 	gen gini_05_`i'=r(gini)
-	fastgini y2_i if kihbs==2015 & county==`i' [pw = wta_pop_adj]
+	fastgini y2_i if kihbs==2015 & county==`i' [pw = wta_pop]
 	gen gini_15_`i'=r(gini)
 }
 gen gini_05_county=.
@@ -805,11 +842,11 @@ graph save "${gsdOutput}/Inequality/Change_Gini_Counties", replace
 
 
 //Lorenz curves
-use "${gsdData}/1-CleanOutput/hh_adj_weights.dta", clear
-svyset clid [pw=wta_pop_adj] , strat(strat)
+use "${gsdData}/1-CleanOutput/hh.dta", clear
+svyset clid [pw=wta_pop] , strat(strat)
 
 *National
-glcurve y2_i [aw = wta_pop_adj], by(kihbs) split pvar(x_values) glvar(y_values) lorenz nograph
+glcurve y2_i [aw = wta_pop], by(kihbs) split pvar(x_values) glvar(y_values) lorenz nograph
 replace x_values=100*x_values 
 replace y_values_2005=y_values_2005*100 
 replace y_values_2015=y_values_2015*100
@@ -818,12 +855,13 @@ graph twoway (line y_values_2005 x_values, yaxis(1 2) ) ///
 	  (line y_values_2015 x_values, yaxis(1 2) ) ///
 	  (function y = x, range(0 100) yaxis(1 2) )   ///
        , aspect(1) xtitle("Cumulative share of population (%)") ///
+	   ylabel(, angle(0) labsize(small)) xlabel(, labsize(small)) ylabel(none, axis(2)) ///
 	   ytitle("Share of total consumption expenditure (%)", axis(1)) ytitle(" ", axis(2)) ///
 	   legend(label(1 "2005/6") label(2 "2015/16") label(3 "Equality")) graphregion(color(white)) bgcolor(white)
 graph save "${gsdOutput}/Inequality/Lorenz_national", replace	  
 
 *Urban
-glcurve y2_i [aw = wta_pop_adj] if urban==1, by(kihbs) split pvar(x_values_urb) glvar(y_values_urb) lorenz nograph
+glcurve y2_i [aw = wta_pop] if urban==1, by(kihbs) split pvar(x_values_urb) glvar(y_values_urb) lorenz nograph
 replace x_values_urb=100*x_values_urb 
 replace y_values_urb_2005=y_values_urb_2005*100 
 replace y_values_urb_2015=y_values_urb_2015*100
@@ -832,12 +870,13 @@ graph twoway (line y_values_urb_2005 x_values_urb, yaxis(1 2) ) ///
 	  (line y_values_urb_2015 x_values_urb, yaxis(1 2) ) ///
 	  (function y = x, range(0 100) yaxis(1 2) )   ///
        , aspect(1) xtitle("Cumulative share of population (%)") ///
+	   ylabel(, angle(0) labsize(small)) xlabel(, labsize(small)) ylabel(none, axis(2)) ///
 	   ytitle("Share of total consumption expenditure (%)", axis(1)) ytitle(" ", axis(2)) ///
 	   legend(label(1 "2005/6") label(2 "2015/16") label(3 "Equality")) graphregion(color(white)) bgcolor(white)
 graph save "${gsdOutput}/Inequality/Lorenz_urban", replace	  
 
 *Rural
-glcurve y2_i [aw = wta_pop_adj] if urban==0, by(kihbs) split pvar(x_values_rur) glvar(y_values_rur) lorenz nograph
+glcurve y2_i [aw = wta_pop] if urban==0, by(kihbs) split pvar(x_values_rur) glvar(y_values_rur) lorenz nograph
 replace x_values_rur=100*x_values_rur 
 replace y_values_rur_2005=y_values_rur_2005*100 
 replace y_values_rur_2015=y_values_rur_2015*100
@@ -846,6 +885,7 @@ graph twoway (line y_values_rur_2005 x_values_rur, yaxis(1 2) ) ///
 	  (line y_values_rur_2015 x_values_rur, yaxis(1 2) ) ///
 	  (function y = x, range(0 100) yaxis(1 2) )   ///
        , aspect(1) xtitle("Cumulative share of population (%)") ///
+	   ylabel(, angle(0) labsize(small)) xlabel(, labsize(small)) ylabel(none, axis(2)) ///
 	   ytitle("Share of total consumption expenditure (%)", axis(1)) ytitle(" ", axis(2)) ///
 	   legend(label(1 "2005/6") label(2 "2015/16") label(3 "Equality")) graphregion(color(white)) bgcolor(white)
 graph save "${gsdOutput}/Inequality/Lorenz_rural", replace	  
@@ -858,32 +898,40 @@ graph save "${gsdOutput}/Inequality/Lorenz_rural", replace
 
 *Figures before corrections
 import excel "${gsdOutput}/Inequality/Raw_1.xls", sheet("Sheet1") case(lower) allstring clear
-export excel using "${gsdOutput}/Inequality/Figures_v1.xlsx", sheet("Raw_1") sheetreplace
+export excel using "${gsdOutput}/Inequality/figures_v4.xlsx", sheet("Raw_1") sheetreplace
 erase "${gsdOutput}/Inequality/Raw_1.xls"
 
 *Logit estimates
 import delimited "${gsdOutput}/Inequality/Logit_Non-response.txt", clear 
-export excel using "${gsdOutput}/Inequality/Figures_v1.xlsx", sheetreplace sheet("Logit")
+export excel using "${gsdOutput}/Inequality/figures_v4.xlsx", sheetreplace sheet("Logit")
 erase "${gsdOutput}/Inequality/Logit_Non-response.txt"
 erase "${gsdOutput}/Inequality/Logit_Non-response.xls"
 
 *Results from each logit model
 forval i=1/6 { 
 	import excel "${gsdOutput}/Inequality/Raw_2_`i'.xls", clear 
-	export excel using "${gsdOutput}/Inequality/Figures_v1.xlsx", sheetreplace sheet("Logit_`i'")
+	export excel using "${gsdOutput}/Inequality/figures_v4.xlsx", sheetreplace sheet("Logit_`i'")
 	erase "${gsdOutput}/Inequality/Raw_2_`i'.xls"
 }
 
 *All the results after adjusting the sampling weights
 forval i=3/4 {
 	import excel "${gsdOutput}/Inequality/Raw_`i'.xlsx", sheet("Sheet1") case(lower) firstrow allstring clear
-	export excel using "${gsdOutput}/Inequality/Figures_v1.xlsx", sheet("Raw_`i'") sheetreplace
+	export excel using "${gsdOutput}/Inequality/figures_v4.xlsx", sheet("Raw_`i'") sheetreplace
 	erase "${gsdOutput}/Inequality/Raw_`i'.xlsx"
 }
+
 import delimited "${gsdOutput}/Inequality/Raw_5.csv", delimiter(tab) clear 
-export excel using "${gsdOutput}/Inequality/Figures_v1.xlsx", sheet("Raw_5") sheetreplace
+export excel using "${gsdOutput}/Inequality/figures_v4.xlsx", sheet("Raw_5") sheetreplace
 erase "${gsdOutput}/Inequality/Raw_5.csv"
+
 import excel "${gsdOutput}/Inequality/Raw_6.xlsx", sheet("Sheet1") case(lower) allstring clear
-export excel using "${gsdOutput}/Inequality/Figures_v1.xlsx", sheet("Raw_6") sheetreplace
+export excel using "${gsdOutput}/Inequality/figures_v4.xlsx", sheet("Raw_6") sheetreplace
 erase "${gsdOutput}/Inequality/Raw_6.xlsx"
 
+*Data for GICs
+forval i=7/10 {
+	import delimited "${gsdOutput}/Inequality/Raw_`i'.csv", delimiter(tab) clear 
+	export excel using "${gsdOutput}/Inequality/figures_v4.xlsx", sheet("Raw_`i'") sheetreplace
+	erase "${gsdOutput}/Inequality/Raw_`i'.csv"
+}

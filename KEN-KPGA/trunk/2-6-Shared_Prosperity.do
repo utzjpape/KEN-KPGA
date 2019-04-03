@@ -590,6 +590,16 @@ graph save "${gsdOutput}/Inequality/GIC_rural", replace
 graph combine gic3, iscale(*0.9) graphregion(color(white)) 
 graph save "${gsdOutput}/Inequality/GIC_urban", replace
 
+preserve 
+gen mean_change1 = (((mean2015_total / mean2005_total)^(1/10)-1)*100)
+gen mean_change2 = (((mean2015_rural / mean2005_rural)^(1/10)-1)*100)
+gen mean_change3 = (((mean2015_urban / mean2005_urban)^(1/10)-1)*100)
+keep x schange* mean_change*
+drop if x>=.
+export excel using "${gsdOutput}/Inequality/Raw_11.xlsx", firstrow(variables) replace
+restore
+
+
 *NEDI and Non-Nedi GICs 
 use "${gsdData}/1-CleanOutput/hh.dta", clear
 svyset clid [pw=wta_hh] , strat(strat)
@@ -652,6 +662,14 @@ graph combine gic2, iscale(*0.9) graphregion(color(white))
 graph save "${gsdOutput}/Inequality/GIC_nedi", replace
 graph combine gic1, iscale(*0.9) graphregion(color(white)) 
 graph save "${gsdOutput}/Inequality/GIC_non-nedi", replace
+
+preserve 
+gen mean_change_nedi2 = (((mean2015_nedi2 / mean2005_nedi2)^(1/10)-1)*100)
+gen mean_change_nedi1 = (((mean2015_nedi1 / mean2005_nedi1)^(1/10)-1)*100)
+keep x schange* mean_change*
+drop if x>=.
+export excel using "${gsdOutput}/Inequality/Raw_12.xlsx", firstrow(variables) replace
+restore
 
 
 //Growth incidence curves [Excluding Nairobi]
@@ -759,7 +777,14 @@ graph save "${gsdOutput}/Inequality/GIC_rural", replace
 graph combine gic3, iscale(*0.9) graphregion(color(white)) 
 graph save "${gsdOutput}/Inequality/GIC_urban_exc-Nairobi", replace
 
-
+preserve 
+gen mean_change1 = (((mean2015_total / mean2005_total)^(1/10)-1)*100)
+gen mean_change2 = (((mean2015_rural / mean2005_rural)^(1/10)-1)*100)
+gen mean_change3 = (((mean2015_urban / mean2005_urban)^(1/10)-1)*100)
+keep x schange* mean_change*
+drop if x>=.
+export excel using "${gsdOutput}/Inequality/Raw_13.xlsx", firstrow(variables) replace
+restore
 
 
 //Real consumption growth (bottom 40 vs. top 60)
@@ -1226,3 +1251,9 @@ forval i=7/10 {
 	export excel using "${gsdOutput}/Inequality/figures_v4.xlsx", sheet("Raw_`i'") sheetreplace
 	erase "${gsdOutput}/Inequality/Raw_`i'.csv"
 }
+forval i=11/13 {
+	import excel "${gsdOutput}/Inequality/Raw_`i'.xlsx", sheet("Sheet1") firstrow case(lower)
+	export excel using "${gsdOutput}/Inequality/figures_v4.xlsx", sheet("Raw_`i'") sheetreplace
+	erase "${gsdOutput}/Inequality/Raw_`i'.xlsx"
+}
+

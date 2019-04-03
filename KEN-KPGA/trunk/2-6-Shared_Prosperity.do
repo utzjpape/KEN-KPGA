@@ -1252,7 +1252,7 @@ forval i=7/10 {
 	erase "${gsdOutput}/Inequality/Raw_`i'.csv"
 }
 forval i=11/13 {
-	import excel "${gsdOutput}/Inequality/Raw_`i'.xlsx", sheet("Sheet1") firstrow case(lower)
+	import excel "${gsdOutput}/Inequality/Raw_`i'.xlsx", sheet("Sheet1") firstrow case(lower) clear
 	export excel using "${gsdOutput}/Inequality/figures_v4.xlsx", sheet("Raw_`i'") sheetreplace
 	erase "${gsdOutput}/Inequality/Raw_`i'.xlsx"
 }

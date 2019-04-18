@@ -123,4 +123,5 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	ssc install winsor2
 	ssc install oaxaca
 	ssc install strrec
+	ssc install ineqdeco
 }

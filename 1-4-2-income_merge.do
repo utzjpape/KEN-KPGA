@@ -308,3 +308,27 @@ lab def inc_cat 1 "Agriculture Income Only" 0 "Non-Agricultural Income Only" 2 "
 
 save "${gsdData}/1-CleanOutput/Income05_15.dta", replace
 
+*Generate a household-level income file for 2015/16 based on the classifications in Ag_NAg_source4 which is use in the KPGA sectoral decompositions
+use "${gsdData}/1-CleanOutput/Income05_15.dta" ,clear
+keep if year == 2
+egen double income_tot = rsum(ag_total4 n_ag_total4)
+keep clid hhid income_tot ag_total4 n_ag_total4 y2_i hsize wta_hh county urban Ag_NAg_source4
+ren hsize hhsize
+merge 1:1 clid hhid using "${gsdData}/1-CleanOutput/kihbs15_16.dta" , assert(match using) keep(match using) nogen keepusing(province county urban hhsize wta_hh y2_i)
+ren (ag_total4 n_ag_total4) (ag_income non_ag_income)
+local incomes "income_tot ag_income non_ag_income"
+foreach i of local incomes {
+	replace `i' = 0  if mi(`i')
+	gen double `i'_pp = `i' / hhsize
+}	
+label var income_tot "Total annual household income"
+label var income_tot_pp "Total annual per capita income"
+label var ag_income "Total annual household agricultural income"
+label var ag_income_pp "Total annual per capita agricultural income"
+label var non_ag_income "Total annual household non-agricultural income"
+label var non_ag_income_pp "Total annual per capita non-agricultural income"
+label var Ag_NAg_source4 "Household income classification"
+order urban province county clid hhid hhsize wta_hh y2_i income_tot income_tot_pp ag_income ag_income_pp non_ag_income  non_ag_income_pp Ag_NAg_source4
+assert income_tot == ag_income + non_ag_income
+replace Ag_NAg_source4 = .z if mi(Ag_NAg_source4)
+save  "${gsdData}/2-AnalysisInput/income_1516.dta" , replace

@@ -12,9 +12,12 @@ set sortseed 11041955
 if (inlist("${suser}","wb390290","WB390290")) {
 	*Utz
 	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\FY17-KPGA\KPGA-SV"
+	local swdLocal = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\FY17-KPGA\SV-KPGA"
 	*Box directory where the Data folder can be located
-	local swdBox = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\FY17-KPGA\KPGA-DB\0-RawInput"
+	*Full Dataset
+	local swdBox = "C:\Users\WB390290\OneDrive - WBG\Home\Countries\Kenya\Projects\FY17-KPGA\KPGA-DB"
+	*Team Dataset
+*	local swdBox = "C:\Users\WB390290\WBG\Carolina Mejia-Mantilla - KPGA\DataBox"
 }
 else if (inlist("${suser}","wb445085","WB445085")) {
 	*Carolina
@@ -24,15 +27,15 @@ else if (inlist("${suser}","wb445085","WB445085")) {
 	local swdBox = "C:\Users\wb445085\OneDrive - WBG\KPGA\DataBox"
                     
 }
-else if (inlist("${suser}","nduati", "wb475840", "WB475840")) {
+else if (inlist("${suser}", "wb475840", "WB475840")) {
 	*Nduati
 	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\WB475840\Documents\KPGA"
+	local swdLocal = "C:\Users\wb475840\OneDrive - WBG\Countries\Kenya\KPGA"
 	*Box directory where the Data folder can be located
-	local swdBox = "C:\Users\WB475840\WBG\Utz Johann Pape - KPGA-DB\0-RawInput"
+	local swdBox = "C:\Users\wb475840\WBG\Utz Johann Pape - Kenya\Projects\FY17-KPGA\KPGA-DB"
 
 }
-else if (inlist("${suser}","nduati", "wb495217", "WB495217")) {
+else if (inlist("${suser}", "wb495217", "WB495217")) {
 	*Simon
 	*Local directory of your checked out copy of the code
 	local swdLocal = "C:\Users\WB495217\OneDrive - WBG\SL WBG Files\PA Kenya\KEN-KPGA"
@@ -48,20 +51,6 @@ else if (inlist("${suser}","WB499706", "wb499706")) {
 	local swdBox = "C:\Users\WB499706\WBG\Carolina Mejia-Mantilla - KPGA\DataBox"
 	
 }
-else if (inlist("${suser}","wb484006", "WB484006")) {	
-	*Gonzalo
-	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\WB484006\OneDrive - WBG\Code\KEN\KPGA"
-	*Box directory where the Data folder can be located
-	local swdBox = "C:\Users\WB484006\WBG\Utz Johann Pape - KPGA-DB\0-RawInput"
-}
-else if (inlist("${suser}","wb544731", "WB544731")) {	
-	*Alastair
-	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\wb544731\OneDrive - WBG\Countries\Kenya\KEN-KPGA"
-	*Box directory where the Data folder can be located
-	local swdBox = "C:\Users\wb544731\WBG\Utz Johann Pape - KPGA-DB\0-RawInput"
-}
 else {
 	di as error "Configure work environment in 00-init.do before running the code."
 	error 1
@@ -72,7 +61,7 @@ global gsdData = "`swdLocal'/Data"
 global gsdDo = "`swdLocal'/Do"
 global gsdTemp = "`swdLocal'/Temp"
 global gsdOutput = "`swdLocal'/Output"
-global gsdDataRaw = "`swdBox'"
+global gsdDataRaw = "`swdBox'/0-RawInput"
 global gsdOutput_poverty_profile = "`swdBox_poverty_profile'/Figures"
 
 *If needed, install the directories and packages used in the process 
@@ -91,37 +80,23 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdData}/1-CleanTemp"
 	mkdir "${gsdData}/1-CleanOutput"
 	mkdir "${gsdData}/2-AnalysisOutput"
-	mkdir "${gsdData}/2-AnalysisOutput/C4-Rural"
-	mkdir "${gsdData}/2-AnalysisTemp"
 	mkdir "${gsdTemp}"
 	mkdir "${gsdOutput}"
+	mkdir "${gsdOutput}/C1-Overview"
 	mkdir "${gsdOutput}/C2-Trends"
 	mkdir "${gsdOutput}/C3-Gender"
 	mkdir "${gsdOutput}/C4-Rural"
-	mkdir "${gsdOutput}/Inequality"
+	mkdir "${gsdOutput}/C5-Urban"
+	mkdir "${gsdOutput}/C8-Vulnerability"
+}	
 
-	*install packages used in the process
-	ssc install distinct
-	ssc install missings
-	ssc install labutil2
-	ssc install labutil
-	ssc install labmv
-	ssc install egenmore
-	ssc install outreg2
-	ssc install vincenty
-	ssc install fastgini
-	ssc install tabout
-	ssc install logout
-	ssc install svylorenz
-	ssc install shp2dta
-    ssc install spmap
-	ssc install sdecode
-	ssc install fitstat
-	ssc install drdecomp
-	net install dm79.pkg
-	ssc install winsor
-	ssc install winsor2
-	ssc install oaxaca
-	ssc install strrec
-	ssc install ineqdeco
+local commands = " distinct missings labutil2  labmv povdeco egenmore outreg2 vincenty fastgini tabout logout svylorenz shp2dta spmap winsor winsor2 oaxaca strrec apoverty wbopendata apoverty sedecomposition st0085_2 glcurve"
+foreach c of local commands {
+	capture : which `c'
+	if (_rc) {
+                display as result in smcl `"Please install package {it:`c'} from SSC in order to run this do-file;"' _newline `"you can do so by clicking this link: {stata "ssc install `c'":auto-install `c'}"'
+                exit 199
+	}
 }
+macro list
+*/

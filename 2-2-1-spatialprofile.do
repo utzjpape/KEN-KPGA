@@ -278,10 +278,9 @@ use "${gsdTemp}/ch2_analysis1.dta" , clear
 global cons "rcons"
 
 *Total expenditure quintiles
-
-gquantiles texp_nat_quint = rcons [weight = wta_hh] , xtile by(kihbs) p(20(20)80)
-gquantiles texp_rurb_quint = rcons [weight = wta_hh] , xtile by(kihbs urban) p(20(20)80)
-gquantiles texp_prov_quint = rcons [weight = wta_hh] , xtile by(kihbs province) p(20(20)80)
+egen exp_nat_quint = xtile(rcons) , by(kihbs) p(20(20)80) weights(wta_hh)
+egen texp_rurb_quint = xtile(rcons) , by(kihbs urban) p(20(20)80) weights(wta_hh)
+egen texp_prov_quint = xtile(rcons) , by(kihbs province) p(20(20)80) weights(wta_hh)
 
 label var texp_nat_quint "Total real monthly per adq expenditure quintiles (National)"
 label var texp_rurb_quint "Total real monthly per adq expenditure quintiles (Rural / Urban)"
@@ -337,14 +336,15 @@ export excel using "${gsdOutput}/C2-Trends/ch2_fshare.xls" , sheet("County") she
 
 *real consumptions deciles per year
 use "${gsdTemp}/ch2_0.dta" , clear
-gquantiles texp_nat_rdec = rcons [weight = wta_hh] , xtile by(kihbs) p(10(10)90)
+egen texp_nat_rdec = xtile(rcons) , by(kihbs) p(10(10)90) weights(wta_hh)
+
 collapse (mean) mean_cons=rcons , by(kihbs texp_nat_rdec)
 ren texp_nat_rdec decile
 
 export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("national") replace first(var)
 *Rural / Urban
 use "${gsdTemp}/ch2_0.dta" , clear
-gquantiles texp_rurb_rdec = rcons [weight = wta_hh] , xtile by(kihbs urban) p(10(10)90)
+egen texp_rurb_rdec = xtile(rcons) , by(kihbs urban) p(10(10)90) weights(wta_hh)
 collapse (mean) mean_cons=rcons , by(kihbs urban texp_rurb_rdec)
 ren texp_rurb_rdec decile
 export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("Rural_Urban") sheetreplace first(var)
@@ -354,7 +354,7 @@ export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("Rural_U
 use "${gsdTemp}/ch2_0.dta" , clear
 assert province == 8 if county == 47
 keep if county==47
-gquantiles texp_nbo_rdec = rcons [weight = wta_hh] , xtile by(kihbs) p(10(10)90)
+egen texp_nbo_rdec = xtile(rcons) , by(kihbs) p(10(10)90) weights(wta_hh)
 collapse (mean) mean_cons=rcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
 export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi deciles") sheetreplace first(var)
@@ -365,7 +365,7 @@ keep if county==47
 gen rfcons = .
 replace rfcons = y_i if kihbs==2015
 replace rfcons = y_i * pfactor if (kihbs==2005)
-gquantiles texp_nbo_rdec = rfcons [weight = wta_hh] , xtile by(kihbs) p(10(10)90)
+egen texp_nbo_rdec = xtile(rfcons) , by(kihbs) p(10(10)90) weights(wta_hh)
 collapse (mean) mean_cons=rfcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
 export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi food deciles") sheetreplace first(var)
@@ -376,7 +376,8 @@ keep if county==47
 gen rnfcons = .
 replace rnfcons = nfcons if kihbs==2015
 replace rnfcons = nfcons * pfactor if (kihbs==2005)
-gquantiles texp_nbo_rdec = rnfcons [weight = wta_hh] , xtile by(kihbs) p(10(10)90)
+egen texp_nbo_rdec = xtile(rnfcons) , by(kihbs) p(10(10)90) weights(wta_hh)
+
 collapse (mean) mean_cons=rnfcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
 export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi non-food deciles") sheetreplace first(var)
@@ -385,7 +386,7 @@ export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi
 use "${gsdTemp}/ch2_0.dta" , clear
 assert province == 8 if county == 47
 keep if county==47
-gquantiles texp_nbo_rdec = rcons [weight = wta_hh] , xtile by(kihbs) p(5(5)95)
+egen texp_nbo_rdec = xtile(rcons) , by(kihbs) p(5(5)95) weights(wta_hh)
 collapse (mean) mean_cons=rcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile
 export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi 20 xtiles") sheetreplace first(var)
@@ -393,7 +394,7 @@ export excel using "${gsdOutput}/C2-Trends/ch2_table4_rdec.xls" , sheet("nairobi
 use "${gsdTemp}/ch2_0.dta" , clear
 assert province == 8 if county == 47
 keep if county==47
-gquantiles texp_nbo_rdec = rcons [weight = wta_hh] , xtile by(kihbs) p(1(1)99)
+egen texp_nbo_rdec = xtile(rcons) , by(kihbs) p(1(1)99) weights(wta_hh)
 keep if inrange(texp_nbo_rdec,91,100)
 collapse (mean) mean_cons=rcons , by(kihbs texp_nbo_rdec)
 ren texp_nbo_rdec decile

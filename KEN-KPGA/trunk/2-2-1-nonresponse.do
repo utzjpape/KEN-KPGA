@@ -1,4 +1,3 @@
-run "C:\Users\wb475840\OneDrive - WBG\Countries\KEN\KIHBS2015_16\Do\00-init.do"
 use "C:\Users\wb475840\OneDrive - WBG\Countries\Kenya\KPGA\Data\1-CleanOutput\kihbs15_16.dta", clear
 gen response = 1 
 keep  y2_i poor clid hhid county urban response educhead ownhouse fridge car wta_hh strata eatype nfdrent hhunemp agehead
@@ -7,8 +6,8 @@ save "C:\Users\wb475840\OneDrive - WBG\Countries\Kenya\KPGA\Temp\kihbs16response
 
 
 use "${l_sdData}/0-RawTemp/0-2-hh.dta" , clear
-merge m:1 a09 using "${l_sdData}/0-RawInput/anonkey_cl.dta", assert(match) keepusing(clid) nogen
-merge 1:1 a09 a10 using "C:\Users\wb475840\OneDrive - WBG\Countries\Kenya\KPGA\Temp\kihbs16response.dta", assert(match master) 
+merge m:1 a09 using "${l_sdDataRaw}/anonkey_cl.dta", assert(match) keepusing(clid) nogen
+merge 1:1 a09 a10 using "${gsdTemp}\kihbs16response.dta", assert(match master) 
 replace response = 0 if _merge==1
 drop _merge county
 run "${l_sdDo}/county_conversion.do"
@@ -74,6 +73,7 @@ twoway scatter  median_cons response if county==1 || lfit median_cons response i
 twoway scatter  median_cons response if urban==1 || lfit median_cons response if urban==1
 twoway scatter  median_cons response if urban==0 || lfit median_cons response if urban==0
 
+/*
 
 *Comparing the response rate of slum vs formal settlement EAs
 use "${gsdTemp}/eastatus.dta" , clear

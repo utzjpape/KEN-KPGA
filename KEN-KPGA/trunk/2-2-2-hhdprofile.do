@@ -167,16 +167,6 @@ foreach var of varlist depen  aveyrsch  literacy  impwater impsan  elec_light  e
 }
 
 *The following file requires An externally generated income dataset
-clear
-set more off 
-
-global path "C:\Users\wb475840\OneDrive - WBG\Countries\Kenya\KPGA\Income\" 
-
-global in "$path\Data"
-global out "$path\Data"
-global log "$path\Do files"
-global dofile "$path\Do files"
-
 use "${gsdData}/1-CleanOutput/hh.dta" , clear
 *match & master as / households do not have a reported income source
 merge 1:1 kihbs clid hhid using "${gsdData}/1-CleanOutput/Income05_15.dta" , assert(match master) keep(match master) nogen keepusing(income_source* Ag_NAg_source* maj_income_s*)

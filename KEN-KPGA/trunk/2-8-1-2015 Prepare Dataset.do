@@ -6,7 +6,6 @@ clear
 set more off 
 capture mkdir "${gsdData}/2-AnalysisOutput/C8-Vulnerability"
 
-*Arden:
 global pathdata "${gsdDataRaw}/KIHBS15"
 global path "${gsdData}/2-AnalysisOutput/C8-Vulnerability"
 

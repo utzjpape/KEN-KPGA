@@ -35,10 +35,13 @@ if "${gsdData}"=="" {
 	save "${gsdTemp}/WB_data_attainment_primary.dta", replace 	
 	wbopendata, language(en - English) indicator(SE.ADT.LITR.ZS - Adult literacy rate, population 15+ years, both sexes (%)) clear long
 	save "${gsdTemp}/WB_data_adult_literacy_rate.dta", replace
+	
+/*	SH.H2O.SAFE.ZS & SH.STA.ACSN - moved to 57 WDI database archives
 	wbopendata, language(en - English) indicator(SH.H2O.SAFE.ZS - Access to an improved water source, (%) of population) clear long
 	save "${gsdTemp}/WB_data_improved_water.dta", replace
 	wbopendata, language(en - English) indicator(SH.STA.ACSN - Access to improved sanitation facilities, (%) of population) clear long
-	save "${gsdTemp}/WB_data_improved_sanitation.dta", replace 	
+	save "${gsdTemp}/WB_data_improved_sanitation.dta", replace 
+*/		
 	wbopendata, language(en - English) indicator(EG.ELC.ACCS.ZS - Access to electricity, (%) of population) clear long
 	save "${gsdTemp}/WB_data_access_electricity.dta", replace 		
 	wbopendata, language(en - English) indicator(SI.POV.GINI - GINI index (World Bank estimate)) clear long
@@ -90,12 +93,14 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 		else if "`indicator'" == "adult_literacy_rate" {
 		rename se_adt_litr_zs `indicator' 
 		}
+		/*
 		else if "`indicator'" == "improved_water" {
 		rename sh_h2o_safe_zs `indicator' 
 		}	
 		else if "`indicator'" == "improved_sanitation" {
 		rename sh_sta_acsn `indicator' 
 		}
+		*/
 		else if "`indicator'" == "access_electricity" {
 		rename eg_elc_accs_zs `indicator'
 		}
@@ -140,7 +145,7 @@ foreach indicator in poverty gap gini population enrollment_primary attainment_p
 
 *integrate the final dataset
 use "${gsdTemp}/WB_clean_poverty.dta", clear
-foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate improved_water improved_sanitation access_electricity gini gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma stunting hdi {
+foreach indicator in gap gini population enrollment_primary attainment_primary adult_literacy_rate /*improved_water improved_sanitation*/ access_electricity gini gdppc enrollment_primaryfe attainment_secondary enrollment_secondary enrollment_secondaryfe enrollment_primaryma enrollment_secondaryma stunting hdi {
 	merge 1:1 countryname using "${gsdTemp}/WB_clean_`indicator'.dta", nogen
 	}
 

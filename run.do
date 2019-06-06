@@ -1,4 +1,6 @@
 *Run do-file for KPGA chapters. 
+ *supress all graphs
+ set graphics off
 
 *Stage 1 - Data preperation
 run "${gsdDo}/1-1-hh.do"

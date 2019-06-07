@@ -93,7 +93,7 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdOutput}/C8-Vulnerability"
 }	
 
-local commands = " distinct missings labmv povdeco outreg2 vincenty fastgini tabout logout svylorenz shp2dta grmap winsor winsor2 oaxaca strrec apoverty wbopendata apoverty sedecomposition glcurve drdecomp matselrc ineqdeco"
+local commands = " distinct missings labmv povdeco outreg2 vincenty fastgini tabout logout svylorenz shp2dta grmap winsor winsor2 oaxaca strrec apoverty wbopendata apoverty sedecomposition glcurve drdecomp matselrc ineqdeco tabstatmat"
 foreach c of local commands {
 	capture : which `c'
 	if (_rc) {

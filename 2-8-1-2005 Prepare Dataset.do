@@ -11,6 +11,8 @@ set more off
 *global path "C:\Users\s.dietrich\Box Sync\KPGA\Social Protection data\KIBHS05_06" 
 *Arden:
 *Arden:
+capture mkdir "${gsdData}/2-AnalysisOutput/C8-Vulnerability"
+
 global pathdata "${gsdDataRaw}/KIHBS05"
 global path "${gsdData}/2-AnalysisOutput/C8-Vulnerability"
 

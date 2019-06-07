@@ -87,15 +87,15 @@ merge 1:1 _ID using "County Polys.dta"
 drop if _m==2
 drop _m
 
-spmap ger_primary_g using "KenyaCountyPolys_coord.dta", id(_ID)  clmethod(custom) fcolor(RdBu) clbreaks(0.7 0.8 0.9 1 1.1 1.2 1.3) ///
+grmap ger_primary_g using "KenyaCountyPolys_coord.dta", id(_ID)  clmethod(custom) fcolor(RdBu) clbreaks(0.7 0.8 0.9 1 1.1 1.2 1.3) ///
 	  title(Gender parity index) subtitle(Gross Primary Enrollment Rates)  legend(position(8))
 graph save "$dir_graphs/Fig3-4_left - ger_primary_formated_cleared", replace	
 
-spmap ger_secondary_g using "KenyaCountyPolys_coord.dta", id(_ID)  clmethod(custom) fcolor(RdBu) clbreaks(0.5 0.6 0.7 0.8 0.9 1 1.1 1.2 1.3 1.4 1.5) ///
+grmap ger_secondary_g using "KenyaCountyPolys_coord.dta", id(_ID)  clmethod(custom) fcolor(RdBu) clbreaks(0.5 0.6 0.7 0.8 0.9 1 1.1 1.2 1.3 1.4 1.5) ///
 	  title(Gender parity index) subtitle(Gross Secondary Enrollment Rates)  legend(position(8))
 graph save "$dir_graphs/Fig3-4_center - ger_secondary_formated_cleared", replace		
 
-spmap uwezo_math_g using "KenyaCountyPolys_coord.dta", id(_ID)  clmethod(custom) fcolor(RdBu) clbreaks(0.2 0.4 0.6 0.8 1 1.2 1.4 1.6 1.8) ///
+grmap uwezo_math_g using "KenyaCountyPolys_coord.dta", id(_ID)  clmethod(custom) fcolor(RdBu) clbreaks(0.2 0.4 0.6 0.8 1 1.2 1.4 1.6 1.8) ///
 	  title(Gender parity index) subtitle(Uwezo - Math proficiency)  legend(position(8))
 graph save "$dir_graphs/Fig3-4_right - uwezo_math_formated_cleared", replace	
 

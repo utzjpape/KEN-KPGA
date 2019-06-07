@@ -156,7 +156,7 @@ merge 1:1 _ID using "County Polys.dta"
 drop if _m==2
 drop _m
 
-spmap lit_ratio using "KenyaCountyPolys_coord.dta", id(_ID) clmethod(custom) fcolor(Blues) clbreaks(0.4 0.5 0.6 0.7 0.8 0.9 1) ///
+grmap lit_ratio using "KenyaCountyPolys_coord.dta", id(_ID) clmethod(custom) fcolor(Blues) clbreaks(0.4 0.5 0.6 0.7 0.8 0.9 1) ///
        title(Gender parity index) subtitle(Literacy) legend(position(8))
 graph save "$dir_graphs/Fig3-5 - Literacy_county_2015_ggap_cleared", replace	
 

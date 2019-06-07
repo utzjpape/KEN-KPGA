@@ -338,6 +338,9 @@ drop _merge
 
 keep if b03==1
 mean poor if urban==1 [aw=wta_pop]
+merge 1:1 clid hhid using "${gsdData}/1-CleanTemp/hheadlabor15.dta" , keepusing(hhsector)
+drop if _merge==1
+ren hhsector sector_pri
 
 save `data15', replace
 
@@ -483,7 +486,7 @@ foreach x in total food nonfood housing utilities trans edu otherexp {
 
 
 ** urban, nairobi, and other urban areas
-cd "${gsdOutput}/C5-Urban"
+cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
 
@@ -651,7 +654,7 @@ graph combine a1 a2, iscale(0.8) xsize(8)
 
 	
 ** urban, nairobi, and other urban areas
-cd "${gsdOutput}/C5-Urban"
+cd "${gsdOutput}/C5-Urban/"
 forvalues i = 1/4 {
 
 	local condition1 "urban==1"
@@ -1786,7 +1789,7 @@ eststo clear
 
 ** urban, nairobi, and other urban areas
 // laborforce participation rate
-cd "${gsdOutput}/C5-Urban"
+cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
 
@@ -1827,9 +1830,8 @@ forvalues i = 1/4 {
 	
 }
 
-cd "${path}"
 // unemployment rate
-cd "${gsdOutput}/C5-Urban"
+cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
 
@@ -1869,10 +1871,8 @@ forvalues i = 1/4 {
 	
 	
 }
-cd "${path}"
-
 // employment type
-cd "${gsdOutput}/C5-Urban"	
+cd "${gsdOutput}/C5-Urban/"	
 	
 forvalues i = 1/4 {
 
@@ -1911,10 +1911,8 @@ forvalues i = 1/4 {
 	
 }
 
-cd "${path}"
-
 // work time
-cd "${gsdOutput}/C5-Urban"	
+cd "${gsdOutput}/C5-Urban/"	
 	
 forvalues i = 1/4 {
 
@@ -1940,12 +1938,8 @@ forvalues i = 1/4 {
 	restore
 	
 }
-
-cd "${path}"
-
-
 // economic sectors
-cd "${gsdOutput}/C5-Urban"
+cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
 
@@ -1972,8 +1966,6 @@ forvalues i = 1/4 {
 	
 	
 }
-cd "${path}"
-
 * economic sector by county
 tab county sector_pri [fw=round(wta_hh)]
 
@@ -2128,7 +2120,7 @@ tab jobtype, gen(jobtype_)
 
 ** urban, nairobi, and other urban areas
 // laborforce participation rate
-cd "${gsdOutput}/C5-Urban"
+cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
 
@@ -2167,10 +2159,8 @@ forvalues i = 1/4 {
 	
 	
 }
-cd "${path}"
-
 // unemployment rate
-cd "${gsdOutput}/C5-Urban"
+cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
 
@@ -2209,10 +2199,8 @@ forvalues i = 1/4 {
 	
 	
 }
-cd "${path}"
-
 // jobtype
-cd "${gsdOutput}/C5-Urban"
+cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
 
@@ -2253,7 +2241,7 @@ forvalues i = 1/4 {
 }
 
 // Economic sectors
-cd "${gsdOutput}/C5-Urban"
+cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
 
@@ -2292,8 +2280,6 @@ forvalues i = 1/4 {
 	
 	
 }
-cd "${path}"
-
 sort id_clust id_hh b_id
 sum id_clust id_hh b_id
 

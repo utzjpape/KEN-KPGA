@@ -707,7 +707,7 @@ replace nocreditaccess2=1 if /*credit==0 &*/ (r18_1=="B" | r18_1=="C" | r18_1=="
 replace nocreditaccess2=1 if /*credit==0 &*/ (r18_2=="B" | r18_2=="C" | r18_2=="E" | r18_2=="F" | r18_2=="H" | r18_2=="J")
 egen uhhid=concat(clid hhid)
 collapse nocreditaccess2, by(uhhid)
-save "$in\credittemp.dta", replace
+save "$out\credittemp.dta", replace
 
 use "$in\hh.dta", clear
 
@@ -716,7 +716,7 @@ drop _merge
 
 *gen unique hh id using cluster and house #
 egen uhhid=concat(clid hhid)
-merge m:1 uhhid using "$in\credittemp.dta"
+merge m:1 uhhid using "$out\credittemp.dta"
 drop _merge
 
 gen nocreditaccess=0
@@ -745,7 +745,7 @@ label var bank "Bank loan (yes/no)"
 
 sort uhhid 
 save "$out\credit.dta", replace
-erase "$in\credittemp.dta"
+erase "$out\credittemp.dta"
 
 **********************************
 * 8. Merging all databases

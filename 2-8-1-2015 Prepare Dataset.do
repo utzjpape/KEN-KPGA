@@ -742,7 +742,6 @@ label var bank "Bank loan (yes/no)"
 
 sort uhhid 
 save "$out\credit.dta", replace
-erase "$in\credittemp.dta"
 
 **********************************
 * 8. Merging all databases

@@ -13,6 +13,8 @@ KIHBS, 2005/6
 ************************************************
 		*SECTION N: AGRICULTURE HOLDING
 ************************************************
+capture mkdir "${gsdData}/2-AnalysisOutput/C4-Rural"
+
 use "${gsdDataRaw}/KIHBS05/Section N Agriculture Holding", clear
 egen uhhid= concat(id_clust id_hh)				//Unique HH ID
 label var uhhid "Unique HH ID"

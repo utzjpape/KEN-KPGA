@@ -70,7 +70,7 @@ gen county = ID_OLD
 merge 1:1 county using "${gsdData}/1-CleanOutput/centroids.dta", keepusing(x_c y_c) assert(match) nogen
 label define lcounty 28 "Elgeyo-M'kwt" , modify
 
-spmap nedi using "${gsdData}/1-CleanOutput/KenyaCountyPolys_coord.dta", id(_ID) title("NEDI counties, KIHBS 2015/16", size(*1)) ///
+grmap nedi using "${gsdData}/1-CleanOutput/KenyaCountyPolys_coord.dta", id(_ID) title("NEDI counties, KIHBS 2015/16", size(*1)) ///
  legend(label(3 "NEDI")) legend(label(2 "Non-NEDI")) legstyle(1) fcolor(OrRd) clnumber(2) ///
  label(label( ID_OLD ) xcoord(x_c) ycoord(y_c) size(tiny)) 
 graph save "${gsdOutput}/C2-Trends/KEN-NEDI.gph" ,replace

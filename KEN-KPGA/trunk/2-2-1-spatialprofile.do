@@ -278,7 +278,7 @@ use "${gsdTemp}/ch2_analysis1.dta" , clear
 global cons "rcons"
 
 *Total expenditure quintiles
-egen exp_nat_quint = xtile(rcons) , by(kihbs) p(20(20)80) weights(wta_hh)
+egen texp_nat_quint = xtile(rcons) , by(kihbs) p(20(20)80) weights(wta_hh)
 egen texp_rurb_quint = xtile(rcons) , by(kihbs urban) p(20(20)80) weights(wta_hh)
 egen texp_prov_quint = xtile(rcons) , by(kihbs province) p(20(20)80) weights(wta_hh)
 
@@ -595,6 +595,7 @@ putexcel B25=matrix(prov_2015)
 putexcel B35=matrix(nedi_2005)
 putexcel B39=matrix(nedi_2015)
 
+/* Provincial-level GE1 not used
 *generate dummy for each province
 forvalues i = 1/8{
 	gen prov_`i' = (province==`i')
@@ -639,6 +640,7 @@ foreach s in Coast NorthEastern Eastern Central RiftValley Western Nyanza Nairob
 }
 putexcel B3=matrix(rururb_ge1)
 putexcel B8=matrix(prov_ge1)
+*/
 
 save "${gsdTemp}/ch2_analysis2.dta" , replace
 use "${gsdTemp}/ch2_analysis2.dta" , clear

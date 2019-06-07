@@ -861,15 +861,15 @@ merge 1:1 _ID using "County Polys.dta"
 drop if _m==2
 drop _m
  
-spmap laborforce_gap using "KenyaCountyPolys_coord.dta", id(_ID) clmethod(custom) fcolor(BuRd) clbreaks(-50 -40 -30 -20 -10 0 10 20 30 40 50) ///
+grmap laborforce_gap using "KenyaCountyPolys_coord.dta", id(_ID) clmethod(custom) fcolor(BuRd) clbreaks(-50 -40 -30 -20 -10 0 10 20 30 40 50) ///
        title(Kenya) subtitle(Gender gap in labor force participation 2015/6) legend(position(8))
 graph save "$dir_graphs/Fig3-18_right - LFcounty_2015_ggap_cleared", replace	  
 	   
-spmap laborforce_m using "KenyaCountyPolys_coord.dta", id(_ID) clmethod(custom) fcolor(Blues) clbreaks(10 20 30 40 50 60 70 80 90) ///
+grmap laborforce_m using "KenyaCountyPolys_coord.dta", id(_ID) clmethod(custom) fcolor(Blues) clbreaks(10 20 30 40 50 60 70 80 90) ///
        title(Kenya) subtitle(Male labor force participation 2015/6) legend(position(8))
 graph save "$dir_graphs/Fig3-18_center - LFcounty_2015_male_cleared", replace	 
 
-spmap laborforce_f using "KenyaCountyPolys_coord.dta", id(_ID) clmethod(custom) fcolor(Blues) clbreaks(10 20 30 40 50 60 70 80 90) ///
+grmap laborforce_f using "KenyaCountyPolys_coord.dta", id(_ID) clmethod(custom) fcolor(Blues) clbreaks(10 20 30 40 50 60 70 80 90) ///
        title(Kenya) subtitle(Female labor force participation 2015/6) legend(position(8))
 graph save "$dir_graphs/Fig3-18_left - LFcounty_2015_female_cleared", replace	 
 

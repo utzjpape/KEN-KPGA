@@ -80,6 +80,7 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdData}/1-CleanTemp"
 	mkdir "${gsdData}/1-CleanOutput"
 	mkdir "${gsdData}/2-AnalysisOutput"
+	mkdir "${gsdData}/2-AnalysisInput"
 	mkdir "${gsdTemp}"
 	mkdir "${gsdOutput}"
 	mkdir "${gsdOutput}/C1-Overview"
@@ -87,10 +88,12 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdOutput}/C3-Gender"
 	mkdir "${gsdOutput}/C4-Rural"
 	mkdir "${gsdOutput}/C5-Urban"
+	mkdir "${gsdOutput}/C6-Education"
+	mkdir "${gsdOutput}/C7-Health"
 	mkdir "${gsdOutput}/C8-Vulnerability"
 }	
 
-local commands = " distinct missings labutil2  labmv povdeco egenmore outreg2 vincenty fastgini tabout logout svylorenz shp2dta spmap winsor winsor2 oaxaca strrec apoverty wbopendata apoverty sedecomposition st0085_2 glcurve"
+local commands = " distinct missings labmv povdeco outreg2 vincenty fastgini tabout logout svylorenz shp2dta grmap winsor winsor2 oaxaca strrec apoverty wbopendata apoverty sedecomposition glcurve"
 foreach c of local commands {
 	capture : which `c'
 	if (_rc) {
@@ -98,5 +101,4 @@ foreach c of local commands {
                 exit 199
 	}
 }
-macro list
-*/
+

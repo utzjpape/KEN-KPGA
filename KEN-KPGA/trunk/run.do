@@ -21,7 +21,7 @@ run "${gsdDo}/2-1-2_Monetary_Poverty.do"
 run "${gsdDo}/2-2-1-spatialprofile.do"
 *Ravallion-Huppi (sectoral) decomposition on income source categories
 run "${gsdDo}/2-2-2-income_decomp.do"
-*Do-file calculates household head poverty profile
+*Poverty profile based on household head characteristics
 run "${gsdDo}/2-2-3-hhdprofile.do"
 *Map of poverty headcount rates by NEDI classification.
 run "${gsdDo}/2-2-4-nedimap.do"
@@ -88,11 +88,10 @@ run "${gsdDo}/2-8-2-2005 Descriptives.do"
 run "${gsdDo}/2-8-2-2015 Descriptives.do"
 *Create 2005/06 poverty & vulnerability profile
 run "${gsdDo}/2-8-3-2005 povertyprofile.do"
-*Prepare 2005 shocks / coping strategy data
+*Prepare 2005 & 2015 shocks / coping strategy 
 run "${gsdDo}/2-8-4-2005 coping prepare.do"
 run "${gsdDo}/2-8-5-2005 coping descriptives.do"
 run "${gsdDo}/2-8-6-2005 Shocks.do"
-
 run "${gsdDo}/2-8-7-2015 Shocks.do"
 run "${gsdDo}/2-8-8-2015 coping prepare.do"
 run "${gsdDo}/2-8-9-2015 coping descriptives.do"

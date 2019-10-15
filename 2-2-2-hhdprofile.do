@@ -17,7 +17,7 @@ replace hhage_grp = 3 if inrange(agehead,60,97)
 label define lhhage 1"13 - 24" 2 "25 - 69" 3"60+" , replace
 label values hhage_grp lhhage
 
-label define lmalhead 0"Female" 1 "Male" 3"60+" , replace
+label define lmalhead 0"Female" 1 "Male", replace
 label values malehead lmalhead
 
 

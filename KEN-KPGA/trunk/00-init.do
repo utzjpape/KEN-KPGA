@@ -30,7 +30,7 @@ else if (inlist("${suser}","wb445085","WB445085")) {
 else if (inlist("${suser}", "wb475840", "WB475840")) {
 	*Nduati
 	*Local directory of your checked out copy of the code
-	local swdLocal = "C:\Users\wb475840\OneDrive - WBG\Countries\Kenya\KPGA"
+	local swdLocal = "C:\Users\wb475840\OneDrive - WBG\Countries\Kenya\FY18\KPGA"
 	*Box directory where the Data folder can be located
 	local swdBox = "C:\Users\wb475840\WBG\Utz Johann Pape - Kenya\Projects\FY17-KPGA\KPGA-DB"
 

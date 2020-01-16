@@ -54,20 +54,20 @@ log close _all
 log using "${gsdOutput}/ch2_inc_sec_decomp2.smcl", text replace	
 *National decompositions on both income variables
 use "${gsdTemp}/inc_nat_05.dta" , clear
-sedecomposition using "${gsdTemp}/inc_nat_15.dta"  [aw=wta_pop]  , sector(income_source) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
-sedecomposition using "${gsdTemp}/inc_nat_15.dta"  [aw=wta_pop]  , sector(income_source2) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
-sedecomposition using "${gsdTemp}/inc_nat_15.dta"  [aw=wta_pop]  , sector(Ag_NAg_source4) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+*sedecomposition using "${gsdTemp}/inc_nat_15.dta"  [aw=wta_pop]  , sector(income_source) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+*sedecomposition using "${gsdTemp}/inc_nat_15.dta"  [aw=wta_pop]  , sector(income_source2) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+*sedecomposition using "${gsdTemp}/inc_nat_15.dta"  [aw=wta_pop]  , sector(Ag_NAg_source4) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
 
 *Rural decompositions on both income variables
 use `rur05'.dta , clear
-sedecomposition using `rur15'.dta  [aw=wta_pop]  , sector(income_source) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
-sedecomposition using `rur15'.dta  [aw=wta_pop]  , sector(income_source2) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
-sedecomposition using `rur15'.dta [aw=wta_pop]  , sector(Ag_NAg_source4) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+*sedecomposition using `rur15'.dta  [aw=wta_pop]  , sector(income_source) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+*sedecomposition using `rur15'.dta  [aw=wta_pop]  , sector(income_source2) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+*sedecomposition using `rur15'.dta [aw=wta_pop]  , sector(Ag_NAg_source4) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
 *Urban decompositions on both income variables
 use `urb05'.dta , clear
-sedecomposition using `urb15'.dta  [aw=wta_pop]  , sector(income_source) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
-sedecomposition using `urb15'.dta  [aw=wta_pop]  , sector(income_source2) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
-sedecomposition using `urb15'.dta [aw=wta_pop]  , sector(Ag_NAg_source4) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+*sedecomposition using `urb15'.dta  [aw=wta_pop]  , sector(income_source) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+*sedecomposition using `urb15'.dta  [aw=wta_pop]  , sector(income_source2) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+*sedecomposition using `urb15'.dta [aw=wta_pop]  , sector(Ag_NAg_source4) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 log close _all

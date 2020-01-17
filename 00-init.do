@@ -35,6 +35,13 @@ else if (inlist("${suser}", "wb475840", "WB475840")) {
 	local swdBox = "C:\Users\wb475840\WBG\Utz Johann Pape - Kenya\Projects\FY17-KPGA\KPGA-DB"
 
 }
+else if (inlist("${suser}","wb484006", "WB484006")) {	
+	*Gonzalo
+	*Local directory of your checked out copy of the code
+	local swdLocal = "C:\Users\WB484006\OneDrive - WBG\Code\KEN\KPGA"
+	*Box directory where the Data folder can be located
+	local swdBox = "C:\Users\WB484006\WBG\Utz Johann Pape - KPGA-DB\0-RawInput"
+}
 else if (inlist("${suser}", "wb495217", "WB495217")) {
 	*Simon
 	*Local directory of your checked out copy of the code
@@ -83,6 +90,7 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdData}/2-AnalysisInput"
 	mkdir "${gsdTemp}"
 	mkdir "${gsdOutput}"
+	mkdir "${gsdOutput}/DfID-Poverty_Analysis"
 	mkdir "${gsdOutput}/C1-Overview"
 	mkdir "${gsdOutput}/C2-Trends"
 	mkdir "${gsdOutput}/C3-Gender"
@@ -93,7 +101,7 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdOutput}/C8-Vulnerability"
 }	
 
-local commands = " distinct missings labmv povdeco outreg2 vincenty fastgini tabout logout svylorenz shp2dta grmap winsor winsor2 oaxaca strrec apoverty wbopendata apoverty sedecomposition glcurve drdecomp matselrc ineqdeco tabstatmat"
+local commands = " distinct missings labmv povdeco outreg2 vincenty fastgini tabout logout svylorenz shp2dta grmap winsor winsor2 oaxaca strrec apoverty wbopendata apoverty glcurve drdecomp matselrc ineqdeco tabstatmat"
 foreach c of local commands {
 	capture : which `c'
 	if (_rc) {

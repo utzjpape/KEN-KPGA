@@ -928,27 +928,27 @@ saveold "${gsdTemp}/decomp_nbo_15.dta" , replace
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 *Ravallion / Huppi sectoral decomposition for households nationally
 use "${gsdTemp}/decomp_nat_05.dta" , clear
-*sedecomposition using "${gsdTemp}/decomp_nat_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+sedecomposition using "${gsdTemp}/decomp_nat_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
 *Ravallion / Huppi sectoral decomposition for rural households
 use "${gsdTemp}/decomp_rur_05.dta" , clear
-*sedecomposition using "${gsdTemp}/decomp_rur_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+sedecomposition using "${gsdTemp}/decomp_rur_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
 *Ravallion / Huppi sectoral decomposition for urban households
 use "${gsdTemp}/decomp_urb_05.dta" , clear
-*sedecomposition using "${gsdTemp}/decomp_urb_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+sedecomposition using "${gsdTemp}/decomp_urb_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
 *Ravallion / Huppi sectoral decomposition for Nairobi
 use "${gsdTemp}/decomp_nbo_05.dta" , clear
-*sedecomposition using "${gsdTemp}/decomp_nbo_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+sedecomposition using "${gsdTemp}/decomp_nbo_15.dta"  [aw=wta_pop]  , sector(hhsector) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
 *Ravallion / Huppi regional decomposition for households nationally - by rural / urban
 use "${gsdTemp}/decomp_nat_05.dta" , clear
-*sedecomposition using "${gsdTemp}/decomp_nat_15.dta"  [aw=wta_pop]  , sector(urban) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+sedecomposition using "${gsdTemp}/decomp_nat_15.dta"  [aw=wta_pop]  , sector(urban) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 
 *Ravallion / Huppi regional decomposition for households nationally - by province
 use "${gsdTemp}/decomp_nat_05.dta" , clear
-*sedecomposition using "${gsdTemp}/decomp_nat_15.dta"  [aw=wta_pop]  , sector(province) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
+sedecomposition using "${gsdTemp}/decomp_nat_15.dta"  [aw=wta_pop]  , sector(province) pline1(z2_i) pline2(z2_i) var1(y2_i) var2(y2_i) hc
 log close _all
 
 erase "${gsdTemp}/decomp_rur_15.dta"

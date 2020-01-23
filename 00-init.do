@@ -40,7 +40,7 @@ else if (inlist("${suser}","wb484006", "WB484006")) {
 	*Local directory of your checked out copy of the code
 	local swdLocal = "C:\Users\WB484006\OneDrive - WBG\Code\KEN\KPGA"
 	*Box directory where the Data folder can be located
-	local swdBox = "C:\Users\WB484006\WBG\Utz Johann Pape - KPGA-DB\0-RawInput"
+	local swdBox = "C:\Users\WB484006\WBG\Utz Johann Pape - KPGA-DB"
 }
 else if (inlist("${suser}", "wb495217", "WB495217")) {
 	*Simon
@@ -91,6 +91,7 @@ if ((check!=0) & ("${suser}"!="nduati")) {
 	mkdir "${gsdTemp}"
 	mkdir "${gsdOutput}"
 	mkdir "${gsdOutput}/DfID-Poverty_Analysis"
+	mkdir "${gsdOutput}/Inequality"
 	mkdir "${gsdOutput}/C1-Overview"
 	mkdir "${gsdOutput}/C2-Trends"
 	mkdir "${gsdOutput}/C3-Gender"

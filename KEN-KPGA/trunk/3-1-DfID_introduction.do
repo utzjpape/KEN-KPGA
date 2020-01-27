@@ -38,11 +38,11 @@ if (`runimport'==1) {
     keep if regioncode=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_gdpppp.dta", replace
 	
-	wbopendata, language(en - English) country() topics() indicator(SH.H2O.SAFE.ZS - Access to an improved water source, (%) of population) clear long
+	wbopendata, language(en - English) country() topics() indicator(SH.H2O.BASW.ZS - People using at least basic drinking water services (% of population)) clear long
     keep if regioncode=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_water.dta", replace
 
-	wbopendata, language(en - English) country() topics() indicator(SH.STA.ACSN - Access to improved sanitation facilities , (%) of population) clear long
+	wbopendata, language(en - English) country() topics() indicator(SH.STA.BASS.ZS - People using at least basic sanitation services (% of population)) clear long
     keep if regioncode=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_sanitation.dta", replace
 
@@ -114,10 +114,10 @@ foreach indicator in poverty gini growthpc gdpppp water sanitation mortality lit
 		rename ny_gdp_pcap_pp_cd `indicator'
 		}
 		else if "`indicator'" == "water" {
-		rename sh_h2o_safe_zs `indicator'
+		rename sh_h2o_basw_zs `indicator'
 		}
 		else if "`indicator'" == "sanitation" {
-		rename sh_sta_acsn `indicator'
+		rename sh_sta_bass_zs `indicator'
 		}
 		else if "`indicator'" == "mortality" {
 		rename sh_dyn_mort `indicator'
@@ -177,10 +177,10 @@ foreach indicator in poverty gini growthpc gdpppp water sanitation mortality lit
 		rename ny_gdp_pcap_pp_cd `indicator'
 		}
 		else if "`indicator'" == "water" {
-		rename sh_h2o_safe_zs `indicator'
+		rename sh_h2o_basw_zs `indicator'
 		}
 		else if "`indicator'" == "sanitation" {
-		rename sh_sta_acsn `indicator'
+		rename sh_sta_bass_zs `indicator'
 		}
 		else if "`indicator'" == "mortality" {
 		rename sh_dyn_mort `indicator'
@@ -347,6 +347,6 @@ putexcel B12=`r(mean)'
 ****************************************************
 forval i=1/3 {
 	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx", sheet("Sheet1") firstrow case(lower) clear
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-1_v1.xlsx", sheetreplace sheet("Raw_`i'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-1_v2.xlsx", sheetreplace sheet("Raw_`i'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
 }

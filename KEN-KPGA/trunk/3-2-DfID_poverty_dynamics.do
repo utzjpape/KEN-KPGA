@@ -21,15 +21,23 @@ use "${gsdTemp}/WB_clean_all.dta", clear
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(variables) replace
 
 
-//Breakdown of urba/rural households and population (2015/16)
+//Breakdown of urba/rural households and population (2005/6 and 2015/16)
 use "${gsdData}/1-CleanOutput/hh.dta" ,clear
 svyset clid [pw=wta_pop] , strat(strat)
 foreach x in "hh" "pop" {
-	bys urban: egen sum_`x'=sum(wta_`x')
+	bys urban: egen sum_`x'=sum(wta_`x') if kihbs==2015
 	sum sum_`x' if urban==0
-	gen num_`x'_rur=r(mean)
+	gen num_15_`x'_rur=r(mean)
 	sum sum_`x' if urban==1
-	gen num_`x'_urb=r(mean)
+	gen num_15_`x'_urb=r(mean)
+	drop sum_`x'
+}
+foreach x in "hh" "pop" {
+	bys urban: egen sum_`x'=sum(wta_`x') if kihbs==2005
+	sum sum_`x' if urban==0
+	gen num_05_`x'_rur=r(mean)
+	sum sum_`x' if urban==1
+	gen num_05_`x'_urb=r(mean)
 }
 keep num_*
 duplicates drop
@@ -161,16 +169,16 @@ qui foreach x in "poor_food" "pgi" "severity" "vul_status" {
 *Number of poor in each group (2005/06 and 2015/16)
 preserve
 keep if poor==1
-bys urban kihbs: egen sum_pop=sum(wta_pop)
-sum sum_pop if kihbs==2005 & urban==0
-gen num_pop_05_rur=r(mean)
-sum sum_pop if kihbs==2005 & urban==1
-gen num_pop_05_urb=r(mean)
-sum sum_pop if kihbs==2015 & urban==0
-gen num_pop_15_rur=r(mean)
-sum sum_pop if kihbs==2015 & urban==1
-gen num_pop_15_urb=r(mean)
-keep num_pop_*
+bys kihbs urban: egen sum_poor=sum(wta_pop)
+sum sum_poor if kihbs==2005 & urban==0
+gen num_poor_05_rur=r(mean)
+sum sum_poor if kihbs==2005 & urban==1
+gen num_poor_05_urb=r(mean)
+sum sum_poor if kihbs==2015 & urban==0
+gen num_poor_15_rur=r(mean)
+sum sum_poor if kihbs==2015 & urban==1
+gen num_poor_15_urb=r(mean)
+keep num_poor_*
 duplicates drop
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_5.xlsx", firstrow(variables) replace
 restore
@@ -178,16 +186,16 @@ restore
 *Number of food poor in each group (2005/06 and 2015/16)
 preserve
 keep if poor_food==1
-bys urban kihbs: egen sum_pop=sum(wta_pop)
-sum sum_pop if kihbs==2005 & urban==0
-gen num_pop_05_rur=r(mean)
-sum sum_pop if kihbs==2005 & urban==1
-gen num_pop_05_urb=r(mean)
-sum sum_pop if kihbs==2015 & urban==0
-gen num_pop_15_rur=r(mean)
-sum sum_pop if kihbs==2015 & urban==1
-gen num_pop_15_urb=r(mean)
-keep num_pop_*
+bys kihbs urban: egen sum_food=sum(wta_pop)
+sum sum_food if kihbs==2005 & urban==0
+gen num_food_05_rur=r(mean)
+sum sum_food if kihbs==2005 & urban==1
+gen num_food_05_urb=r(mean)
+sum sum_food if kihbs==2015 & urban==0
+gen num_food_15_rur=r(mean)
+sum sum_food if kihbs==2015 & urban==1
+gen num_food_15_urb=r(mean)
+keep num_food_*
 duplicates drop
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_6.xlsx", firstrow(variables) replace
 restore
@@ -195,24 +203,24 @@ restore
 *Number of vulnerable population in each group (2005/06 and 2015/16)
 preserve
 keep if vul_status==1
-bys urban kihbs: egen sum_pop=sum(wta_pop)
-sum sum_pop if kihbs==2005 & urban==0
-gen num_pop_05_rur=r(mean)
-sum sum_pop if kihbs==2005 & urban==1
-gen num_pop_05_urb=r(mean)
-sum sum_pop if kihbs==2015 & urban==0
-gen num_pop_15_rur=r(mean)
-sum sum_pop if kihbs==2015 & urban==1
-gen num_pop_15_urb=r(mean)
-keep num_pop_*
+bys urban kihbs: egen sum_vul=sum(wta_pop)
+sum sum_vul if kihbs==2005 & urban==0
+gen num_vul_05_rur=r(mean)
+sum sum_vul if kihbs==2005 & urban==1
+gen num_vul_05_urb=r(mean)
+sum sum_vul if kihbs==2015 & urban==0
+gen num_vul_15_rur=r(mean)
+sum sum_vul if kihbs==2015 & urban==1
+gen num_vul_15_urb=r(mean)
+keep num_vul_*
 duplicates drop
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_7.xlsx", firstrow(variables) replace
 restore
 
 
 //Link between vulnerability and poverty 
-qui tabout urban poor if kihbs==2005 using "${gsdOutput}/DfID-Poverty_Analysis/Raw_8.csv" , svy sum c(mean vul_status se) sebnone f(3) npos(col) h1(vul_status 2005/06 by urban/rural and year) replace
-qui tabout urban poor if kihbs==2015 using "${gsdOutput}/DfID-Poverty_Analysis/Raw_8.csv" , svy sum c(mean vul_status se) sebnone f(3) npos(col) h1(vul_status 2015/16 by urban/rural and year) append
+qui tabout urban poor if kihbs==2005 using "${gsdOutput}/DfID-Poverty_Analysis/Raw_8.csv" , svy sum c(mean vul_status se) sebnone f(3) npos(col) h1(vul_status and poor 2005/06 by urban/rural and year) replace
+qui tabout urban poor if kihbs==2015 using "${gsdOutput}/DfID-Poverty_Analysis/Raw_8.csv" , svy sum c(mean vul_status se) sebnone f(3) npos(col) h1(vul_status and poor 2015/16 by urban/rural and year) append
 
 
 //Growth incidence curves
@@ -641,7 +649,7 @@ matrix hh_poor_diff= [hhsize_diff \ depen_diff \ n0_4_diff \ n5_14_diff \ n15_24
 *Export results 
 putexcel set "${gsdOutput}/DfID-Poverty_Analysis/Raw_14.xlsx" , replace
 putexcel A3=("HH size") A4=("share of dependents") A5=("number of members 0 to 4 years old") A6=("number of members 5 to 14 years old") A7=("number of members 15 to 24 years old") A8=("number of members 25 to 65 years old") A9=("number of members more than 65 years old")  A10=("share of female members 15 to 65 years old") A11=("single member household") A12=("Male household head") A13=("Age of household head")  A14=("Members with no edu 15+") A15=("At least one member is literate 15+") A16=("Average yrs of school 15+") A17=("Years of schooling of head") A18=("At least one wage employed") A19=("HH unemployed") A20=("HH Not in labour force")  A21=("HH employment status: Wage employed") A22=("HH employment status: Self employed") A23=("HH employment status: Unpaid fam. worker") A24=("HH employment status: Apprentice") A25=("HH employment status: Other") A26=("HH employment sector: Agriculture") A27=("HH employment sector: Manufacturing") A28=("HH employment sector: Services") A29=("HH employment sector: Construction")  A30=("number of rooms in household") A31=("Owns house") A32=("Improved drinking water source") A33=("Improved sanitation facility") A34=("Main source light is electricity") A35=("HH has access to electricity") A36=("HH with garbage collection") A37=("HH has improved cooking source") A38=("HH has improved floor material") A39=("HH has improved wall material") A40=("HH owns a motorcycle") A41=("HH owns a bicycle") A42=("HH owns a car") A43=("HH owns a radio") A44=("HH owns a tv") A45=("HH owns a cellpone") A46=("HH owns a kerosene stove") A47=("HH owns a charcoal jiko") A48=("HH owns a mosquito net") A49=("HH owns a fan") A50=("HH owns a fridge") A51=("HH owns a wash machine") A52=("HH owns a microwave") A53=("HH owns a kettle") A54=("HH owns a sofa") A55=("HH owns a computer") 
-putexcel C1=("Poor - National") B2=("Non-Poor Mean") C2=("Poor Mean") D2=("P-value") 
+putexcel C1=("Poor National") B2=("Non-Poor Mean") C2=("Poor Mean") D2=("P-value") 
 putexcel B3=matrix(hh_poor)
 putexcel D3=matrix(hh_poor_diff)
 
@@ -657,7 +665,7 @@ matrix hh_vul= [hhsize \ depen \ n0_4 \ n5_14 \ n15_24 \ n25_65 \ n66plus \ s_fe
 matrix hh_vul_diff= [hhsize_diff \ depen_diff \ n0_4_diff \ n5_14_diff \ n15_24_diff \ n25_65_diff \ n66plus_diff \ s_fem_diff \ singhh_diff \ malehead_diff \ agehead_diff \ no_edu_diff \ literacy_diff \ aveyrsch_diff \ educhead_diff \ hwage_diff \ hhunemp_diff \ hhnilf_diff  \ hhempstat_1_diff \ hhempstat_2_diff \ hhempstat_3_diff \ hhempstat_4_diff \ hhempstat_5_diff \ hhsector_1_diff \ hhsector_2_diff \ hhsector_3_diff \ hhsector_4_diff \ rooms_diff \ ownhouse_diff \ impwater_diff \ impsan_diff \ elec_light_diff \ elec_acc_diff \ garcoll_diff \ imp_cooking_diff \ imp_floor_diff \ imp_wall_diff \ motorcycle_diff \ bicycle_diff \ car_diff \ radio_diff \ tv_diff \ cell_phone_diff \ kero_stove_diff \ char_jiko_diff \ mnet_diff \ fan_diff \ fridge_diff \ wash_machine_diff \ microwave_diff \ kettle_diff \ sofa_diff \ computer_diff]
 
 *Export results 
-putexcel G1=("Vulnerable - National") F2=("Non-Vulnerable Mean") G2=("Vulnerable Mean") H2=("P-value") 
+putexcel G1=("Vulnerable National") F2=("Non-Vulnerable Mean") G2=("Vulnerable Mean") H2=("P-value") 
 putexcel F3=matrix(hh_vul)
 putexcel H3=matrix(hh_vul_diff)
 
@@ -685,17 +693,17 @@ qui foreach var of varlist  depen n0_4 n5_14 n15_24 n25_65 n66plus s_fem singhh 
 
 foreach x in "1" "2" "3" "5" "6" "7" "9" "10" "11" "12" "14" {
 	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xlsx", sheet("Sheet1") firstrow case(lower) clear
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_v1.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_v3.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xlsx"
 }
 foreach x in "4" "8" "13" {
 	import delimited "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.csv", delimiter(tab) clear 
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_v1.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_v3.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.csv"
 }
 foreach x in "15" "16" {
 	import delimited "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.txt", delimiter(tab) clear 
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_v1.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_v3.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.txt"
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xml"
 }

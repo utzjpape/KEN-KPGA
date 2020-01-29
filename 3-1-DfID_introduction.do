@@ -34,7 +34,7 @@ if (`runimport'==1) {
     keep if regioncode=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_growthpc.dta", replace
 		
-	wbopendata, language(en - English) country() topics() indicator(NY.GDP.PCAP.PP.CD - GDP per capita, PPP (current international $)) clear long
+	wbopendata, language(en - English) country() topics() indicator(NY.GDP.PCAP.PP.KD - GDP per capita, PPP (constant 2011 international $)) clear long
     keep if regioncode=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_gdpppp.dta", replace
 	
@@ -111,7 +111,7 @@ foreach indicator in poverty gini growthpc gdpppp water sanitation mortality lit
 		rename ny_gdp_pcap_kd_zg `indicator'
 		}
 		else if "`indicator'" == "gdpppp" {
-		rename ny_gdp_pcap_pp_cd `indicator'
+		rename ny_gdp_pcap_pp_kd `indicator'
 		}
 		else if "`indicator'" == "water" {
 		rename sh_h2o_basw_zs `indicator'
@@ -174,7 +174,7 @@ foreach indicator in poverty gini growthpc gdpppp water sanitation mortality lit
 		rename ny_gdp_pcap_kd_zg `indicator'
 		}
 		else if "`indicator'" == "gdpppp" {
-		rename ny_gdp_pcap_pp_cd `indicator'
+		rename ny_gdp_pcap_pp_kd `indicator'
 		}
 		else if "`indicator'" == "water" {
 		rename sh_h2o_basw_zs `indicator'

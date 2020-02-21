@@ -82,8 +82,10 @@ sum score_assets, d
 gen x=r(mean)
 gen y=r(sd)
 
-*Create the standarized asset index
+*Create the standarized and positive asset index
 gen asset_index=(score_assets-x)/y
+sum asset_index
+replace asset_index=asset_index+(r(min)*(-1))
 drop x y temp_* score_assets
 label var asset_index "Asset index from PCA"
 
@@ -103,11 +105,90 @@ label var gini_county "Gini index by county"
 
 *Save the file used for analysis
 save "${gsdTemp}/dfid_analysis_hh_section-3.dta", replace
+collapse (mean) poor vul_status nedi malehead yrsch (sum) countypw=wta_pop countyhw=wta_hh [pw=wta_pop], by(county)
+save "${gsdTemp}/dfid_analysis_wta_section-3.dta", replace
+
+
+//County-level file for some welfare indicators
+foreach x in "stunting" "under-five mort" "ger primary" "ger secondary" {
+	import excel "${gsdDataRaw}/3-Gender/Data/Education_Simon/for_isis.xlsx", sheet(`x') clear first	
+	drop if county=="1" | county==""
+	destring county, replace
+	save "${gsdTemp}/temp_`x'.dta", replace
+}
+
+use "${gsdTemp}/temp_stunting.dta", clear
+ren (bm bf sm sf) (stunt_mean_m stunt_mean_f stunt_sd_m stunt_sd_f)
+merge 1:1 county using "${gsdTemp}/temp_under-five mort.dta", nogen assert(match)
+ren (bm bf sm sf) (mort_mean_m mort_mean_f mort_sd_m mort_sd_f)
+
+drop county 
+gen county=.
+replace county=30 if countyname=="baringo"
+replace county=36 if countyname=="bomet"
+replace county=39 if countyname=="bungoma"
+replace county=40 if countyname=="busia"
+replace county=28 if countyname=="elgeyo marak"
+replace county=14 if countyname=="embu"
+replace county=7 if countyname=="garissa"
+replace county=43 if countyname=="homa bay"
+replace county=11 if countyname=="isiolo"
+replace county=34 if countyname=="kajiado"
+replace county=37 if countyname=="kakamega"
+replace county=35 if countyname=="kericho"
+replace county=22 if countyname=="kiambu"
+replace county=3 if countyname=="kilifi"
+replace county=20 if countyname=="kirinyaga"
+replace county=45 if countyname=="kisii"
+replace county=42 if countyname=="kisumu"
+replace county=15 if countyname=="kitui"
+replace county=2 if countyname=="kwale"
+replace county=31 if countyname=="laikipia"
+replace county=5 if countyname=="lamu"
+replace county=16 if countyname=="machakos"
+replace county=17 if countyname=="makueni"
+replace county=9 if countyname=="mandera"
+replace county=10 if countyname=="marsabit"
+replace county=12 if countyname=="meru"
+replace county=44 if countyname=="migori"
+replace county=1 if countyname=="mombasa"
+replace county=21 if countyname=="muranga"
+replace county=47 if countyname=="nairobi"
+replace county=32 if countyname=="nakuru"
+replace county=29 if countyname=="nandi"
+replace county=33 if countyname=="narok"
+replace county=46 if countyname=="nyamira"
+replace county=18 if countyname=="nyandarua"
+replace county=19 if countyname=="nyeri"
+replace county=25 if countyname=="samburu"
+replace county=41 if countyname=="siaya"
+replace county=6 if countyname=="taita taveta"
+replace county=4 if countyname=="tana river"
+replace county=13 if countyname=="tharaka"
+replace county=26 if countyname=="trans-nzoia"
+replace county=23 if countyname=="turkana"
+replace county=27 if countyname=="uasin gishu"
+replace county=38 if countyname=="vihiga"
+replace county=8 if countyname=="wajir"
+replace county=24 if countyname=="west pokot"
+
+merge 1:1 county using "${gsdTemp}/temp_ger primary.dta", nogen keep(match master)
+ren (bm bf sm sf) (prim_mean_m prim_mean_f prim_sd_m prim_sd_f)
+merge 1:1 county using "${gsdTemp}/temp_ger secondary.dta", nogen keep(match master)
+ren (bm bf sm sf) (secon_mean_m secon_mean_f secon_sd_m secon_sd_f)
+drop bd sd td p abstd countyname
+merge 1:1 county using "${gsdTemp}/dfid_analysis_wta_section-3.dta", nogen assert(match)
+order county* nedi poor vul_status 
+save "${gsdTemp}/dfid_analysis_county_section-3.dta", replace
+
+foreach x in "stunting" "under-five mort" "ger primary" "ger secondary" {
+	erase "${gsdTemp}/temp_`x'.dta"
+}
 
 
 
 ********************************
-* 2 | ANALYSIS OF SURVEY DATA
+* 2 | ANALYSIS FOR SECTION III
 ********************************
 
 //Breakdown of households and population (2015/16)
@@ -289,9 +370,9 @@ putexcel E58=`r(between_ge1)'
 //Disparities in access to services
 use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
 svyset clid [pw=wta_hh] , strat(strat)
-qui tabout county using "${gsdOutput}/DfID-Poverty_Analysis/Raw_7.csv" , svy sum c(mean impwater se) sebnone f(3) npos(col) h1(impwater by county) replace
 
 *Extract the data 
+qui tabout county using "${gsdOutput}/DfID-Poverty_Analysis/Raw_7.csv" , svy sum c(mean impwater se) sebnone f(3) npos(col) h1(impwater by county) replace
 qui foreach var of varlist impsan elec_light elec_acc {
 	tabout county using "${gsdOutput}/DfID-Poverty_Analysis/Raw_7.csv" , svy sum c(mean `var' se) sebnone f(3) npos(col) h1(`var' by county) append
 }
@@ -304,17 +385,217 @@ collapse (mean) poor impwater impsan elec_light elec_acc nedi (sum) countypw=wta
 foreach var of varlist poor impwater impsan elec_light elec_acc {
 	replace `var'=`var'*100
 }
-twoway (scatter impsan poor if nedi==1, mcolor(black) ms(S)) (scatter impsan poor if nedi==0, mcolor(gs8))  ///
-	   (lfit impsan poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+twoway (scatter impwater poor if nedi==1, mcolor(black) ms(S)) (scatter impwater poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit impwater poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
 	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
-	   xtitle("Poverty incidence (%)", size(small)) ytitle("Improved sanitation (%)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Access to improved water sources (% of households)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_impwater", replace	
+
+twoway (scatter impsan poor if nedi==1, mcolor(black) ms(S)) (scatter impsan poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit impsan poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Improved sanitation (% of households)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_impsan", replace	
 
+twoway (scatter elec_acc poor if nedi==1, mcolor(black) ms(S)) (scatter elec_acc poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit elec_acc poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Access to electricity (% of households)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_elec_acc", replace	
 
-AQUI
-AQUI
+
+//Disparities in assets
+use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+svyset clid [pw=wta_hh] , strat(strat)
+
+*Extract the data 
+qui tabout county using "${gsdOutput}/DfID-Poverty_Analysis/Raw_7.csv" , svy sum c(mean asset_index se) sebnone f(3) npos(col) h1(impwater by county) append
+collapse (mean) poor asset_index nedi (sum) countypw=wta_pop [pw=wta_pop], by(county)
+foreach var of varlist poor {
+	replace `var'=`var'*100
+}
+
+*Scatterplot
+twoway (scatter asset_index poor if nedi==1, mcolor(black) ms(S)) (scatter asset_index poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit asset_index poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Asset index", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_assets", replace	
 
 
+//Disparities in health 
+use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
+merge m:1 clid hhid using "${gsdTemp}/dfid_analysis_hh_section-3.dta", assert(match) nogen
+svyset clid [pw=wta_hh] , strat(strat)
+gen sick_injured=(e02==1) if !missing(e02) 
+gen birth_hospital=(f03==1) if !missing(f03)
+collapse (mean) sick_injured birth_hospital nedi (sum) countypw=wta_pop [pw=wta_pop], by(county)
+merge 1:1 county using "${gsdTemp}/dfid_analysis_wta_section-3.dta", assert(match) keepusing(poor) nogen
+foreach var of varlist sick_injured birth_hospital poor {
+	replace `var'=`var'*100
+}
+
+*Scatterplot
+twoway (scatter birth_hospital poor if nedi==1, mcolor(black) ms(S)) (scatter birth_hospital poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit birth_hospital poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Share of births delivered in a hospital (%)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_health", replace	
+
+use "${gsdTemp}/dfid_analysis_county_section-3.dta", clear
+foreach var of varlist stunt_mean* poor vul_status prim_mean* secon_mean* {
+	replace `var'=`var'*100
+}
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_8.xlsx", firstrow(variables) replace
+
+
+//Disparities in education
+use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
+merge m:1 clid hhid using "${gsdTemp}/dfid_analysis_hh_section-3.dta", assert(match) nogen
+svyset clid [pw=wta_hh] , strat(strat)
+
+*Literacy 15+
+gen literate=(c18==1 & c17==1) if !missing(c18) & !missing(c17) & b05_yy>=15
+collapse (mean) nedi literate yrsch (sum) countypw=wta_pop countyhw=wta_hh [pw=wta_pop], by(county)
+merge 1:1 county using "${gsdTemp}/dfid_analysis_wta_section-3.dta", nogen assert(match)
+foreach var of varlist poor vul_status literate malehead  {
+	replace `var'=`var'*100
+}
+
+twoway (scatter literate poor if nedi==1, mcolor(black) ms(S)) (scatter literate poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit literate poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Literacy rate for population aged 15 or more", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_literacy_poverty", replace	
+
+twoway (scatter literate malehead if nedi==1, mcolor(black) ms(S)) (scatter literate malehead if nedi==0, mcolor(gs8))  ///
+	   (fpfit literate malehead [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Share of male headed households", size(small)) ytitle("Literacy rate for population aged 15 or more", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_literacy_malehead", replace	
+
+twoway (scatter yrsch poor if nedi==1, mcolor(black) ms(S)) (scatter yrsch poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit yrsch poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Years of schooling for population aged 15 or more", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_schooling", replace	
+
+*County indicators
+use "${gsdTemp}/dfid_analysis_county_section-3.dta", clear
+foreach var of varlist stunt_mean* poor vul_status prim_mean* secon_mean* {
+	replace `var'=`var'*100
+}
+
+*Scatterplots
+twoway (scatter  secon_mean_m poor if nedi==1, mcolor(black) ms(S)) (scatter  secon_mean_m poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit  secon_mean_m poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Gross enrollment rate (secondary school, males)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_enrollment_male", replace	
+
+twoway (scatter  secon_mean_f poor if nedi==1, mcolor(black) ms(S)) (scatter  secon_mean_f poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit  secon_mean_f poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Gross enrollment rate (secondary school, females)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_enrollment_female", replace	
+
+
+//Employment and sources of income
+*Household level data
+use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+merge 1:1 clid hhid using "${gsdData}/2-AnalysisInput/income_1516.dta", nogen assert(match) keepusing(income_tot ag_income non_ag_income)
+svyset clid [pw=wta_hh] , strat(strat)
+
+gen share_non_agr_income=non_ag_income/income_tot
+gen hhh_wage_emp=(hhempstat==1) if !missing(hhempstat)
+replace hhnilf=1 if hhnilf==.
+collapse (mean) poor vul_status nedi malehead share_non_agr_income hhnilf hwage hhh_wage_emp (sum) countypw=wta_pop countyhw=wta_hh [pw=wta_pop], by(county)
+foreach var of varlist poor vul_status malehead share_non_agr_income hhnilf hwage hhh_wage_emp  {
+	replace `var'=`var'*100
+}
+
+twoway (scatter share_non_agr_income poor if nedi==1, mcolor(black) ms(S)) (scatter share_non_agr_income poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit share_non_agr_income poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Non-agricultural income (share of total income)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_nagr_income", replace	
+
+twoway (scatter hhnilf poor if nedi==1, mcolor(black) ms(S)) (scatter hhnilf poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit hhnilf poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Share of household heads not in the labour force (%)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_hhh_nilf", replace	
+
+twoway (scatter hwage poor if nedi==1, mcolor(black) ms(S)) (scatter hwage poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit hwage poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Share of households with at least one member wage employed (%)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_hwemp", replace	
+
+twoway (scatter hhh_wage_emp poor if nedi==1, mcolor(black) ms(S)) (scatter hhh_wage_emp poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit hhh_wage_emp poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Share of household heads wage employed (%)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_hhh_wemp", replace	
+
+*Household-member labor statistics 
+use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
+merge m:1 clid hhid using "${gsdTemp}/dfid_analysis_hh_section-3.dta", assert(match) nogen
+svyset clid [pw=wta_hh] , strat(strat)
+gen employed_work = (d02_1==1 | d02_2==1 | d02_3==1 | d02_4==1 | d02_5==1 | d02_6==1)
+gen employed_workc = (d02_1==1 | d02_2==1 | d02_3==1 | d02_4==1)
+gen employed_work_wage = (d02_1==1)
+gen employed_work_entp = (d02_2==1 | d02_3==1 | d02_4==1)
+lab var employed_work 		"employed at work"
+lab var employed_workc 		"employed at work, comparable definition"
+lab var employed_work_wage 	"employed at work, wage"
+lab var employed_work_entp 	"employed at work, farm and non-farm enterprises"
+qui forvalues i=1(1)3 {
+	gen d04num_`i' = .
+	replace d04num_`i' = 1 if d04_`i'=="A"
+	replace d04num_`i' = 2 if d04_`i'=="B"
+	replace d04num_`i' = 3 if d04_`i'=="C"
+	replace d04num_`i' = 4 if d04_`i'=="D"
+	replace d04num_`i' = 5 if d04_`i'=="E"
+	replace d04num_`i' = 6 if d04_`i'=="F"
+	replace d04num_`i' = 7 if d04_`i'=="G"
+}
+egen employed_absent = anymatch(d04num_1 d04num_2 d04num_3), values(1 2 3 4 5 6)	
+replace employed_absent = 0 if d05 == 7											
+replace employed_absent = 0 if d07>=3 & d06==2									
+gen employed = (employed_work == 1 | employed_absent == 1) if b05_yy<.
+
+egen jobsearch = anymatch(d11_1 d11_2 d11_3), values(1 3 4 5 6 7 8 9 10 11 12 13 14 15)	
+replace jobsearch = . if employed==1													
+gen available = (d13<=2)																
+replace available = . if employed==1
+gen unemployed = (jobsearch == 1 & available==1)
+gen laborforce = (employed == 1 | unemployed == 1)
+
+collapse (mean) unemployed laborforce employed [pw=wta_pop], by(county)
+merge 1:1 county using "${gsdTemp}/dfid_analysis_wta_section-3.dta", nogen assert(match)
+foreach var of varlist unemployed laborforce employed poor vul_status malehead {
+	replace `var'=`var'*100
+}
+
+*Scatterplots
+twoway (scatter laborforce poor if nedi==1, mcolor(black) ms(S)) (scatter laborforce poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit laborforce poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Labour force participation (%)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_lfp_poor", replace	
+
+twoway (scatter laborforce malehead if nedi==1, mcolor(black) ms(S)) (scatter laborforce malehead if nedi==0, mcolor(gs8))  ///
+	   (fpfit laborforce malehead [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Share of male headed households (%)", size(small)) ytitle("Labour force participation (%)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_lfp_malehead", replace	
+
+twoway (scatter employed poor if nedi==1, mcolor(black) ms(S)) (scatter employed poor if nedi==0, mcolor(gs8))  ///
+	   (fpfit employed poor [pw=countypw], lpattern(-) lcolor(black)), graphregion(color(white)) bgcolor(white) ///
+	   legend(order(1 2)) legend(label(1 "NEDI Counties") label(2 "Non-NEDI Counties") size(small))  ///
+	   xtitle("Poverty incidence (% of population)", size(small)) ytitle("Share of employed population aged 15 or more (%)", size(small)) xlabel(, labsize(small)) ylabel(, angle(0) labsize(small)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_emp", replace	
 
 
 
@@ -351,7 +632,7 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Deprivations_map", replace
 * 4 | INTEGRATE ALL RESULTS INTO ONE SHEET
 *************************************************
 
-foreach x in "1" "2" "3" "4" "6" {
+foreach x in "1" "2" "3" "4" "6" "8" {
 	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xlsx", sheet("Sheet1") firstrow case(lower) clear
 	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-3_v1.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xlsx"
@@ -361,60 +642,4 @@ foreach x in "5" "7"  {
 	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-3_v1.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.csv"
 }
-foreach x in "0" {
-	import delimited "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.txt", delimiter(tab) clear 
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-3_v1.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
-	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.txt"
-	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xml"
-}
-
-
-
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-
-
-//Disparities in health 
-HHM
-FIGURE 7.9 SICKNESS OR INJURY DURING LAST FOUR WEEKS PRIOR TO THE SURVEY 
-FIGURE 7.20 BIRTHS IN HOSPITAL/OR ATTENDED BY 
-
-
-
-//Disparities in education
-HHM
-PRIMARY AND SECONDARY ENROLLMENT RATES TABLE 3.1
-LITERACY FIGURE 3.5 / 6 
-AVG YEARS SCHOOLING (FORM DATA)
-
-
-//Disparities in assets
-
-
-//Vulnerability and shocks
-
-
-
-//Employment and sources of income
-hhnilf
-hwage hhempstat hhunemp
-malehead 
-by poor and vul_
-other hhm
-2-AnalysisInput income type (agricultura) from that file
-
-LABOR FORCE PARTICIPATION FIGURE 3.16
-EMPLOYMENT FIGURE 3.14
-SOURCE OF INCOME FIGURE 4.7
-
-
-//Decomposition of poverty reduction
-FIGURE 5.7
-
-
-//Profile of poor and vulnerable 
-TABLE 8.1
-
 

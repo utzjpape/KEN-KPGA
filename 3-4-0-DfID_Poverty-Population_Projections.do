@@ -82,6 +82,17 @@ foreach x in "hh" "pop" {
 	gen wta_`x'_25=wta_`x'_24*pop_rate
 }
 
+//Include population weights at the county level
+preserve
+collapse (sum) wta_pop_*, by(county)
+foreach var of varlist wta_pop_* {
+	ren `var' cty_`var'
+}
+save "${gsdTemp}/dfid_kihbs_poverty_pop_county.dta", replace
+restore 
+merge m:1 county using "${gsdTemp}/dfid_kihbs_poverty_pop_county.dta", nogen assert(match)
+
+
 
 **************************************
 * 2 | POVERTY ESTIMATES (2013-2014) 
@@ -245,6 +256,22 @@ qui forval i=1/10 {
 }
 
 
+//Include poor population at the county level
+preserve
+forval i=13/25 {
+	bys county: egen pre_poor_pop_`i'=sum(wta_pop_`i') if poor_`i'==1
+	bys county: egen poor_pop_`i'=min(pre_poor_pop_`i')
+	drop pre_poor_pop_`i'
+}
+collapse (max) poor_pop_1* poor_pop_2*, by(county)
+foreach var of varlist poor_pop_* {
+	ren `var' cty_`var'
+}
+save "${gsdTemp}/dfid_kihbs_poor_pop_county.dta", replace
+restore 
+merge m:1 county using "${gsdTemp}/dfid_kihbs_poor_pop_county.dta", nogen assert(match)
+
+
 
 **************************************
 * 4 | CHECKS AND FINAL DATASET
@@ -258,4 +285,27 @@ qui forval i=13/25 {
 
 //Save the file for the simulations
 save "${gsdTemp}/dfid_kihbs_poverty_analysis.dta", replace
+
+
+//Prepare data to produce a time series of population and poverty 
+qui forval i=13/25 {
+	sum poor_`i' [aweight=wta_pop_`i']
+	gen poverty_`i'=r(mean)*100
+	egen pop_`i'=sum(wta_pop_`i')
+	replace pop_`i'=pop_`i'/1000000
+}
+keep kihbs pop_1* pop_2* poverty_1* poverty_2*
+duplicates drop
+reshape long pop_ poverty_, i(kihbs) j(year)
+drop kihbs
+ren (pop_ poverty_) (population poverty)
+replace year=year+2000
+
+*Create and save the graph
+twoway (line poverty year, lpattern(-) lcolor(black)) (line population year, lcolor(gs8)),  xtitle("Year", size(small)) ///
+		ytitle("Million or percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
+		legend(order(1 2)) legend(label(1 "Poverty incidence (% of population)") label(2 "Total population (million)") size(small))  ///
+		xlabel(2013 "2013" 2015 "2015" 2017 "2017" 2019 "2019" 2021 "2021" 2023 "2023" 2025 "2025" )  ///
+        ylabel(20 "20" 25 "25" 30 "30" 35 "35" 40 "40" 45 "45" 50 "50" 55 "55" 60 "60" 65 "65" 70 "70", angle(0)) 
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Poverty-Population_Projection", replace	
 

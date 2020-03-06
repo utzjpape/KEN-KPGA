@@ -289,9 +289,9 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_sfi", replace
 use "${gsdTemp}/dfid_simulation_program_1_benchmark.dta", clear
 collapse (mean) year_* (semean) se_year_13=year_13 se_year_14=year_14 se_year_15=year_15 se_year_16=year_16 se_year_17=year_17 se_year_18=year_18 se_year_19=year_19 se_year_20=year_20 (max) cty_wta_pop_* [aw=wta_pop], by(_ID)
 forval i=13/20 {
-	gen x`i'=year_`i'*cty_wta_pop_`i'
+	gen x`i'=year_`i'*cty_wta_pop_15
 	egen tot_part_`i'=sum(x`i')
-	egen tot_pop_`i'=sum(cty_wta_pop_`i')
+	egen tot_pop_`i'=sum(cty_wta_pop_`i') 
 	gen share_county_`i'=x`i'/tot_part_`i'
 	gen share_covered_`i'=100*(tot_part_`i'/tot_pop_`i')
 	gen z`i'=share_county_`i'*se_year_`i'
@@ -308,10 +308,10 @@ replace year=year+2000
 save "${gsdTemp}/dfid_temp_poor-year_program_1_benchmark.dta", replace
 
 *Poor population
-use "${gsdTemp}/dfid_simulation_program_1_benchmark.dta", clear
-keep if poor==1
-collapse (mean) year_* (semean) se_year_13=year_13 se_year_14=year_14 se_year_15=year_15 se_year_16=year_16 se_year_17=year_17 se_year_18=year_18 se_year_19=year_19 se_year_20=year_20  (max) cty_poor_pop_* [aw=wta_pop], by(_ID)
 forval i=13/20 {
+	use "${gsdTemp}/dfid_simulation_program_1_benchmark.dta", clear
+	keep if poor_`i'==1
+	collapse (mean) year_`i' (semean) se_year_`i'=year_`i' (max) cty_poor_pop_`i' [aw=wta_pop], by(_ID county)
 	gen x`i'=year_`i'*cty_poor_pop_`i'
 	egen poor_covered_`i'=sum(x`i')
 	gen share_county_`i'=x`i'/poor_covered_`i'
@@ -321,7 +321,14 @@ forval i=13/20 {
 	egen se_`i'=sum(z`i')
 	replace se_`i'=100*se_`i'
 	drop se_year_`i'
+	save "${gsdTemp}/dfid_temp_p_1_bench_`i'.dta", replace
 }	
+use "${gsdTemp}/dfid_temp_p_1_bench_13.dta", clear
+forval i=14/20 {
+	merge 1:1 county using "${gsdTemp}/dfid_temp_p_1_bench_`i'.dta", nogen assert(match)
+	erase "${gsdTemp}/dfid_temp_p_1_bench_`i'.dta"
+}
+erase "${gsdTemp}/dfid_temp_p_1_bench_13.dta"
 keep _ID share_poor_covered_* se_*
 keep if _ID==1
 reshape long share_poor_covered_ se_, i(_ID) j(year)
@@ -515,9 +522,9 @@ save "${gsdTemp}/dfid_simulation_program_1_scenario1.dta", replace
 use "${gsdTemp}/dfid_simulation_program_1_scenario1.dta", clear
 collapse (mean) year_* (semean) se_year_13=year_13 se_year_14=year_14 se_year_15=year_15 se_year_16=year_16 se_year_17=year_17 se_year_18=year_18 se_year_19=year_19 se_year_20=year_20 (max) cty_wta_pop_* [aw=wta_pop], by(_ID)
 forval i=13/20 {
-	gen x`i'=year_`i'*cty_wta_pop_`i'
+	gen x`i'=year_`i'*cty_wta_pop_15
 	egen tot_part_`i'=sum(x`i')
-	egen tot_pop_`i'=sum(cty_wta_pop_`i')
+	egen tot_pop_`i'=sum(cty_wta_pop_`i') 
 	gen share_county_`i'=x`i'/tot_part_`i'
 	gen share_covered_`i'=100*(tot_part_`i'/tot_pop_`i')
 	gen z`i'=share_county_`i'*se_year_`i'
@@ -534,10 +541,10 @@ replace year=year+2000
 save "${gsdTemp}/dfid_temp_poor-year_program_1_scenario1.dta", replace
 
 *Poor population
-use "${gsdTemp}/dfid_simulation_program_1_scenario1.dta", clear
-keep if poor==1
-collapse (mean) year_* (semean) se_year_13=year_13 se_year_14=year_14 se_year_15=year_15 se_year_16=year_16 se_year_17=year_17 se_year_18=year_18 se_year_19=year_19 se_year_20=year_20  (max) cty_poor_pop_* [aw=wta_pop], by(_ID)
 forval i=13/20 {
+	use "${gsdTemp}/dfid_simulation_program_1_scenario1.dta", clear
+	keep if poor_`i'==1
+	collapse (mean) year_`i' (semean) se_year_`i'=year_`i' (max) cty_poor_pop_`i' [aw=wta_pop], by(_ID county)
 	gen x`i'=year_`i'*cty_poor_pop_`i'
 	egen poor_covered_`i'=sum(x`i')
 	gen share_county_`i'=x`i'/poor_covered_`i'
@@ -547,7 +554,14 @@ forval i=13/20 {
 	egen se_`i'=sum(z`i')
 	replace se_`i'=100*se_`i'
 	drop se_year_`i'
+	save "${gsdTemp}/dfid_temp_p_1_scenario1_`i'.dta", replace
 }	
+use "${gsdTemp}/dfid_temp_p_1_scenario1_13.dta", clear
+forval i=14/20 {
+	merge 1:1 county using "${gsdTemp}/dfid_temp_p_1_scenario1_`i'.dta", nogen assert(match)
+	erase "${gsdTemp}/dfid_temp_p_1_scenario1_`i'.dta"
+}
+erase "${gsdTemp}/dfid_temp_p_1_scenario1_13.dta"
 keep _ID share_poor_covered_* se_*
 keep if _ID==1
 reshape long share_poor_covered_ se_, i(_ID) j(year)
@@ -558,9 +572,9 @@ merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_1_scenario1.dta", n
 
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
-		,  xtitle("Year", size(small)) ytitle("Cumulative percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) plotregion( m(b=0)) ///
-		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20" 25 "25" 30 "30" , angle(0)) ///
-		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  
+		,  xtitle("Year", size(small)) ytitle("Cumulative percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
+		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20" 25 "25" 30 "30", angle(0)) ///
+		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_coverage_time_scenario1", replace	
 
 

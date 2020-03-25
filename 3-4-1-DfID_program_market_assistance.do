@@ -339,7 +339,7 @@ merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_1_benchmark.dta", n
 
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
-		,  xtitle("Year", size(small)) ytitle("Cumulative percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
+		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_coverage_time", replace	
@@ -572,7 +572,7 @@ merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_1_scenario1.dta", n
 
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
-		,  xtitle("Year", size(small)) ytitle("Cumulative percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
+		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20" 25 "25" 30 "30", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_coverage_time_scenario1", replace	

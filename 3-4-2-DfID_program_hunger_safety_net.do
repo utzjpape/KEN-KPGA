@@ -244,7 +244,7 @@ graph twoway (line cumul_share_participant cumul_share_poor, lpattern(-) lcolor(
 	   xtitle("Cumulative share of poor (%)") ylabel(, angle(0) labsize(small)) xlabel(, labsize(small)) ylabel(none, axis(2))  ///
 	   ytitle("Share of population covered (%)", axis(1)) ytitle(" ", axis(2)) ylabel(0 "" 20 "" 40 "" 60 "" 80 "" 100 "")  ///
 	   legend(order(1 2)) legend(label(1 "Spatial fairness curve") label(2 "Equality")) graphregion(color(white)) bgcolor(white) plotregion( m(b=0))
-graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_sfi", replace	
+graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-2_sfi", replace	
 
 
 //Coverage of total population and poor by year (all counties) 
@@ -306,7 +306,7 @@ merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_2_benchmark.dta", n
 
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
-		,  xtitle("Year", size(small)) ytitle("Cumulative percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
+		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(10 "10" 15 "15" 20 "20" 25 "25", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-2_coverage_time", replace	
@@ -512,7 +512,7 @@ merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_2_scenario1.dta", n
 
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
-		,  xtitle("Year", size(small)) ytitle("Cumulative percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
+		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(10 "10" 15 "15" 20 "20" 25 "25" 30 "30" 35 "35", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-2_coverage_time_scenario1", replace	

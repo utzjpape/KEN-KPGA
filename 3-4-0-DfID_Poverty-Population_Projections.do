@@ -80,6 +80,21 @@ foreach x in "hh" "pop" {
 	gen wta_`x'_23=wta_`x'_22*pop_rate
 	gen wta_`x'_24=wta_`x'_23*pop_rate
 	gen wta_`x'_25=wta_`x'_24*pop_rate
+	gen wta_`x'_26=wta_`x'_25*pop_rate
+	gen wta_`x'_27=wta_`x'_26*pop_rate
+	gen wta_`x'_28=wta_`x'_27*pop_rate
+	gen wta_`x'_29=wta_`x'_28*pop_rate
+	gen wta_`x'_30=wta_`x'_29*pop_rate
+	gen wta_`x'_31=wta_`x'_30*pop_rate
+	gen wta_`x'_32=wta_`x'_31*pop_rate
+	gen wta_`x'_33=wta_`x'_32*pop_rate
+	gen wta_`x'_34=wta_`x'_33*pop_rate
+	gen wta_`x'_35=wta_`x'_34*pop_rate
+	gen wta_`x'_36=wta_`x'_35*pop_rate
+	gen wta_`x'_37=wta_`x'_36*pop_rate
+	gen wta_`x'_38=wta_`x'_37*pop_rate
+	gen wta_`x'_39=wta_`x'_38*pop_rate
+	gen wta_`x'_40=wta_`x'_39*pop_rate
 }
 
 //Include population weights at the county level
@@ -179,14 +194,14 @@ qui forval i=1/2 {
 
 
 **************************************
-* 3 | POVERTY ESTIMATES (2016-2025) 
+* 3 | POVERTY ESTIMATES (2016-2040) 
 **************************************
 
-//Locals for the loop for poverty status 2016 to 2025
+//Locals for the loop for poverty status 2016 to 2040
 local current = 15
 local next = 16
 
-qui forval i=1/10 {
+qui forval i=1/25 {
 
 	*Obtain the 'current' poverty rate and substract a 1% for the following year
 	gen poor_rate_`next'=.
@@ -258,7 +273,7 @@ qui forval i=1/10 {
 
 //Include poor population at the county level
 preserve
-forval i=13/25 {
+forval i=13/40 {
 	bys county: egen pre_poor_pop_`i'=sum(wta_pop_`i') if poor_`i'==1
 	bys county: egen poor_pop_`i'=min(pre_poor_pop_`i')
 	drop pre_poor_pop_`i'
@@ -278,7 +293,7 @@ merge m:1 county using "${gsdTemp}/dfid_kihbs_poor_pop_county.dta", nogen assert
 **************************************
 
 //Check that poverty decreases by around 1% every year 
-qui forval i=13/25 {
+qui forval i=13/40 {
 	mean poor_`i' [pweight=wta_pop_`i']
 
 }
@@ -288,7 +303,7 @@ save "${gsdTemp}/dfid_kihbs_poverty_analysis.dta", replace
 
 
 //Prepare data to produce a time series of population and poverty 
-qui forval i=13/25 {
+qui forval i=13/40 {
 	sum poor_`i' [aweight=wta_pop_`i']
 	gen poverty_`i'=r(mean)*100
 	egen pop_`i'=sum(wta_pop_`i')
@@ -302,6 +317,7 @@ ren (pop_ poverty_) (population poverty)
 replace year=year+2000
 
 *Create and save the graph
+keep if year<=2025
 twoway (line poverty year, lpattern(-) lcolor(black)) (line population year, lcolor(gs8)),  xtitle("Year", size(small)) ///
 		ytitle("Million or percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		legend(order(1 2)) legend(label(1 "Poverty incidence (% of population)") label(2 "Total population (million)") size(small))  ///

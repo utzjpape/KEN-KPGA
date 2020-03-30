@@ -278,7 +278,7 @@ forval i=13/40 {
 	bys county: egen poor_pop_`i'=min(pre_poor_pop_`i')
 	drop pre_poor_pop_`i'
 }
-collapse (max) poor_pop_1* poor_pop_2*, by(county)
+collapse (max) poor_pop_1* poor_pop_2* poor_pop_3* poor_pop_4*, by(county)
 foreach var of varlist poor_pop_* {
 	ren `var' cty_`var'
 }

@@ -121,7 +121,7 @@ use "${gsdTemp}/dfid_analysis_program_6.dta", clear
 gen rand=.
 set seed 86813 
 qui forval i=1/47 {
-	replace rand=uniform() if county==`i' & n_hhs>0
+	replace rand=uniform() if county==`i' & n_hhs>0 & n_women>0
 }
 sort county rand 
 
@@ -155,8 +155,7 @@ forval i=19/24 {
 gen share_extra_income=0.4
 
 *Create variable with additional income result of the program (from 2040 only)
-gen cons_extra_40=((y2_i_40*share_extra_income)*n_women) * participant if n_women>0
-replace cons_extra_40=((y2_i_40*share_extra_income)*1) * participant if cons_extra_40>=.
+gen cons_extra_40=((y2_i_40*share_extra_income)*n_women) * participant 
 
 *Total household expenditure with benefits from the program
 egen program_y2_i_40=rowtotal(y2_i_40 cons_extra_40)
@@ -305,7 +304,7 @@ merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_6_benchmark.dta", n
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(0 "0" 4 "4" 8 "8" 12 "12", angle(0)) ///
+		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(0 "0" 5 "5" 10 "10", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-6_coverage_time", replace	
 
@@ -362,8 +361,8 @@ gen rand1=.
 gen rand0=.
 set seed 86813 
 qui forval i=1/47 {
-	replace rand1=uniform() if county==`i' & n_hhs>0 & poor==1
-	replace rand0=uniform() if county==`i' & n_hhs>0 & poor==0
+	replace rand1=uniform() if county==`i' & n_hhs>0 & n_women>0 & poor==1
+	replace rand0=uniform() if county==`i' & n_hhs>0 & n_women>0 & poor==0
 }
 
 *Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
@@ -478,7 +477,7 @@ merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_6_scenario1.dta", n
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20", angle(0)) ///
+		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(0 "0" 5 "5" 10 "10" 15 "15", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-6_coverage_scenario1", replace	
 

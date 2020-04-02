@@ -368,7 +368,7 @@ qui forval i=1/47 {
 *Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
 gen rand=.
 replace rand=rand1 if poor==1
-replace rand=rand*0.09 
+replace rand=rand*0.05 
 replace rand=rand0 if poor==0
 sort county rand 
 
@@ -419,7 +419,7 @@ save "${gsdTemp}/dfid_simulation_program_6_scenario1.dta", replace
 
 
 //Coverage of total population and poor by year (all counties) 
-*Total population (in the 4 counties)
+*Total population (in the 19 counties)
 use "${gsdTemp}/dfid_simulation_program_6_scenario1.dta", clear
 collapse (mean) year_* (semean) se_year_19=year_19 se_year_20=year_20 se_year_21=year_21 se_year_22=year_22 se_year_23=year_23 se_year_24=year_24 (max) cty_wta_pop_* [aw=wta_pop], by(_ID county)
 qui forval i=19/24 {
@@ -442,7 +442,7 @@ ren (share_covered_ se_) (pop_share_covered se_pop)
 replace year=year+2000
 save "${gsdTemp}/dfid_temp_poor-year_program_6_scenario1.dta", replace
 
-*Poor population (in the 13 counties)
+*Poor population (in the 19 counties)
 forval i=19/24 {
 	use "${gsdTemp}/dfid_simulation_program_6_scenario1.dta", clear
 	keep if poor_`i'==1
@@ -482,7 +482,7 @@ twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-6_coverage_scenario1", replace	
 
 
-//Effect on poverty in these 13 counties (by year)
+//Effect on poverty in these 19 counties (by year)
 use "${gsdTemp}/dfid_simulation_program_6_scenario1.dta", clear
 sum program_poor_40 [aweight=wta_pop_40] if inlist(county,1,2,3,4,5,7,8,9,10,11,23,24,25,28,30,33,34,43,44)
 gen poor_program_40=r(mean)

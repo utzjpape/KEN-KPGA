@@ -246,6 +246,17 @@ graph twoway (line cumul_share_participant cumul_share_poor, lpattern(-) lcolor(
 	   legend(order(1 2)) legend(label(1 "Spatial fairness curve") label(2 "Equality")) graphregion(color(white)) bgcolor(white) plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-2_sfi", replace	
 
+*Obtain the SF index 
+gen base=.
+replace base=cumul_share_poor if _n==1
+replace base=cumul_share_poor-cumul_share_poor[_n-1] if _n>1
+gen area_rectangle=base*cumul_share_participant
+egen area_b=sum(area_rectangle)
+gen area_tot=(100*100)/2
+gen area_a=area_tot-area_b
+gen sf_index=100*(area_a/area_tot)
+ta sf_index
+
 
 //Coverage of total population and poor by year (all counties) 
 

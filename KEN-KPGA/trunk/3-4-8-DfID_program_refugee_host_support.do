@@ -116,6 +116,12 @@ gen x=1
 merge 1:1 x using "${gsdTemp}/dfid_simulation_program_8_pop_data.dta", nogen keep(match)
 reshape long share_, i(x) j(poor)
 
+*Export figures for obtaining elasticities
+preserve
+gen case="Benchmark-Coverage"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_1.xlsx", firstrow(variables) replace
+restore
+
 graph twoway (bar share_ poor if poor==0, barw(0.60) bcolor(olive))  (bar share_ poor if poor==1, barw(0.60) bcolor(olive_teal))  ///
 	, xtitle("", size(small)) ytitle("Coverage (%)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 	xlabel(0 "Population" 1 "Poor") legend(off) ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20" 25 "25", angle(0))  
@@ -142,6 +148,12 @@ drop unique_hhid
 replace poor=poor*100
 gen ub=poor+sd
 gen lb=poor-sd
+
+*Export figures for obtaining elasticities
+preserve
+gen case="Benchmark-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(variables) replace
+restore
 
 *Create graph
 graph twoway (bar poor program if program==0, barw(0.60) bcolor(gs13))  (bar poor program if program==1, barw(0.60) bcolor(dknavy))   (rcap ub lb program) ///
@@ -248,6 +260,12 @@ gen x=1
 merge 1:1 x using "${gsdTemp}/dfid_simulation_program_8_pop_data.dta", nogen keep(match)
 reshape long share_, i(x) j(poor)
 
+*Export figures for obtaining elasticities
+preserve
+gen case="Scenario1-Coverage"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_3.xlsx", firstrow(variables) replace
+restore
+
 graph twoway (bar share_ poor if poor==0, barw(0.60) bcolor(olive))  (bar share_ poor if poor==1, barw(0.60) bcolor(olive_teal))  ///
 	, xtitle("", size(small)) ytitle("Coverage (%)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 	xlabel(0 "Population" 1 "Poor") legend(off) ylabel(0 "0" 10 "10" 20 "20" 30 "30" 40 "40" 50 "50", angle(0))  
@@ -274,6 +292,12 @@ drop unique_hhid
 replace poor=poor*100
 gen ub=poor+sd
 gen lb=poor-sd
+
+*Export figures for obtaining elasticities
+preserve
+gen case="Scenario1-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_4.xlsx", firstrow(variables) replace
+restore
 
 *Create graph
 graph twoway (bar poor program if program==0, barw(0.60) bcolor(gs13))  (bar poor program if program==1, barw(0.60) bcolor(dknavy))   (rcap ub lb program) ///
@@ -369,6 +393,12 @@ replace poor=poor*100
 gen ub=poor+sd
 gen lb=poor-sd
 
+*Export figures for obtaining elasticities
+preserve
+gen case="Scenario2-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_5.xlsx", firstrow(variables) replace
+restore
+
 *Create graph
 graph twoway (bar poor program if program==0, barw(0.60) bcolor(gs13))  (bar poor program if program==1, barw(0.60) bcolor(dknavy))   (rcap ub lb program) ///
 	, xtitle("Scenario", size(small)) ytitle("Poverty incidence (% of population)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
@@ -383,3 +413,18 @@ egen pre_share_mean_extra_cons_20=mean(share_hh_extra_cons_20) if participant>0
 egen share_mean_extra_cons_20=max(pre_share_mean_extra_cons_20)
 ta share_mean_extra_cons_20
 
+
+//Integrate figures for obtaining elasticities
+forval i=1/5 {
+	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx", sheet("Sheet1") firstrow case(lower) clear
+	save "${gsdTemp}/Temp-Simulation_1_`i'.dta", replace
+}	
+use "${gsdTemp}/Temp-Simulation_1_1.dta", clear	
+forval i=2/5 {
+	appen using "${gsdTemp}/Temp-Simulation_1_`i'.dta"
+}
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Elasticities_P8.xlsx", firstrow(variables) replace
+forval i=1/5 {
+	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
+	erase "${gsdTemp}/Temp-Simulation_1_`i'.dta"
+}

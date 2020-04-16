@@ -146,6 +146,13 @@ ren (share_poor_covered_ se_) (share_poor_covered se_poor)
 replace year=year+2000
 merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_9_benchmark.dta", nogen assert(match)
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2022
+gen case="Benchmark-Coverage"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_1.xlsx", firstrow(variables) replace
+restore
+
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
@@ -180,6 +187,13 @@ gen poor_ub=poverty_reduction+se_poverty_reduction
 gen poor_lb=poverty_reduction-se_poverty_reduction
 gen yline=0
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2022
+gen case="Benchmark-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(variables) replace
+restore
+
 *Create graph
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
@@ -207,3 +221,16 @@ twoway (line mean_share_cons_extra year, lpattern(solid) lcolor(teal)),  xtitle(
 		xlabel(2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20" 25 "25", angle(0)) 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-9_support_time", replace	
 
+
+//Integrate figures for obtaining elasticities
+forval i=1/2 {
+	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx", sheet("Sheet1") firstrow case(lower) clear
+	save "${gsdTemp}/Temp-Simulation_1_`i'.dta", replace
+}	
+use "${gsdTemp}/Temp-Simulation_1_1.dta", clear	
+appen using "${gsdTemp}/Temp-Simulation_1_2.dta"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Elasticities_P9.xlsx", firstrow(variables) replace
+forval i=1/2 {
+	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
+	erase "${gsdTemp}/Temp-Simulation_1_`i'.dta"
+}

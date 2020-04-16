@@ -252,6 +252,8 @@ drop participant
 bys _ID: egen participant=min(pre_participant)
 gen share_cover=participant/n_child
 collapse (mean) share_cover, by(_ID)
+set obs 46
+replace _ID = 20 in 46
 ren share_cover participant 
 replace participant=participant*100
 replace participant=. if participant==0
@@ -269,6 +271,8 @@ drop participant
 bys _ID: egen participant=min(pre_participant)
 gen share_cover=participant/n_child
 collapse (mean) share_cover, by(_ID)
+set obs 46
+replace _ID = 20 in 46
 ren share_cover participant 
 replace participant=participant*100
 replace participant=. if participant==0
@@ -322,6 +326,11 @@ gen area_tot=(100*100)/2
 gen area_a=area_tot-area_b
 gen sf_index=100*(area_a/area_tot)
 ta sf_index
+preserve
+keep sf_index
+keep if _n==1
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/SFI_3.xlsx", firstrow(variables) replace
+restore
 
 
 //Coverage of total population and poor by year (all counties) 
@@ -380,10 +389,17 @@ ren (share_poor_covered_ se_) (share_poor_covered se_poor)
 replace year=year+2000
 merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_3_benchmark.dta", nogen assert(match)
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2022
+gen case="Benchmark-Coverage"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_1.xlsx", firstrow(variables) replace
+restore
+
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(20 "20" 25 "25" 30 "30" 35 "35", angle(0)) ///
+		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025")  ylabel(20 "20" 25 "25" 30 "30" 35 "35", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-3_coverage_time", replace	
 
@@ -409,10 +425,16 @@ replace poor=poor*100
 gen ub=poor+sd
 gen lb=poor-sd
 
+*Export figures for obtaining elasticities
+preserve
+gen case="Benchmark-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(variables) replace
+restore
+
 *Create graph
 graph twoway (bar poor program if program==0, barw(0.60) bcolor(gs13))  (bar poor program if program==1, barw(0.60) bcolor(dknavy))   (rcap ub lb program) ///
 	, xtitle("Scenario", size(small)) ytitle("Poverty incidence (% of population)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-	xlabel(0 "Without the program" 1 "With the program") legend(off) ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20" 25 "25" 30 "30" 35 "35" 40 "40", angle(0))  
+	xlabel(0 "Without the program" 1 "With the program") legend(off) ylabel(0 "0" 15 "15" 30 "30" 45 "45", angle(0))  
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-3_poverty-reduction_time", replace	
 
 
@@ -562,6 +584,13 @@ ren (share_poor_covered_ se_) (share_poor_covered se_poor)
 replace year=year+2000
 merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_3_scenario1.dta", nogen assert(match)
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2022
+gen case="Scenario1-Coverage"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_3.xlsx", firstrow(variables) replace
+restore
+
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
@@ -591,9 +620,30 @@ replace poor=poor*100
 gen ub=poor+sd
 gen lb=poor-sd
 
+*Export figures for obtaining elasticities
+preserve
+gen case="Scenario1-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_4.xlsx", firstrow(variables) replace
+restore
+
 *Create graph
 graph twoway (bar poor program if program==0, barw(0.60) bcolor(gs13))  (bar poor program if program==1, barw(0.60) bcolor(dknavy))   (rcap ub lb program) ///
 	, xtitle("Scenario", size(small)) ytitle("Poverty incidence (% of population)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-	xlabel(0 "Without the program" 1 "With the program") legend(off) ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20" 25 "25" 30 "30" 35 "35" 40 "40", angle(0))  
+	xlabel(0 "Without the program" 1 "With the program") legend(off) ylabel(0 "0"15 "15" 30 "30" 45 "45", angle(0))  
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-3_poverty-reduction_scenario1", replace	
 
+
+//Integrate figures for obtaining elasticities
+forval i=1/4 {
+	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx", sheet("Sheet1") firstrow case(lower) clear
+	save "${gsdTemp}/Temp-Simulation_1_`i'.dta", replace
+}	
+use "${gsdTemp}/Temp-Simulation_1_1.dta", clear	
+forval i=2/4 {
+	appen using "${gsdTemp}/Temp-Simulation_1_`i'.dta"
+}
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Elasticities_P3.xlsx", firstrow(variables) replace
+forval i=1/4 {
+	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
+	erase "${gsdTemp}/Temp-Simulation_1_`i'.dta"
+}

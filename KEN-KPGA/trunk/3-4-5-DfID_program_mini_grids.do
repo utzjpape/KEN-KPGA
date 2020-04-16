@@ -233,6 +233,11 @@ gen area_tot=(100*100)/2
 gen area_a=area_tot-area_b
 gen sf_index=100*(area_a/area_tot)
 ta sf_index
+preserve
+keep sf_index
+keep if _n==1
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/SFI_5.xlsx", firstrow(variables) replace
+restore
 
 
 //Coverage of total population and poor by year (all counties) 
@@ -294,11 +299,18 @@ ren (share_poor_covered_ se_) (share_poor_covered se_poor)
 replace year=year+2000
 merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_5_benchmark.dta", nogen assert(match)
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2026
+gen case="Benchmark-Coverage"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_1.xlsx", firstrow(variables) replace
+restore
+
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025" 2026 "2026" 2027 "2027" 2028 "2028" 2029 "2029" 2030 "2030") ///
-		ylabel(0 "0" 0.5 "0.5" 1 "1" 1.5 "1.5" 2 "2", angle(0)) legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
+		ylabel(0 "0.0" 0.5 "0.5" 1 "1.0" 1.5 "1.5" 2 "2.0", angle(0)) legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-5_coverage_time", replace	
 
 
@@ -328,11 +340,18 @@ gen poor_ub=poverty_reduction+se_poverty_reduction
 gen poor_lb=poverty_reduction-se_poverty_reduction
 gen yline=0
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2026
+gen case="Benchmark-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(variables) replace
+restore
+
 *Create graph
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025" 2026 "2026" 2027 "2027" 2028 "2028" 2029 "2029" 2030 "2030") ///
-		ylabel(0.5 "0.5" 0 "0" -0.5 "-0.5" -1 "-1", angle(0)) legend(off)
+		ylabel(0.5 "0.5" 0 "0.0" -0.5 "-0.5", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-5_poverty-reduction_time", replace	
 
 
@@ -353,7 +372,7 @@ replace year=year+2000
 twoway (line mean_share_cons_extra year, lpattern(solid) lcolor(teal)),  xtitle("Year", size(small)) ///
 		ytitle("Share of total household expenditure (%)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) plotregion( m(b=0)) ///
 		xlabel(2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025" 2026 "2026" 2027 "2027" 2028 "2028" 2029 "2029" 2030 "2030") ///
-		ylabel(0 "0" 3 "3" 6 "6" 9 "9", angle(0)) 
+		ylabel(0 "0" 3 "3" 6 "6" 9 "9" 12 "12" 15 "15" 18 "18", angle(0)) 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-5_support_time", replace	
 
 
@@ -368,7 +387,7 @@ use "${gsdTemp}/dfid_analysis_program_5.dta", clear
 *Randomly order households within each county
 gen rand0=.
 gen rand1=.
-set seed 12565677 
+set seed 11095513 
 forval i=1/92 {
 	replace rand1=uniform() if county==`i' & n_hhs>0 & elec_acc==0 & poor==1
 	replace rand0=uniform() if county==`i' & n_hhs>0 & elec_acc==0 & poor==0
@@ -539,6 +558,13 @@ ren (share_poor_covered_ se_) (share_poor_covered se_poor)
 replace year=year+2000
 merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_5_scenario1.dta", nogen assert(match)
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2026
+gen case="Scenario1-Coverage"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_3.xlsx", firstrow(variables) replace
+restore
+
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
@@ -573,10 +599,32 @@ gen poor_ub=poverty_reduction+se_poverty_reduction
 gen poor_lb=poverty_reduction-se_poverty_reduction
 gen yline=0
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2026
+gen case="Scenario1-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_4.xlsx", firstrow(variables) replace
+restore
+
 *Create graph
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025" 2026 "2026" 2027 "2027" 2028 "2028" 2029 "2029" 2030 "2030") ///
-		ylabel(0.5 "0.5" 0 "0" -0.5 "-0.5" -1 "-1", angle(0)) legend(off)
+		ylabel(0.5 "0.5" 0 "0.0" -0.5 "-0.5" -1 "-1.0", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-5_poverty-reduction_scenario1", replace	
 
+
+//Integrate figures for obtaining elasticities
+forval i=1/4 {
+	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx", sheet("Sheet1") firstrow case(lower) clear
+	save "${gsdTemp}/Temp-Simulation_1_`i'.dta", replace
+}	
+use "${gsdTemp}/Temp-Simulation_1_1.dta", clear	
+forval i=2/4 {
+	appen using "${gsdTemp}/Temp-Simulation_1_`i'.dta"
+}
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Elasticities_P5.xlsx", firstrow(variables) replace
+forval i=1/4 {
+	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
+	erase "${gsdTemp}/Temp-Simulation_1_`i'.dta"
+}

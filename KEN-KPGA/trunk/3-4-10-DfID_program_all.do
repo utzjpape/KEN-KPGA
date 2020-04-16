@@ -192,6 +192,36 @@ replace tot_lift_poor=tot_lift_poor/1000000
 *Graph time series
 twoway (line tot_lift_poor year, lpattern(-) lcolor(black)),  xtitle("Year", size(small)) ytitle("Number of people (Million)", size(small)) ///
         xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white)  xlabel(2010 "2010" 2015 "2015" 2020 "2020" 2025 "2025" 2030 "2030" 2035 "2035" 2040 "2040") ///
-		ylabel(0 "0" 0.2 "0.2" 0.4 "0.4" 0.6 "0.6" 0.8 "0.8" 1 "1.0" 1.2 "1.2" 1.4 "1.4", angle(0)) plotregion( m(b=0))
+		ylabel(0 "0.0" 0.7 "0.7" 1.4 "1.4" 2.1 "2.1", angle(0)) plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-All_lift-poor_time", replace	
 
+
+//Integrate figures for obtaining elasticities
+forval i=1/9 {
+	import excel "${gsdOutput}/DfID-Poverty_Analysis/Elasticities_P`i'.xlsx", sheet("Sheet1") firstrow case(lower) clear
+	save "${gsdTemp}/Temp-Simulation_`i'.dta", replace
+}	
+forval i=1/9{
+	use "${gsdTemp}/Temp-Simulation_`i'.dta", clear
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Elasticities_All_v1.xlsx", sheet("P_`i'") sheetreplace
+	erase "${gsdOutput}/DfID-Poverty_Analysis/Elasticities_P`i'.xlsx"
+	erase "${gsdTemp}/Temp-Simulation_`i'.dta"
+}
+
+
+//SF Index 
+forval i=1/6 {
+	import excel "${gsdOutput}/DfID-Poverty_Analysis/SFI_`i'.xlsx", sheet("Sheet1") firstrow case(lower) clear
+	gen program=`i'
+	save "${gsdTemp}/SFI_`i'.dta", replace
+}	
+use "${gsdTemp}/SFI_1.dta", clear	
+forval i=2/6 {
+	append using "${gsdTemp}/SFI_`i'.dta"
+}
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Elasticities_All_v1.xlsx", sheet("SFI_All") sheetreplace
+
+forval i=1/6{
+	erase "${gsdOutput}/DfID-Poverty_Analysis/SFI_`i'.xlsx"
+	erase "${gsdTemp}/SFI_`i'.dta"
+}

@@ -129,7 +129,7 @@ qui forval i=1/2 {
 	forval i=1/47 {
 		sum poor_`current' [aw=wta_pop_`current'] if county==`i'
 		replace poor_rate_`previous'=r(mean) if county==`i'
-		replace poor_rate_`previous'=poor_rate_`previous'+0.01 if county==`i'
+		replace poor_rate_`previous'=poor_rate_`previous'+0.01067844 if county==`i' // Source: avg. annual reduction from KIHBS (05/6 - 15/16)
 	}
 
 	*Obtain the base (i.e. total population) for introducing the dynamic
@@ -208,7 +208,7 @@ qui forval i=1/25 {
 	forval i=1/47 {
 		sum poor_`current' [aw=wta_pop_`current'] if county==`i'
 		replace poor_rate_`next'=r(mean) if county==`i'
-		replace poor_rate_`next'=poor_rate_`next'-0.01 if county==`i'
+		replace poor_rate_`next'=poor_rate_`next'-0.00751216138395377 if county==`i' // Source: avg. annual reduction from MPO
 	}
 
 	*Obtain the base (i.e. total population) for introducing the new dynamic
@@ -322,6 +322,6 @@ twoway (line poverty year, lpattern(-) lcolor(black)) (line population year, lco
 		ytitle("Million or percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		legend(order(1 2)) legend(label(1 "Poverty incidence (% of population)") label(2 "Total population (million)") size(small))  ///
 		xlabel(2013 "2013" 2015 "2015" 2017 "2017" 2019 "2019" 2021 "2021" 2023 "2023" 2025 "2025" )  ///
-        ylabel(20 "20" 25 "25" 30 "30" 35 "35" 40 "40" 45 "45" 50 "50" 55 "55" 60 "60" 65 "65" 70 "70", angle(0)) 
+        ylabel(20 "20" 25 "25" 30 "30" 35 "35" 40 "40" 45 "45" 50 "50" 55 "55" 60 "60" 65 "65", angle(0)) 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Poverty-Population_Projection", replace	
 

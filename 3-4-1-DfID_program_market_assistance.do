@@ -235,7 +235,7 @@ save "${gsdTemp}/dfid_simulation_program_1_benchmark.dta", replace
 
 //Coverage of total population by county (across all year)
 use "${gsdTemp}/dfid_simulation_program_1_benchmark.dta", clear
-collapse (mean) participant [pw=wta_pop], by(_ID)
+collapse (mean) participant [pw=wta_pop], by(_ID county)
 replace participant=participant*100
 replace participant=. if participant==0
 grmap participant using "${gsdDataRaw}/SHP/KenyaCountyPolys_coord.dta" , id(_ID) fcolor(Greens) ///
@@ -257,6 +257,7 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_coverage_poor_map", rep
 //Spatial fairnex index (across all year)
 use "${gsdTemp}/dfid_simulation_program_1_benchmark.dta", clear
 collapse (mean) participant (max) cty_poor_pop_15 [pw=wta_pop], by(_ID)
+keep if participant>0
 egen tot_poor=sum(cty_poor_pop_15)
 gen share_poor=cty_poor_pop_15/tot_poor
 sort participant
@@ -292,18 +293,23 @@ gen area_tot=(100*100)/2
 gen area_a=area_tot-area_b
 gen sf_index=100*(area_a/area_tot)
 ta sf_index
+preserve
+keep sf_index
+keep if _n==1
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/SFI_1.xlsx", firstrow(variables) replace
+restore
 
 
-
-//Coverage of total population and poor by year (all counties) 
+//Coverage of total population and poor by year (relevant counties) 
 
 *Total population
 use "${gsdTemp}/dfid_simulation_program_1_benchmark.dta", clear
-collapse (mean) year_* (semean) se_year_13=year_13 se_year_14=year_14 se_year_15=year_15 se_year_16=year_16 se_year_17=year_17 se_year_18=year_18 se_year_19=year_19 se_year_20=year_20 (max) cty_wta_pop_* [aw=wta_pop], by(_ID)
+collapse (mean) year_* (semean) se_year_13=year_13 se_year_14=year_14 se_year_15=year_15 se_year_16=year_16 se_year_17=year_17 se_year_18=year_18 se_year_19=year_19 se_year_20=year_20 (max) cty_wta_pop_* [aw=wta_pop], by(_ID county)
 forval i=13/20 {
 	gen x`i'=year_`i'*cty_wta_pop_15
 	egen tot_part_`i'=sum(x`i')
-	egen tot_pop_`i'=sum(cty_wta_pop_`i') 
+	egen pre_tot_pop_`i'=sum(cty_wta_pop_`i') if !inlist(county,2,5,15,25)
+	egen tot_pop_`i'=min(pre_tot_pop_`i') 
 	gen share_county_`i'=x`i'/tot_part_`i'
 	gen share_covered_`i'=100*(tot_part_`i'/tot_pop_`i')
 	gen z`i'=share_county_`i'*se_year_`i'
@@ -327,12 +333,15 @@ forval i=13/20 {
 	gen x`i'=year_`i'*cty_poor_pop_`i'
 	egen poor_covered_`i'=sum(x`i')
 	gen share_county_`i'=x`i'/poor_covered_`i'
-	egen tot_poor_`i'=sum(cty_poor_pop_`i')
+	egen pre_tot_poor_`i'=sum(cty_poor_pop_`i') if !inlist(county,2,5,15,25)
+	egen tot_poor_`i'=min(pre_tot_poor_`i')
 	gen share_poor_covered_`i'=100*(poor_covered_`i'/tot_poor_`i')
 	gen z`i'=share_county_`i'*se_year_`i'
-	egen se_`i'=sum(z`i')
+	egen pre_se_`i'=sum(z`i') if !inlist(county,2,5,15,25)
+	egen se_`i'=min(pre_se_`i')
 	replace se_`i'=100*se_`i'
 	drop se_year_`i'
+
 	save "${gsdTemp}/dfid_temp_p_1_bench_`i'.dta", replace
 }	
 use "${gsdTemp}/dfid_temp_p_1_bench_13.dta", clear
@@ -349,10 +358,17 @@ ren (share_poor_covered_ se_) (share_poor_covered se_poor)
 replace year=year+2000
 merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_1_benchmark.dta", nogen assert(match)
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2020
+gen case="Benchmark-Coverage"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_1.xlsx", firstrow(variables) replace
+restore
+
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20", angle(0)) ///
+		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20" 25 "25", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_coverage_time", replace	
 
@@ -360,10 +376,10 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_coverage_time", replace
 //Effect on poverty (by year)
 use "${gsdTemp}/dfid_simulation_program_1_benchmark.dta", clear
 forval i=13/20 {
-	sum program_poor_`i' [aweight=wta_pop_`i']
+	sum program_poor_`i' [aweight=wta_pop_`i'] if !inlist(county,2,5,15,25)
 	gen poor_program_`i'=r(mean)
 	gen sd_program_`i'=r(sd)
-	sum poor_`i' [aweight=wta_pop_`i']
+	sum poor_`i' [aweight=wta_pop_`i'] if !inlist(county,2,5,15,25)
 	gen poor_benchmark_`i'=r(mean)
 	gen sd_benchmark_`i'=r(sd)
 
@@ -383,11 +399,18 @@ gen poor_ub=poverty_reduction+se_poverty_reduction
 gen poor_lb=poverty_reduction-se_poverty_reduction
 gen yline=0
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2020
+gen case="Benchmark-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(variables) replace
+restore
+
 *Create graph
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020") ///
-		ylabel(0.6 "0.6" 0.4 "0.4" 0.2 "0.2" 0 "0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
+		ylabel(0.4 "0.4" 0.2 "0.2" 0 "0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_poverty-reduction_time", replace	
 
 
@@ -407,7 +430,7 @@ ren (share_mean_extra_cons_) (mean_share_cons_extra)
 replace year=year+2000
 twoway (line mean_share_cons_extra year, lpattern(solid) lcolor(teal)),  xtitle("Year", size(small)) ///
 		ytitle("Share of total household expenditure (%)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) plotregion( m(b=0)) ///
-		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 0.5 "0.5" 1 "1" 1.5 "1.5" 2 "2", angle(0)) 
+		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0.0" 0.5 "0.5" 1.0"1.0" 1.5 "1.5", angle(0)) 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_support_time", replace	
 
 
@@ -528,15 +551,16 @@ drop start_date end_date n_hhs
 save "${gsdTemp}/dfid_simulation_program_1_scenario1.dta", replace
 
 
-//Coverage of total population and poor by year (all counties) 
+//Coverage of total population and poor by year (relevant counties) 
 
 *Total population
 use "${gsdTemp}/dfid_simulation_program_1_scenario1.dta", clear
-collapse (mean) year_* (semean) se_year_13=year_13 se_year_14=year_14 se_year_15=year_15 se_year_16=year_16 se_year_17=year_17 se_year_18=year_18 se_year_19=year_19 se_year_20=year_20 (max) cty_wta_pop_* [aw=wta_pop], by(_ID)
+collapse (mean) year_* (semean) se_year_13=year_13 se_year_14=year_14 se_year_15=year_15 se_year_16=year_16 se_year_17=year_17 se_year_18=year_18 se_year_19=year_19 se_year_20=year_20 (max) cty_wta_pop_* [aw=wta_pop], by(_ID county)
 forval i=13/20 {
 	gen x`i'=year_`i'*cty_wta_pop_15
 	egen tot_part_`i'=sum(x`i')
-	egen tot_pop_`i'=sum(cty_wta_pop_`i') 
+	egen pre_tot_pop_`i'=sum(cty_wta_pop_`i') if !inlist(county,2,5,15,25)
+	egen tot_pop_`i'=min(pre_tot_pop_`i') 
 	gen share_county_`i'=x`i'/tot_part_`i'
 	gen share_covered_`i'=100*(tot_part_`i'/tot_pop_`i')
 	gen z`i'=share_county_`i'*se_year_`i'
@@ -560,10 +584,12 @@ forval i=13/20 {
 	gen x`i'=year_`i'*cty_poor_pop_`i'
 	egen poor_covered_`i'=sum(x`i')
 	gen share_county_`i'=x`i'/poor_covered_`i'
-	egen tot_poor_`i'=sum(cty_poor_pop_`i')
+	egen pre_tot_poor_`i'=sum(cty_poor_pop_`i') if !inlist(county,2,5,15,25)
+	egen tot_poor_`i'=min(pre_tot_poor_`i')
 	gen share_poor_covered_`i'=100*(poor_covered_`i'/tot_poor_`i')
 	gen z`i'=share_county_`i'*se_year_`i'
-	egen se_`i'=sum(z`i')
+	egen pre_se_`i'=sum(z`i') if !inlist(county,2,5,15,25)
+	egen se_`i'=min(pre_se_`i')
 	replace se_`i'=100*se_`i'
 	drop se_year_`i'
 	save "${gsdTemp}/dfid_temp_p_1_scenario1_`i'.dta", replace
@@ -582,10 +608,17 @@ ren (share_poor_covered_ se_) (share_poor_covered se_poor)
 replace year=year+2000
 merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_1_scenario1.dta", nogen assert(match)
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2020
+gen case="Scenario1-Coverage"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_3.xlsx", firstrow(variables) replace
+restore
+
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20" 25 "25" 30 "30", angle(0)) ///
+		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20" 25 "25" 30 "30" 35 "35", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_coverage_time_scenario1", replace	
 
@@ -593,10 +626,10 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_coverage_time_scenario1
 //Effect on poverty (by year)
 use "${gsdTemp}/dfid_simulation_program_1_scenario1.dta", clear
 forval i=13/20 {
-	sum program_poor_`i' [aweight=wta_pop_`i']
+	sum program_poor_`i' [aweight=wta_pop_`i'] if !inlist(county,2,5,15,25)
 	gen poor_program_`i'=r(mean)
 	gen sd_program_`i'=r(sd)
-	sum poor_`i' [aweight=wta_pop_`i']
+	sum poor_`i' [aweight=wta_pop_`i'] if !inlist(county,2,5,15,25)
 	gen poor_benchmark_`i'=r(mean)
 	gen sd_benchmark_`i'=r(sd)
 
@@ -616,11 +649,18 @@ gen poor_ub=poverty_reduction+se_poverty_reduction
 gen poor_lb=poverty_reduction-se_poverty_reduction
 gen yline=0
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2020
+gen case="Scenario1-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_4.xlsx", firstrow(variables) replace
+restore
+
 *Create graph
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020") ///
-		ylabel(0.6 "0.6" 0.4 "0.4" 0.2 "0.2" 0 "0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
+		ylabel(0.4 "0.4" 0.2 "0.2" 0.0 "0.0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_poverty-reduction_time_scenario1", replace	
 
 
@@ -704,16 +744,16 @@ replace year_20=1 if year_19==1
 
 //Impact on consumption and poverty for every year 
 
-*Adjustment for Scenario 2: Multiply by 10 the magnitude of support given 
+*Adjustment for Scenario 2: Multiply by 50% the magnitude of support given 
 *Create variable with additional income result of the program (
-gen cons_extra_13=(((10*1.38*138.4)/12)/ctry_adq) * participant * year_13
-gen cons_extra_14=(((10*1.38*140.8)/12)/ctry_adq) * participant * year_14
-gen cons_extra_15=(((10*1.38*149.6)/12)/ctry_adq) * participant * year_15
-gen cons_extra_16=(((10*9.65*142.2)/12)/ctry_adq) * participant * year_16
-gen cons_extra_17=(((10*9.65*139.1)/12)/ctry_adq) * participant * year_17
-gen cons_extra_18=(((10*9.65*143.2)/12)/ctry_adq) * participant * year_18
-gen cons_extra_19=(((10*9.65*125.4)/12)/ctry_adq) * participant * year_19
-gen cons_extra_20=(((10*9.65*129.9)/12)/ctry_adq) * participant * year_20
+gen cons_extra_13=(((1.5*1.38*138.4)/12)/ctry_adq) * participant * year_13
+gen cons_extra_14=(((1.5*1.38*140.8)/12)/ctry_adq) * participant * year_14
+gen cons_extra_15=(((1.5*1.38*149.6)/12)/ctry_adq) * participant * year_15
+gen cons_extra_16=(((1.5*9.65*142.2)/12)/ctry_adq) * participant * year_16
+gen cons_extra_17=(((1.5*9.65*139.1)/12)/ctry_adq) * participant * year_17
+gen cons_extra_18=(((1.5*9.65*143.2)/12)/ctry_adq) * participant * year_18
+gen cons_extra_19=(((1.5*9.65*125.4)/12)/ctry_adq) * participant * year_19
+gen cons_extra_20=(((1.5*9.65*129.9)/12)/ctry_adq) * participant * year_20
 
 *Total household expenditure with benefits from the program
 forval i=13/20 {
@@ -738,10 +778,10 @@ save "${gsdTemp}/dfid_simulation_program_1_scenario2.dta", replace
 //Effect on poverty (by year)
 use "${gsdTemp}/dfid_simulation_program_1_scenario2.dta", clear
 forval i=13/20 {
-	sum program_poor_`i' [aweight=wta_pop_`i']
+	sum program_poor_`i' [aweight=wta_pop_`i'] if !inlist(county,2,5,15,25)
 	gen poor_program_`i'=r(mean)
 	gen sd_program_`i'=r(sd)
-	sum poor_`i' [aweight=wta_pop_`i']
+	sum poor_`i' [aweight=wta_pop_`i'] if !inlist(county,2,5,15,25)
 	gen poor_benchmark_`i'=r(mean)
 	gen sd_benchmark_`i'=r(sd)
 
@@ -761,11 +801,18 @@ gen poor_ub=poverty_reduction+se_poverty_reduction
 gen poor_lb=poverty_reduction-se_poverty_reduction
 gen yline=0
 
+*Export figures for obtaining elasticities
+preserve
+keep if year==2020
+gen case="Scenario2-Poverty"
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_5.xlsx", firstrow(variables) replace
+restore
+
 *Create graph
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020") ///
-		ylabel(0.4 "0.4" 0.2 "0.2" 0 "0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6" -0.8 "-0.8" -1.0 "-1.0", angle(0)) legend(off)
+		ylabel(0.4 "0.4" 0.2 "0.2" 0.0 "0.0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_poverty-reduction_time_scenario2", replace	
 
 
@@ -785,6 +832,21 @@ ren (share_mean_extra_cons_) (mean_share_cons_extra)
 replace year=year+2000
 twoway (line mean_share_cons_extra year, lpattern(solid) lcolor(teal)),  xtitle("Year", size(small)) ///
 		ytitle("Share of total household expenditure (%)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) plotregion( m(b=0)) ///
-		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 5 "5" 10 "10" 15 "15" 20 "20", angle(0)) plotregion( m(b=0))
+		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0.0" 0.5 "0.5" 1.0"1.0" 1.5 "1.5" 2 "2.0", angle(0)) plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_support_time_scenario2", replace	
 
+
+//Integrate figures for obtaining elasticities
+forval i=1/5 {
+	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx", sheet("Sheet1") firstrow case(lower) clear
+	save "${gsdTemp}/Temp-Simulation_1_`i'.dta", replace
+}	
+use "${gsdTemp}/Temp-Simulation_1_1.dta", clear	
+forval i=2/5 {
+	appen using "${gsdTemp}/Temp-Simulation_1_`i'.dta"
+}
+export excel using "${gsdOutput}/DfID-Poverty_Analysis/Elasticities_P1.xlsx", firstrow(variables) replace
+forval i=1/5 {
+	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
+	erase "${gsdTemp}/Temp-Simulation_1_`i'.dta"
+}

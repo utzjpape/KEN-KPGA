@@ -538,7 +538,7 @@ twoway (scatter yrsch poor if nedi==1, mcolor(black) ms(S)) (scatter yrsch poor 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_schooling", replace	
 
 *Maps
-grmap yrsch using "${gsdDataRaw}/SHP/KenyaCountyPolys_coord.dta" , id(_ID) fcolor(YlGn) ///
+grmap yrsch using "${gsdDataRaw}/SHP/KenyaCountyPolys_coord.dta" , id(_ID) fcolor(Blues) ///
       clmethod(custom) clbreaks(2 4 6 8 10 12 14) legstyle(2) legend(position(8)) legtitle("No. of years") 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_schooling_map", replace	
 

@@ -971,7 +971,7 @@ export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("fig4-6") she
 
 *Additional Rural analysis
 export excel using "${gsdOutput}/C4-Rural/add_rural.xlsx", sheet("Income") sheetreplace firstrow(varlabels)
-
+/*
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Income15.dta", clear
 keep if rural == 1
 merge m:1 uhhid using "${gsdData}/1-CleanTemp/hhfarmsub15.dta"

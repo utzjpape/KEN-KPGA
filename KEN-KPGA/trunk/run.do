@@ -88,8 +88,9 @@ run "${gsdDo}/2-8-2-2005 Descriptives.do"
 run "${gsdDo}/2-8-2-2015 Descriptives.do"
 *Create 2005/06 poverty & vulnerability profile
 run "${gsdDo}/2-8-3-2005 povertyprofile.do"
-*Prepare 2005 & 2015 shocks / coping strategy 
+*Prepare 2005 shocks & coping strategy 
 run "${gsdDo}/2-8-4-2005 coping prepare.do"
+*Tabulate shock incidence and severity and coping strategy (by poor/non-poor & rural/urban)
 run "${gsdDo}/2-8-5-2005 coping descriptives.do"
 run "${gsdDo}/2-8-6-2005 Shocks.do"
 run "${gsdDo}/2-8-7-2015 Shocks.do"

@@ -116,19 +116,19 @@ svy: mean poor if b04==1 & b05_yy>=15, over(marital)
 svy: mean poor if b04==2 & b05_yy>=15, over(marital)   
 
 svy: mean poor if marital==1 & b05_yy>=15, over(b04)
-test [poor]Male = [poor]Female
+test c.poor@1.b04 = c.poor@2.b04
 
 svy: mean poor if marital==2 & b05_yy>=15, over(b04)
-test [poor]Male = [poor]Female
+test c.poor@1.b04 = c.poor@2.b04
 
 svy: mean poor if marital==3 & b05_yy>=15, over(b04)
-test [poor]Male = [poor]Female
+test c.poor@1.b04 = c.poor@2.b04
 
 svy: mean poor if marital==4 & b05_yy>=15, over(b04)
-test [poor]Male = [poor]Female
+test c.poor@1.b04 = c.poor@2.b04
 
 svy: mean poor if marital==5 & b05_yy>=15, over(b04)
-test [poor]Male = [poor]Female
+test c.poor@1.b04 = c.poor@2.b04
 
 
 ** Household-level
@@ -181,7 +181,8 @@ bysort clid hhid: keep if _n==1
 isid clid hhid
 
 svy: mean poor, over(fem_head)
-test [poor]Male = [poor]Female
+test c.poor@0.fem_head = c.poor@1.fem_head
+
 svy: tab fem_head
 
 svy: mean poor, over(type_dem)

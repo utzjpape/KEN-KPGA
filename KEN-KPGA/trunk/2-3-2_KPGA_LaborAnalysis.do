@@ -170,14 +170,16 @@ gen plot_size = k06*0.404686 if  k06<=500
 svyset clid [pw=wta_hh], strata(county) singleunit(scaled)
 
 svy: mean plot_size, over (plotmanag_b04)
-test [plot_size]Male = [plot_size]Female
+matrix plot_size = e(b)
+test c.plot_size@1.plotmanag_b04 = c.plot_size@2.plotmanag_b04
 
 svy: mean irrigation, over (plotmanag_b04)
-test [irrigation]Male = [irrigation]Female
+matrix irrigation = e(b)
+test c.irrigation@1.plotmanag_b04 = c.irrigation@2.plotmanag_b04
 
 svy: mean fert_inorg, over(plotmanag_b04)
-test [fert_inorg]Male = [fert_inorg]Female
-
+matrix fert_inorg = e(b)
+test c.fert_inorg@1.plotmanag_b04 = c.fert_inorg@2.plotmanag_b04
 
 *-------------------------------*
 * Household enterprises         *

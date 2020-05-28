@@ -62,7 +62,7 @@ foreach year in 2005 2015 {
 	foreach var of varlist hhsize depen sha0_4 sha5_14 shama15_65 shafe15_65 no_edu  aveyrsch literacy hwage dive impwater impsan elec_light elec_acc garcoll ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa  {
 		svy: mean `var' if kihbs==`year' , over(poor)
 		matrix `var' = e(b)
-		test [`var']0 = [`var']1
+		test c.`var'@1.poor = c.`var'@0.poor
 		matrix `var'_diff = `r(p)'
 		
 		svy: mean `var' if kihbs==`year'
@@ -89,7 +89,7 @@ foreach year in 2005 2015 {
 	foreach var of varlist hhsize depen sha0_4 sha5_14 shama15_65 shafe15_65 no_edu  aveyrsch literacy hwage dive impwater impsan elec_light elec_acc garcoll ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa  {
 		svy: mean `var' if kihbs==`year' & urban==0 , over(poor)
 		matrix `var' = e(b)
-		test [`var']0 = [`var']1
+		test c.`var'@1.poor = c.`var'@0.poor
 		matrix `var'_diff = `r(p)'
 		
 		svy: mean `var' if kihbs==`year' & urban==0
@@ -116,7 +116,7 @@ foreach year in 2005 2015 {
 	foreach var of varlist hhsize depen sha0_4 sha5_14 shama15_65 shafe15_65 no_edu  aveyrsch literacy hwage dive impwater impsan elec_light elec_acc garcoll ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa  {
 		svy: mean `var' if kihbs==`year' & urban==1 , over(poor)
 		matrix `var' = e(b)
-		test [`var']0 = [`var']1
+		test c.`var'@1.poor = c.`var'@0.poor
 		matrix `var'_diff = `r(p)'
 		
 		svy: mean `var' if kihbs==`year' & urban==1
@@ -214,7 +214,7 @@ foreach year in 2005 2015 			{
 	foreach var of local controls1 {
 		svy: mean `var' if kihbs==`year' , over(poor)
 		matrix `var' = e(b)
-		test [`var']0 = [`var']1
+		test c.`var'@1.poor = c.`var'@0.poor
 		matrix `var'_diff = `r(p)'
 		
 		svy: mean `var' if kihbs==`year'

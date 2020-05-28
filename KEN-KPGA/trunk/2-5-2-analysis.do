@@ -33,16 +33,15 @@ append using "${gsdData}/2-AnalysisOutput/KIHBS_master_2005", force
 svyset, clear
 svyset clid [pw=wta_pop]
 svy: mean poor if urban==1, over(year)
-lincom [poor]2015 - [poor]2005 
+test c.poor@2005.year = c.poor@2015.year
 
 * without Nairobi
 svy: mean poor if urban==1 & province!=8, over(year)
-lincom [poor]2015 - [poor]2005
+test c.poor@2005.year = c.poor@2015.year
 
 * urban without Nairobi vs rural
 svy: mean poor if province!=8 & year==2015, over(urban)
-lincom [poor]1 - [poor]0
-
+test c.poor@1.urban = c.poor@0.urban
 
 
 ///////////////////////////////
@@ -1225,7 +1224,8 @@ foreach x in 1 /*47 1*/ {
 		water_* toilet_* electricity garbage {
 		
 		svy: mean `y', over(slum)
-		lincom [`y']1 - [`y']0
+		test c.`y'@1.slum = c.`y'@0.slum
+
 	}
 	restore
 

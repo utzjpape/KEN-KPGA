@@ -118,78 +118,16 @@ gen poor_15=poor
 gen y2_i_15=y2_i
 
 
-//Locals for the loop for poverty status 2013 to 2014
-local current = 15
-local previous = 14
+//Passthrough used to obtain the same poverty forecasts as in the MPO
+local parameter = 0.395
 
-qui forval i=1/2 {
 
-	*Obtain the 'current' poverty rate and substract a 1% for the following year
-	gen poor_rate_`previous'=.
-	forval i=1/47 {
-		sum poor_`current' [aw=wta_pop_`current'] if county==`i'
-		replace poor_rate_`previous'=r(mean) if county==`i'
-		replace poor_rate_`previous'=poor_rate_`previous'+0.01067844 if county==`i' // Source: avg. annual reduction from KIHBS (05/6 - 15/16)
-	}
+//Consumption and poverty status 2013 to 2014
+gen y2_i_14 = y2_i_15 * (1+ (-.024328 * `parameter'))
+gen poor_14 = (y2_i_14 < z2_i)
 
-	*Obtain the base (i.e. total population) for introducing the dynamic
-	gen num_poor_`previous'=.
-	forval i=1/47 {
-		egen pop_`previous'_`i'=sum(wta_pop_`previous') if county==`i'
-		replace num_poor_`previous'=pop_`previous'_`i'*poor_rate_`previous' if county==`i'
-		drop pop_`previous'_`i'
-	}
-
-	*Check that the no. of poor should go up according to the assumed dynamic
-	gen check_`previous'=.
-	forval i=1/47 {
-		egen pop_poor_`previous'_`i'=sum(wta_pop_`previous') if poor_`current'==1 & county==`i'
-		sum pop_poor_`previous'_`i' 
-		replace check_`previous'=r(mean) if county==`i'
-}
-	assert check_`previous'<num_poor_`previous' if check_`previous'<.
-	drop check_`previous'
-	
-	*Randomly order non-poor households 
-	gen rand=.
-	set seed 29022020 
-	forval i=1/47 {
-		replace rand=uniform() if poor_`current'==0 & county==`i'
-	}
-	sort county rand 
-
-	*Adjust the status of some randomly selected HHs to poor in line w/the implied dynamic
-	by county: gen num=_n
-	gen cum_wta_pop_`previous'=.
-	forval i=1/47 {
-		egen tot_pop_poor_`previous'_`i'=min(pop_poor_`previous'_`i')
-		replace cum_wta_pop_`previous'=tot_pop_poor_`previous'_`i'+wta_pop_`previous' if num==1 & county==`i'
-		replace cum_wta_pop_`previous'=cum_wta_pop_`previous'[_n-1]+wta_pop_`previous' if num>=2 & county==`i' & rand<.
-	}
-	gen diff_npoor=num_poor_`previous'-cum_wta_pop_`previous' 
-	gen pre_threshold=abs(diff_npoor)
-	by county: egen threshold=min(pre_threshold)
-	gen threshold_now_poor=rand if threshold==pre_threshold
-	gen cut_off=.
-	forval i=1/47 {
-		sum threshold_now_poor if county==`i'
-		replace cut_off=r(mean) if rand<. & county==`i'
-	}
-	gen poor_`previous'=poor_`current'
-	replace poor_`previous'=1 if rand<=cut_off & cut_off<.
-
-	*Adjust also the consumption values using the median of poor in the same location
-	bys county urban: egen pre_med_y2_i=median(y2_i_`current') if poor_`current'==1
-	bys county urban: egen med_y2_i=min(pre_med_y2_i)
-	gen y2_i_`previous'=y2_i_`current'
-	replace  y2_i_`previous'=med_y2_i if rand<=cut_off & cut_off<.
-	drop rand poor_rate_`previous' num_poor_`previous' pop_poor_`previous'_* rand cum_wta_pop_`previous' diff_npoor pre_threshold threshold threshold_now_poor cut_off num pre_med_y2_i med_y2_i tot_pop_poor_*
-
-	*Adjust the local to continue the loop for the following year
-	local current = 15 - 1
-	local previous = 14 - 1
-	di `i'
-}
+gen y2_i_13 = y2_i_14 * (1+ (-.015675 * `parameter')) // -1.57% consumption growth 2015 to 2014 from the MPO 
+gen poor_13 = (y2_i_14 < z2_i)
 
 
 
@@ -197,76 +135,41 @@ qui forval i=1/2 {
 * 3 | POVERTY ESTIMATES (2016-2040) 
 **************************************
 
-//Locals for the loop for poverty status 2016 to 2040
-local current = 15
-local next = 16
+// 2016-2022 (period forecasted by the MPO)
+gen y2_i_16 = y2_i_15 * (1+ (0.0211215447634458 * `parameter')) // 2.11% consumption growth used in the MPO 
+gen poor_16 = (y2_i_16 < z2_i)
 
-qui forval i=1/25 {
+gen y2_i_17 = y2_i_16 * (1+ (0.0493474006652832 * `parameter'))
+gen poor_17 = (y2_i_17 < z2_i)
 
-	*Obtain the 'current' poverty rate and substract a 1% for the following year
-	gen poor_rate_`next'=.
-	forval i=1/47 {
-		sum poor_`current' [aw=wta_pop_`current'] if county==`i'
-		replace poor_rate_`next'=r(mean) if county==`i'
-		replace poor_rate_`next'=poor_rate_`next'-0.00751216138395377 if county==`i' // Source: avg. annual reduction from MPO
-	}
+gen y2_i_18 = y2_i_17 * (1+ (0.0326373912394046 * `parameter'))
+gen poor_18 = (y2_i_18 < z2_i)
 
-	*Obtain the base (i.e. total population) for introducing the new dynamic
-	gen num_poor_`next'=.
-	forval i=1/47 {
-		egen pop_`next'_`i'=sum(wta_pop_`next') if county==`i'
-		replace num_poor_`next'=pop_`next'_`i'*poor_rate_`next' if county==`i'
-		drop pop_`next'_`i'
-	}
+gen y2_i_19 = y2_i_18 * (1+ (0.0450736507773399 * `parameter'))
+gen poor_19 = (y2_i_19 < z2_i)
 
-	*Check that the no. of poor should go down according to the assumed dynamic
-	gen check_`next'=.
-	forval i=1/47 {
-		egen pop_poor_`next'_`i'=sum(wta_pop_`next') if poor_`current'==1 & county==`i'
-		sum pop_poor_`next'_`i' 
-		replace check_`next'=r(mean) if county==`i'
-	}
-	assert check_`next'>num_poor_`next' if check_`next'<.
-	drop check_`next'
+gen y2_i_20 = y2_i_19 * (1+ (0.0122439721599221 * `parameter'))
+gen poor_20 = (y2_i_20 < z2_i)
 
-	*Randomly order poor households 
-	gen rand=.
-	set seed 29022020 
-	forval i=1/47 {
-		replace rand=uniform() if poor_`current'==1 & county==`i'
-	}
-	sort county rand 
+gen y2_i_21 = y2_i_20 * (1+ (0.0331052057445049 * `parameter'))
+gen poor_21 = (y2_i_21 < z2_i)
 
-	*Adjust the status of some randomly selected HHs to non-poor in line w/the implied dynamic
-	by county: gen num=_n
-	gen cum_wta_pop_`next'=.
-	forval i=1/47 {
-		replace cum_wta_pop_`next'=wta_pop_`next' if num==1 & county==`i'
-		replace cum_wta_pop_`next'=cum_wta_pop_`next'[_n-1]+wta_pop_`next' if num>=2 & county==`i' & rand<.
-	}
-	gen diff_poor=num_poor_`next'-cum_wta_pop_`next' 
-	gen pre_threshold=abs(diff_poor)
-	by county: egen threshold=min(pre_threshold)
-	gen threshold_still_poor=rand if threshold==pre_threshold
-	gen cut_off=.
-	forval i=1/47 {
-		sum threshold_still_poor if county==`i'
-		replace cut_off=r(mean) if rand<. & county==`i'
-	}
-	gen poor_`next'=poor_`current'
-	replace poor_`next'=0 if rand>cut_off
+gen y2_i_22 = y2_i_21 * (1+ (0.0402939729392528 * `parameter'))
+gen poor_22 = (y2_i_22 < z2_i)
 
-	*Adjust also the consumption values using the median of non-poor in the same location
-	bys county urban: egen pre_med_y2_i=median(y2_i_`current') if poor_`current'==0
-	bys county urban: egen med_y2_i=min(pre_med_y2_i)
-	gen y2_i_`next'=y2_i_`current'
-	replace  y2_i_`next'=med_y2_i if rand>cut_off
-	drop rand poor_rate_`next' num_poor_`next' pop_poor_`next'_* rand cum_wta_pop_`next' diff_poor pre_threshold threshold threshold_still_poor cut_off num pre_med_y2_i med_y2_i
+
+// 2023 to 2040 (beyond the MPO period)
+local current = 22
+local next = 23
+
+forval j=1/18 {
+	gen y2_i_`next' = y2_i_`current' * (1+ (0.033403305 * `parameter')) // Average consumption growth 2016-2022 from MPO
+	gen poor_`next' = (y2_i_`next' < z2_i)
 
 	*Adjust the local to continue the loop for the following year
 	local current = `current' + 1
 	local next = `next' + 1
-	di `i'
+	di `j'
 
 }
 

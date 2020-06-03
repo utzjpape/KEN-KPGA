@@ -310,7 +310,7 @@ restore
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025" 2026 "2026" 2027 "2027" 2028 "2028" 2029 "2029" 2030 "2030") ///
-		ylabel(0 "0.0" 0.5 "0.5" 1 "1.0" 1.5 "1.5" 2 "2.0", angle(0)) legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
+		ylabel(0 "0.0" 0.5 "0.5" 1 "1.0" 1.5 "1.5" 2 "2.0"  2.5 "2.5", angle(0)) legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-5_coverage_time", replace	
 
 
@@ -372,7 +372,7 @@ replace year=year+2000
 twoway (line mean_share_cons_extra year, lpattern(solid) lcolor(teal)),  xtitle("Year", size(small)) ///
 		ytitle("Share of total household expenditure (%)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) plotregion( m(b=0)) ///
 		xlabel(2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025" 2026 "2026" 2027 "2027" 2028 "2028" 2029 "2029" 2030 "2030") ///
-		ylabel(0 "0" 3 "3" 6 "6" 9 "9" 12 "12" 15 "15" 18 "18", angle(0)) 
+		ylabel(0 "0" 2 "2" 4 "4" 6 "6" 8 "8" 10 "10", angle(0)) 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-5_support_time", replace	
 
 
@@ -569,7 +569,7 @@ restore
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025" 2026 "2026" 2027 "2027" 2028 "2028" 2029 "2029" 2030 "2030") ///
-		ylabel(0 "0" 1 "1" 2 "2" 3 "3" 4 "4" 5 "5", angle(0)) legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
+		ylabel(0 "0" 1 "1" 2 "2" 3 "3" 4 "4" 5 "5" 6 "6" 7 "7", angle(0)) legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-5_coverage_scenario1", replace	
 
 
@@ -610,7 +610,7 @@ restore
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025" 2026 "2026" 2027 "2027" 2028 "2028" 2029 "2029" 2030 "2030") ///
-		ylabel(0.5 "0.5" 0 "0.0" -0.5 "-0.5" -1 "-1.0", angle(0)) legend(off)
+		ylabel(0.5 "0.5" 0 "0.0" -0.5 "-0.5", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-5_poverty-reduction_scenario1", replace	
 
 

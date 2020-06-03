@@ -30,7 +30,7 @@ use "${gsdTemp}/dfid_analysis_program_9.dta", clear
 //Identify households that benefited from the program
 *Only HH heads wage-employed or self-employed in agriculture and manufacturing 
 gen participant=(inlist(hhempstat,1,2) & inlist(hhsector,1,2))
-set seed 20200366 
+set seed 20200661 
 
 *First randomly identify some beneficiaries among this group
 gen selected= floor((2)*runiform() + 0) if inlist(hhempstat,1,2) & inlist(hhsector,1,2)
@@ -38,7 +38,7 @@ replace participant=0 if selected==0
 
 *Then randomly distribute the gains across these households
 gen rand=.
-set seed 20200366 
+set seed 20200661 
 replace rand=uniform() if participant==1
 
 *Scale up to sum 100 

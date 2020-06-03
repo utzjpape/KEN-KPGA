@@ -392,7 +392,7 @@ ren (share_mean_extra_cons_) (mean_share_cons_extra)
 replace year=year+2000
 twoway (line mean_share_cons_extra year, lpattern(solid) lcolor(teal)),  xtitle("Year", size(small)) ///
 		ytitle("Share of total household expenditure (%)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) plotregion( m(b=0)) ///
-		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(25 "25" 30 "30" 35 "35" 40 "40", angle(0)) 
+		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(25 "25" 28 "28" 31 "31" 34 "34" 37 "37", angle(0)) 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-2_support_time", replace	
 
 
@@ -732,7 +732,7 @@ ren (share_mean_extra_cons_) (mean_share_cons_extra)
 replace year=year+2000
 twoway (line mean_share_cons_extra year, lpattern(solid) lcolor(teal)),  xtitle("Year", size(small)) ///
 		ytitle("Share of total household expenditure (%)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) plotregion( m(b=0)) ///
-		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(40 "40" 45 "45" 50 "50" 55 "55" 60 "60", angle(0)) 
+		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024")  ylabel(35 "35" 40 "40" 45 "45" 50 "50" 55 "55", angle(0)) 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-2_support_time_scenario2", replace	
 
 

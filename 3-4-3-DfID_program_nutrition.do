@@ -434,7 +434,7 @@ restore
 *Create graph
 graph twoway (bar poor program if program==0, barw(0.60) bcolor(gs13))  (bar poor program if program==1, barw(0.60) bcolor(dknavy))   (rcap ub lb program) ///
 	, xtitle("Scenario", size(small)) ytitle("Poverty incidence (% of population)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-	xlabel(0 "Without the program" 1 "With the program") legend(off) ylabel(0 "0" 15 "15" 30 "30" 45 "45", angle(0))  
+	xlabel(0 "Without the program" 1 "With the program") legend(off) ylabel(0 "0" 10 "10" 20 "20" 30 "30" 40 "40", angle(0))  
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-3_poverty-reduction_time", replace	
 
 
@@ -629,7 +629,7 @@ restore
 *Create graph
 graph twoway (bar poor program if program==0, barw(0.60) bcolor(gs13))  (bar poor program if program==1, barw(0.60) bcolor(dknavy))   (rcap ub lb program) ///
 	, xtitle("Scenario", size(small)) ytitle("Poverty incidence (% of population)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-	xlabel(0 "Without the program" 1 "With the program") legend(off) ylabel(0 "0"15 "15" 30 "30" 45 "45", angle(0))  
+	xlabel(0 "Without the program" 1 "With the program") legend(off) ylabel(0 "0" 10 "10" 20 "20" 30 "30" 40 "40", angle(0))  
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-3_poverty-reduction_scenario1", replace	
 
 

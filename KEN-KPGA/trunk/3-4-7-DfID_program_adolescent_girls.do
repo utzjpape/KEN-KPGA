@@ -49,8 +49,8 @@ use "${gsdTemp}/dfid_analysis_program_7.dta", clear
 //Identify program recipients 
 *Randomly order households within each county 
 gen rand=.
-set seed 5513629
-replace rand=uniform() if county==8 & n_hhs<. & n_target>0 & elec_acc==0 & imp_floor==0 & elec_acc==0 & room==1
+set seed 2213129
+replace rand=uniform() if county==8 & n_hhs<. & n_target>0 & imp_floor==0 & elec_acc==0 & room==1
 replace rand=uniform() if county==47 & n_hhs<. & n_target>0 & elec_acc==1 & poor_25==1
 sort county rand 
 
@@ -237,7 +237,7 @@ restore
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 1 "1" 2 "2" 3 "3" 4 "4", angle(0)) ///
+		xlabel(2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 1 "1" 2 "2" 3 "3", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-7_coverage_time", replace	
 
@@ -313,19 +313,13 @@ use "${gsdTemp}/dfid_analysis_program_7.dta", clear
 
 //Identify program recipients 
 *Randomly order households within each county 
-gen rand1=.
-gen rand0=.
-gen rand2=.
-set seed 5513629 
-replace rand1=uniform() if county==8 & n_hhs<. & n_target>0 & elec_acc==0 & imp_floor==0 & room==1 & poor==1
-replace rand0=uniform() if county==8 & n_hhs<. & n_target>0 & elec_acc==0 & imp_floor==0 & room==1 & poor==0
-replace rand2=uniform() if county==47 & n_hhs<. & n_target>0 & elec_acc==1 & poor_25==1
+gen rand=.
+set seed 2213129
+replace rand=uniform() if county==8 & n_hhs<. & n_target>0 & imp_floor==0 & elec_acc==0 & room==1
+replace rand=uniform() if county==47 & n_hhs<. & n_target>0 & elec_acc==1 & poor_25==1
 
 *Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
-gen rand=.
-replace rand=rand1 if poor==1
-replace rand=rand*0.15 
-replace rand=rand2 if rand2<.
+replace rand=rand*0.15 if poor==1 & rand<.
 sort county rand 
 
 *Identify some randomly selected HHs as beneficiares of the program 
@@ -359,7 +353,6 @@ forval i=14/17 {
 forval i=18/25 {
 	gen year_`i'=(participant)
 }
-
 
 //Impact on consumption and poverty for every year 
 *Create variable with additional income result of the program
@@ -436,14 +429,14 @@ qui forval i=14/20 {
 	egen se_`i'=min(pre_se_`i')
 	replace se_`i'=100*se_`i'
 	drop se_year_`i'
-	save "${gsdTemp}/dfid_temp_p_7_bench_`i'.dta", replace
+	save "${gsdTemp}/dfid_temp_p_7_scenario1_`i'.dta", replace
 }	
-use "${gsdTemp}/dfid_temp_p_7_bench_14.dta", clear
+use "${gsdTemp}/dfid_temp_p_7_scenario1_14.dta", clear
 forval i=15/20 {
-	merge 1:1 county using "${gsdTemp}/dfid_temp_p_7_bench_`i'.dta", nogen assert(match)
-	erase "${gsdTemp}/dfid_temp_p_7_bench_`i'.dta"
+	merge 1:1 county using "${gsdTemp}/dfid_temp_p_7_scenario1_`i'.dta", nogen assert(match)
+	erase "${gsdTemp}/dfid_temp_p_7_scenario1_`i'.dta"
 }
-erase "${gsdTemp}/dfid_temp_p_7_bench_14.dta"
+erase "${gsdTemp}/dfid_temp_p_7_scenario1_14.dta"
 keep _ID share_poor_covered_* se_*
 keep if _ID==1
 reshape long share_poor_covered_ se_, i(_ID) j(year)
@@ -455,14 +448,14 @@ merge 1:1 year using "${gsdTemp}/dfid_temp_poor-year_program_7_scenario1.dta", n
 *Export figures for obtaining elasticities
 preserve
 keep if year==2020
-gen case="Scenario1-Coverage"
+gen case="Benchmark-scenario1"
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_3.xlsx", firstrow(variables) replace
 restore
 
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 1 "1" 2 "2" 3 "3" 4 "4" 5 "5", angle(0)) ///
+		xlabel(2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 1 "1" 2 "2" 3 "3", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-7_coverage_scenario1", replace	
 
@@ -496,7 +489,7 @@ gen yline=0
 *Export figures for obtaining elasticities
 preserve
 keep if year==2025
-gen case="Scenario1-Poverty"
+gen case="Benchmark-scenario1"
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_4.xlsx", firstrow(variables) replace
 restore
 
@@ -504,8 +497,9 @@ restore
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025") ///
-		ylabel(0.4 "0.4" 0.2 "0.2" 0 "0.0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6" -0.8 "-0.8", angle(0)) legend(off)
+		ylabel(0.3 "0.3" 0 "0.0" -0.3 "-0.3" -0.6 "-0.6", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-7_poverty-reduction_scenario1", replace	
+
 
 
 //Integrate figures for obtaining elasticities

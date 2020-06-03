@@ -192,7 +192,7 @@ replace tot_lift_poor=tot_lift_poor/1000000
 *Graph time series
 twoway (line tot_lift_poor year, lpattern(-) lcolor(black)),  xtitle("Year", size(small)) ytitle("Number of people (Million)", size(small)) ///
         xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white)  xlabel(2010 "2010" 2015 "2015" 2020 "2020" 2025 "2025" 2030 "2030" 2035 "2035" 2040 "2040") ///
-		ylabel(0 "0.0" 0.7 "0.7" 1.4 "1.4" 2.1 "2.1", angle(0)) plotregion( m(b=0))
+		ylabel(0 "0.0" 0.6 "0.6" 1.2 "1.2" 1.8 "1.8", angle(0)) plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-All_lift-poor_time", replace	
 
 

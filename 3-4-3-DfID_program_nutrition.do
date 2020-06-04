@@ -271,13 +271,14 @@ drop participant
 bys _ID: egen participant=min(pre_participant)
 gen share_cover=participant/n_child
 collapse (mean) share_cover, by(_ID)
-set obs 46
+set obs 47
 replace _ID = 20 in 46
+replace _ID = 40 in 47
 ren share_cover participant 
 replace participant=participant*100
 replace participant=. if participant==0
 grmap participant using "${gsdDataRaw}/SHP/KenyaCountyPolys_coord.dta" , id(_ID) fcolor(OrRd) ///
-      clmethod(custom) clbreaks(30 35 40 60 100) legstyle(2) legend(position(8)) legtitle("% of poor")  ndfcolor(gs12) ndlabel(Not covered)
+      clmethod(custom) clbreaks(25 30 35 40 60 100) legstyle(2) legend(position(8)) legtitle("% of poor")  ndfcolor(gs12) ndlabel(Not covered)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-3_coverage_poor_map", replace	
 
 

@@ -205,7 +205,7 @@ ren share_cover participant
 replace participant=participant*100
 replace participant=. if participant==0
 grmap participant using "${gsdDataRaw}/SHP/KenyaCountyPolys_coord.dta" , id(_ID) fcolor(OrRd) ///
-      clmethod(custom) clbreaks(0 5 10 15 20 25 30) legstyle(2) legend(position(8)) legtitle("% of poor")  ndfcolor(gs12) ndlabel(Not covered)
+      clmethod(custom) clbreaks(0 5 10 15 20 25 30 35) legstyle(2) legend(position(8)) legtitle("% of poor")  ndfcolor(gs12) ndlabel(Not covered)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-6_coverage_poor_map", replace	
 
 

@@ -205,7 +205,7 @@ collapse (mean) participant [pw=wta_pop], by(_ID)
 replace participant=participant*100
 replace participant=. if participant==0
 grmap participant using "${gsdDataRaw}/SHP/KenyaCountyPolys_coord.dta" , id(_ID) fcolor(OrRd) ///
-      clmethod(custom) clbreaks(0 2 4 6 8 11) legstyle(2) legend(position(8)) legtitle("% of poor")  ndfcolor(gs12) ndlabel(Not covered)
+      clmethod(custom) clbreaks(0 3 6 9 12 15) legstyle(2) legend(position(8)) legtitle("% of poor")  ndfcolor(gs12) ndlabel(Not covered)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-4_coverage_poor_map", replace	
 
 

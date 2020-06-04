@@ -592,7 +592,7 @@ restore
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024") ///
-		ylabel(1 "1" 0 "0" -1 "-1" -2 "-2" -3 "-3" -4 "-4" -5 "-5", angle(0)) legend(off)
+		ylabel(1 "1" 0 "0" -1 "-1" -2 "-2" -3 "-3" -4 "-4" -5 "-5" -6 "-6", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-2_poverty-reduction_time_scenario1", replace	
 
 

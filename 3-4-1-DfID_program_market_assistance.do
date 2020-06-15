@@ -99,6 +99,7 @@ save "${gsdTemp}/dfid_info_program_1.dta", replace
 //Merge DfID data and KIHBS 
 use "${gsdTemp}/dfid_kihbs_poverty_analysis.dta", clear
 merge m:1 county urban using "${gsdTemp}/dfid_info_program_1.dta", nogen keep(match)
+compress
 save "${gsdTemp}/dfid_analysis_program_1.dta", replace
 
 
@@ -106,126 +107,146 @@ save "${gsdTemp}/dfid_analysis_program_1.dta", replace
 ****************************************
 * 2 | SIMULATE THE IMPACT ON POVERTY 
 ****************************************
-
-use "${gsdTemp}/dfid_analysis_program_1.dta", clear
-
-//Identify program recipients 
-*Randomly order households within each strata 
-gen rand=.
 set seed 5600220 
-forval i=1/92 {
-	replace rand=uniform() if strata==`i' & n_hhs>0
+
+//Loop for selecting randomly 100 different subsamples of beneficiaries
+local n_set_simulation =100
+
+qui forval x=1/`n_set_simulation' { 
+ 
+	use "${gsdTemp}/dfid_analysis_program_1.dta", clear
+
+	//Identify program recipients 
+	*Randomly order households within each strata 
+	gen rand_`x'=.
+	forval i=1/92 {
+		replace rand_`x'=uniform() if strata==`i' & n_hhs>0
+	}
+	sort strata rand_`x' 
+
+	*Identify some randomly selected HHs as beneficiares of the program 
+	by strata: gen num=_n
+	gen cum_wta_hh=.
+	forval i=1/92 {
+		replace cum_wta_hh=wta_hh if num==1 & strata==`i'
+		replace cum_wta_hh=cum_wta_hh[_n-1]+wta_hh if num>=2 & strata==`i' & rand_`x'<.
+	}
+	gen diff_hhs=n_hhs-cum_wta_hh 
+	gen pre_threshold=abs(diff_hhs)
+	by strata: egen threshold=min(pre_threshold)
+	gen threshold_in=rand_`x' if threshold==pre_threshold
+	gen cut_off=.
+	forval i=1/92 {
+		sum threshold_in if strata==`i'
+		replace cut_off=r(mean) if rand_`x'<. & strata==`i'
+	}
+	gen participant=1 if rand_`x'<=cut_off & rand_`x'<.
+	replace participant=0 if participant>=.
+	drop rand_`x' 
+	drop num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
+
+
+	//Obtain the duration in the program (fraction of year)
+	forval i=13/20 {
+		gen pre_end_`i'="31" + "-" + "12"  + "-" + "20`i'" 
+		gen end_`i'= date(pre_end_`i', "DMY")
+		format end_`i' %td
+		drop pre_end_`i'
+	}
+	forval i=13/20 {
+		gen year_`i'=(end_`i' - start_date)/365
+		replace year_`i'=0 if year_`i'<0
+		replace year_`i'=1 if year_`i'>1
+		replace year_`i'=. if participant!=1
+
+	}
+	replace year_19=0 if end_date==td(30dec2018)
+	replace year_20=0 if end_date==td(30dec2018)
+	replace year_19=0 if end_date==td(31dec2018)
+	replace year_20=0 if end_date==td(31dec2018)
+	replace year_20=0 if end_date==td(30dec2019)
+	replace year_20=0 if end_date==td(31dec2019)
+	replace year_19=0 if end_date==td(31oct2018)
+	replace year_20=0 if end_date==td(31oct2018)
+	replace year_18=(303/365) if end_date==td(31oct2018)
+	replace year_20=(31/365) if end_date==td(31jan2020)
+	replace year_20=(91/365) if end_date==td(31mar2020) 
+	replace year_20=(172/365) if end_date==td(20jun2020)
+	drop end_1* end_2*
+	forval i=13/20 {
+		replace year_`i'=0 if year_`i'==.
+	}
+
+	*Consider the effect as persistent 
+	replace year_14=1 if year_13==1
+	replace year_15=1 if year_14==1
+	replace year_16=1 if year_15==1
+	replace year_17=1 if year_16==1
+	replace year_18=1 if year_17==1
+	replace year_19=1 if year_18==1
+	replace year_20=1 if year_19==1
+
+
+	//Key information to implement the simulation
+
+	*       Annual change in household income (from DfID):
+	*       £1.38 in 2013-2015 
+	*       £9.65 2016 and after 
+
+	*       Exchange rates considered 
+	*       2013: 1 GBP = 138.4 KSh 
+	*       2014: 1 GBP = 140.8 KSh 
+	*       2015: 1 GBP = 149.6 KSh 
+	*       2016: 1 GBP = 142.2 KSh 
+	*       2017: 1 GBP = 139.1 KSh 
+	*       2018: 1 GBP = 143.2 KSh 
+	*       2019: 1 GBP = 125.4 KSh 
+	*       2020: 1 GBP = 129.9 KSh 
+
+
+	//Impact on consumption and poverty for every year 
+	*Create variable with additional income result of the program
+	gen cons_extra_13=(((1.38*138.4)/12)/ctry_adq) * participant * year_13
+	gen cons_extra_14=(((1.38*140.8)/12)/ctry_adq) * participant * year_14
+	gen cons_extra_15=(((1.38*149.6)/12)/ctry_adq) * participant * year_15
+	gen cons_extra_16=(((9.65*142.2)/12)/ctry_adq) * participant * year_16
+	gen cons_extra_17=(((9.65*139.1)/12)/ctry_adq) * participant * year_17
+	gen cons_extra_18=(((9.65*143.2)/12)/ctry_adq) * participant * year_18
+	gen cons_extra_19=(((9.65*125.4)/12)/ctry_adq) * participant * year_19
+	gen cons_extra_20=(((9.65*129.9)/12)/ctry_adq) * participant * year_20
+
+	*Total household expenditure with benefits from the program
+	forval i=13/20 {
+		egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
+	}
+
+	*Poverty stauts w/adjusted expenditure 
+	forval i=13/20 {
+		gen program_poor_`i'=(program_y2_i_`i'<z2_i)
+	}
+
+	*HHs lifted from poverty by the program 
+	forval i=13/20 {
+		gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
+	}
+
+	*Save the file for analysis 
+	drop start_date end_date n_hhs 
+	gen n_simulation=`x'
+	save "${gsdTemp}/dfid_simulation_program_1_rand_`x'.dta", replace
+
 }
-sort strata rand 
 
-*Identify some randomly selected HHs as beneficiares of the program 
-by strata: gen num=_n
-gen cum_wta_hh=.
-forval i=1/92 {
-	replace cum_wta_hh=wta_hh if num==1 & strata==`i'
-	replace cum_wta_hh=cum_wta_hh[_n-1]+wta_hh if num>=2 & strata==`i' & rand<.
+//Integrate one file with the 100 simulations
+use "${gsdTemp}/dfid_simulation_program_1_rand_1.dta", clear
+qui forval x=2/`n_set_simulation' {
+	append using "${gsdTemp}/dfid_simulation_program_1_rand_`x'.dta"
 }
-gen diff_hhs=n_hhs-cum_wta_hh 
-gen pre_threshold=abs(diff_hhs)
-by strata: egen threshold=min(pre_threshold)
-gen threshold_in=rand if threshold==pre_threshold
-gen cut_off=.
-forval i=1/92 {
-	sum threshold_in if strata==`i'
-	replace cut_off=r(mean) if rand<. & strata==`i'
-}
-gen participant=1 if rand<=cut_off & rand<.
-replace participant=0 if participant>=.
-drop rand num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
-
-
-//Obtain the duration in the program (fraction of year)
-forval i=13/20 {
-	gen pre_end_`i'="31" + "-" + "12"  + "-" + "20`i'" 
-	gen end_`i'= date(pre_end_`i', "DMY")
-	format end_`i' %td
-	drop pre_end_`i'
-}
-forval i=13/20 {
-	gen year_`i'=(end_`i' - start_date)/365
-	replace year_`i'=0 if year_`i'<0
-	replace year_`i'=1 if year_`i'>1
-	replace year_`i'=. if participant!=1
-
-}
-replace year_19=0 if end_date==td(30dec2018)
-replace year_20=0 if end_date==td(30dec2018)
-replace year_19=0 if end_date==td(31dec2018)
-replace year_20=0 if end_date==td(31dec2018)
-replace year_20=0 if end_date==td(30dec2019)
-replace year_20=0 if end_date==td(31dec2019)
-replace year_19=0 if end_date==td(31oct2018)
-replace year_20=0 if end_date==td(31oct2018)
-replace year_18=(303/365) if end_date==td(31oct2018)
-replace year_20=(31/365) if end_date==td(31jan2020)
-replace year_20=(91/365) if end_date==td(31mar2020) 
-replace year_20=(172/365) if end_date==td(20jun2020)
-drop end_1* end_2*
-forval i=13/20 {
-	replace year_`i'=0 if year_`i'==.
-}
-
-*Consider the effect as persistent 
-replace year_14=1 if year_13==1
-replace year_15=1 if year_14==1
-replace year_16=1 if year_15==1
-replace year_17=1 if year_16==1
-replace year_18=1 if year_17==1
-replace year_19=1 if year_18==1
-replace year_20=1 if year_19==1
-
-
-//Key information to implement the simulation
-
-*       Annual change in household income (from DfID):
-*       £1.38 in 2013-2015 
-*       £9.65 2016 and after 
-
-*       Exchange rates considered 
-*       2013: 1 GBP = 138.4 KSh 
-*       2014: 1 GBP = 140.8 KSh 
-*       2015: 1 GBP = 149.6 KSh 
-*       2016: 1 GBP = 142.2 KSh 
-*       2017: 1 GBP = 139.1 KSh 
-*       2018: 1 GBP = 143.2 KSh 
-*       2019: 1 GBP = 125.4 KSh 
-*       2020: 1 GBP = 129.9 KSh 
-
-
-//Impact on consumption and poverty for every year 
-*Create variable with additional income result of the program
-gen cons_extra_13=(((1.38*138.4)/12)/ctry_adq) * participant * year_13
-gen cons_extra_14=(((1.38*140.8)/12)/ctry_adq) * participant * year_14
-gen cons_extra_15=(((1.38*149.6)/12)/ctry_adq) * participant * year_15
-gen cons_extra_16=(((9.65*142.2)/12)/ctry_adq) * participant * year_16
-gen cons_extra_17=(((9.65*139.1)/12)/ctry_adq) * participant * year_17
-gen cons_extra_18=(((9.65*143.2)/12)/ctry_adq) * participant * year_18
-gen cons_extra_19=(((9.65*125.4)/12)/ctry_adq) * participant * year_19
-gen cons_extra_20=(((9.65*129.9)/12)/ctry_adq) * participant * year_20
-
-*Total household expenditure with benefits from the program
-forval i=13/20 {
-	egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
-}
-
-*Poverty stauts w/adjusted expenditure 
-forval i=13/20 {
-	gen program_poor_`i'=(program_y2_i_`i'<z2_i)
-}
-
-*HHs lifted from poverty by the program 
-forval i=13/20 {
-	gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
-}
-
-*Save the file for analysis 
-drop start_date end_date n_hhs 
+compress
 save "${gsdTemp}/dfid_simulation_program_1_benchmark.dta", replace
+qui forval x=1/`n_set_simulation' {
+	erase "${gsdTemp}/dfid_simulation_program_1_rand_`x'.dta"
+}
 
 
 
@@ -407,10 +428,11 @@ export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(var
 restore
 
 *Create graph
+drop if year<2014
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020") ///
-		ylabel(0.8 "0.8" 0.6 "0.6" 0.4 "0.4" 0.2 "0.2" 0 "0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
+		xlabel(2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020") ///
+		ylabel(0.4 "0.4" 0.2 "0.2" 0 "0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_poverty-reduction_time", replace	
 
 
@@ -439,116 +461,134 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_support_time", replace
 * 4 | SCENARIO 1: IMPROVED TARGETING 
 ***************************************
 
-use "${gsdTemp}/dfid_analysis_program_1.dta", clear
-
-//Identify program recipients 
-*Randomly order households within each strata (by poverty status)
-gen rand0=.
-gen rand1=.
 set seed 5600220 
-forval i=1/92 {
-	replace rand1=uniform() if strata==`i' & n_hhs>0 & poor==1
-	replace rand0=uniform() if strata==`i' & n_hhs>0 & poor==0
+
+//Loop for selecting randomly 100 different subsamples of beneficiaries
+
+qui forval x=1/`n_set_simulation' { 
+ 
+	use "${gsdTemp}/dfid_analysis_program_1.dta", clear
+
+	*Randomly order households within each strata (by poverty status)
+	gen rand0_`x'=.
+	gen rand1_`x'=.
+	forval i=1/92 {
+		replace rand1_`x'=uniform() if strata==`i' & n_hhs>0 & poor==1
+		replace rand0_`x'=uniform() if strata==`i' & n_hhs>0 & poor==0
+	}
+
+	*Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
+	gen rand_`x'=.
+	replace rand_`x'=rand1_`x' if poor==1
+	replace rand_`x'=rand_`x'*0.2 
+	replace rand_`x'=rand0_`x' if poor==0
+	sort strata rand_`x' 
+
+	*Identify some randomly selected HHs as beneficiares of the program 
+	by strata: gen num=_n
+	gen cum_wta_hh=.
+	forval i=1/92 {
+		replace cum_wta_hh=wta_hh if num==1 & strata==`i'
+		replace cum_wta_hh=cum_wta_hh[_n-1]+wta_hh if num>=2 & strata==`i' & rand_`x'<.
+	}
+	gen diff_hhs=n_hhs-cum_wta_hh 
+	gen pre_threshold=abs(diff_hhs)
+	by strata: egen threshold=min(pre_threshold)
+	gen threshold_in=rand_`x' if threshold==pre_threshold
+	gen cut_off=.
+	forval i=1/92 {
+		sum threshold_in if strata==`i'
+		replace cut_off=r(mean) if rand_`x'<. & strata==`i'
+	}
+	gen participant=1 if rand_`x'<=cut_off & rand_`x'<.
+	replace participant=0 if participant>=.
+	drop rand_`x' num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
+
+
+	//Obtain the duration in the program (fraction of year)
+	forval i=13/20 {
+		gen pre_end_`i'="31" + "-" + "12"  + "-" + "20`i'" 
+		gen end_`i'= date(pre_end_`i', "DMY")
+		format end_`i' %td
+		drop pre_end_`i'
+	}
+	forval i=13/20 {
+		gen year_`i'=(end_`i' - start_date)/365
+		replace year_`i'=0 if year_`i'<0
+		replace year_`i'=1 if year_`i'>1
+		replace year_`i'=. if participant!=1
+
+	}
+	replace year_19=0 if end_date==td(30dec2018)
+	replace year_20=0 if end_date==td(30dec2018)
+	replace year_19=0 if end_date==td(31dec2018)
+	replace year_20=0 if end_date==td(31dec2018)
+	replace year_20=0 if end_date==td(30dec2019)
+	replace year_20=0 if end_date==td(31dec2019)
+	replace year_19=0 if end_date==td(31oct2018)
+	replace year_20=0 if end_date==td(31oct2018)
+	replace year_18=(303/365) if end_date==td(31oct2018)
+	replace year_20=(31/365) if end_date==td(31jan2020)
+	replace year_20=(91/365) if end_date==td(31mar2020) 
+	replace year_20=(172/365) if end_date==td(20jun2020)
+	drop end_1* end_2*
+	forval i=13/20 {
+		replace year_`i'=0 if year_`i'==.
+	}
+
+	*Consider the effect as persistent 
+	replace year_14=1 if year_13==1
+	replace year_15=1 if year_14==1
+	replace year_16=1 if year_15==1
+	replace year_17=1 if year_16==1
+	replace year_18=1 if year_17==1
+	replace year_19=1 if year_18==1
+	replace year_20=1 if year_19==1
+
+
+	//Impact on consumption and poverty for every year 
+	*Create variable with additional income result of the program
+	gen cons_extra_13=(((1.38*138.4)/12)/ctry_adq) * participant * year_13
+	gen cons_extra_14=(((1.38*140.8)/12)/ctry_adq) * participant * year_14
+	gen cons_extra_15=(((1.38*149.6)/12)/ctry_adq) * participant * year_15
+	gen cons_extra_16=(((9.65*142.2)/12)/ctry_adq) * participant * year_16
+	gen cons_extra_17=(((9.65*139.1)/12)/ctry_adq) * participant * year_17
+	gen cons_extra_18=(((9.65*143.2)/12)/ctry_adq) * participant * year_18
+	gen cons_extra_19=(((9.65*125.4)/12)/ctry_adq) * participant * year_19
+	gen cons_extra_20=(((9.65*129.9)/12)/ctry_adq) * participant * year_20
+
+	*Total household expenditure with benefits from the program
+	forval i=13/20 {
+		egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
+	}
+
+	*Poverty stauts w/adjusted expenditure 
+	forval i=13/20 {
+		gen program_poor_`i'=(program_y2_i_`i'<z2_i)
+	}
+
+	*HHs lifted from poverty by the program 
+	forval i=13/20 {
+		gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
+	}
+
+	*Save the file for analysis 
+	drop start_date end_date n_hhs 
+	gen n_simulation=`x'
+	save "${gsdTemp}/dfid_simulation_program_1_rand_`x'.dta", replace
+
 }
 
-*Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
-gen rand=.
-replace rand=rand1 if poor==1
-replace rand=rand*0.2 
-replace rand=rand0 if poor==0
-sort strata rand 
-
-*Identify some randomly selected HHs as beneficiares of the program 
-by strata: gen num=_n
-gen cum_wta_hh=.
-forval i=1/92 {
-	replace cum_wta_hh=wta_hh if num==1 & strata==`i'
-	replace cum_wta_hh=cum_wta_hh[_n-1]+wta_hh if num>=2 & strata==`i' & rand<.
+//Integrate one file with the 100 simulations
+use "${gsdTemp}/dfid_simulation_program_1_rand_1.dta", clear
+qui forval x=2/`n_set_simulation' {
+	append using "${gsdTemp}/dfid_simulation_program_1_rand_`x'.dta"
 }
-gen diff_hhs=n_hhs-cum_wta_hh 
-gen pre_threshold=abs(diff_hhs)
-by strata: egen threshold=min(pre_threshold)
-gen threshold_in=rand if threshold==pre_threshold
-gen cut_off=.
-forval i=1/92 {
-	sum threshold_in if strata==`i'
-	replace cut_off=r(mean) if rand<. & strata==`i'
-}
-gen participant=1 if rand<=cut_off & rand<.
-replace participant=0 if participant>=.
-drop rand num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
-
-
-//Obtain the duration in the program (fraction of year)
-forval i=13/20 {
-	gen pre_end_`i'="31" + "-" + "12"  + "-" + "20`i'" 
-	gen end_`i'= date(pre_end_`i', "DMY")
-	format end_`i' %td
-	drop pre_end_`i'
-}
-forval i=13/20 {
-	gen year_`i'=(end_`i' - start_date)/365
-	replace year_`i'=0 if year_`i'<0
-	replace year_`i'=1 if year_`i'>1
-	replace year_`i'=. if participant!=1
-
-}
-replace year_19=0 if end_date==td(30dec2018)
-replace year_20=0 if end_date==td(30dec2018)
-replace year_19=0 if end_date==td(31dec2018)
-replace year_20=0 if end_date==td(31dec2018)
-replace year_20=0 if end_date==td(30dec2019)
-replace year_20=0 if end_date==td(31dec2019)
-replace year_19=0 if end_date==td(31oct2018)
-replace year_20=0 if end_date==td(31oct2018)
-replace year_18=(303/365) if end_date==td(31oct2018)
-replace year_20=(31/365) if end_date==td(31jan2020)
-replace year_20=(91/365) if end_date==td(31mar2020) 
-replace year_20=(172/365) if end_date==td(20jun2020)
-drop end_1* end_2*
-forval i=13/20 {
-	replace year_`i'=0 if year_`i'==.
-}
-
-*Consider the effect as persistent 
-replace year_14=1 if year_13==1
-replace year_15=1 if year_14==1
-replace year_16=1 if year_15==1
-replace year_17=1 if year_16==1
-replace year_18=1 if year_17==1
-replace year_19=1 if year_18==1
-replace year_20=1 if year_19==1
-
-
-//Impact on consumption and poverty for every year 
-*Create variable with additional income result of the program
-gen cons_extra_13=(((1.38*138.4)/12)/ctry_adq) * participant * year_13
-gen cons_extra_14=(((1.38*140.8)/12)/ctry_adq) * participant * year_14
-gen cons_extra_15=(((1.38*149.6)/12)/ctry_adq) * participant * year_15
-gen cons_extra_16=(((9.65*142.2)/12)/ctry_adq) * participant * year_16
-gen cons_extra_17=(((9.65*139.1)/12)/ctry_adq) * participant * year_17
-gen cons_extra_18=(((9.65*143.2)/12)/ctry_adq) * participant * year_18
-gen cons_extra_19=(((9.65*125.4)/12)/ctry_adq) * participant * year_19
-gen cons_extra_20=(((9.65*129.9)/12)/ctry_adq) * participant * year_20
-
-*Total household expenditure with benefits from the program
-forval i=13/20 {
-	egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
-}
-
-*Poverty stauts w/adjusted expenditure 
-forval i=13/20 {
-	gen program_poor_`i'=(program_y2_i_`i'<z2_i)
-}
-
-*HHs lifted from poverty by the program 
-forval i=13/20 {
-	gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
-}
-
-*Save the file for analysis 
-drop start_date end_date n_hhs 
+compress
 save "${gsdTemp}/dfid_simulation_program_1_scenario1.dta", replace
+qui forval x=1/`n_set_simulation' {
+	erase "${gsdTemp}/dfid_simulation_program_1_rand_`x'.dta"
+}
 
 
 //Coverage of total population and poor by year (relevant counties) 
@@ -657,10 +697,11 @@ export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_4.xlsx", firstrow(var
 restore
 
 *Create graph
+drop if year<2014
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020") ///
-		ylabel(0.8 "0.8" 0.6 "0.6" 0.4 "0.4" 0.2 "0.2" 0.0 "0.0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
+		xlabel(2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020") ///
+		ylabel(0.4 "0.4" 0.2 "0.2" 0.0 "0.0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_poverty-reduction_time_scenario1", replace	
 
 
@@ -669,110 +710,146 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_poverty-reduction_time_
 * 5 | SCENARIO 2: LARGER SUPPORT
 ************************************
 
-use "${gsdTemp}/dfid_analysis_program_1.dta", clear
-
-//Identify program recipients 
-*Randomly order households within each strata 
-gen rand=.
 set seed 5600220 
-forval i=1/92 {
-	replace rand=uniform() if strata==`i' & n_hhs>0
+
+//Loop for selecting randomly 100 different subsamples of beneficiaries
+qui forval x=1/`n_set_simulation' { 
+ 
+	use "${gsdTemp}/dfid_analysis_program_1.dta", clear
+
+	//Identify program recipients 
+	*Randomly order households within each strata 
+	gen rand_`x'=.
+	forval i=1/92 {
+		replace rand_`x'=uniform() if strata==`i' & n_hhs>0
+	}
+	sort strata rand_`x' 
+
+	*Identify some randomly selected HHs as beneficiares of the program 
+	by strata: gen num=_n
+	gen cum_wta_hh=.
+	forval i=1/92 {
+		replace cum_wta_hh=wta_hh if num==1 & strata==`i'
+		replace cum_wta_hh=cum_wta_hh[_n-1]+wta_hh if num>=2 & strata==`i' & rand_`x'<.
+	}
+	gen diff_hhs=n_hhs-cum_wta_hh 
+	gen pre_threshold=abs(diff_hhs)
+	by strata: egen threshold=min(pre_threshold)
+	gen threshold_in=rand_`x' if threshold==pre_threshold
+	gen cut_off=.
+	forval i=1/92 {
+		sum threshold_in if strata==`i'
+		replace cut_off=r(mean) if rand_`x'<. & strata==`i'
+	}
+	gen participant=1 if rand_`x'<=cut_off & rand_`x'<.
+	replace participant=0 if participant>=.
+	drop rand_`x' 
+	drop num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
+
+
+	//Obtain the duration in the program (fraction of year)
+	forval i=13/20 {
+		gen pre_end_`i'="31" + "-" + "12"  + "-" + "20`i'" 
+		gen end_`i'= date(pre_end_`i', "DMY")
+		format end_`i' %td
+		drop pre_end_`i'
+	}
+	forval i=13/20 {
+		gen year_`i'=(end_`i' - start_date)/365
+		replace year_`i'=0 if year_`i'<0
+		replace year_`i'=1 if year_`i'>1
+		replace year_`i'=. if participant!=1
+
+	}
+	replace year_19=0 if end_date==td(30dec2018)
+	replace year_20=0 if end_date==td(30dec2018)
+	replace year_19=0 if end_date==td(31dec2018)
+	replace year_20=0 if end_date==td(31dec2018)
+	replace year_20=0 if end_date==td(30dec2019)
+	replace year_20=0 if end_date==td(31dec2019)
+	replace year_19=0 if end_date==td(31oct2018)
+	replace year_20=0 if end_date==td(31oct2018)
+	replace year_18=(303/365) if end_date==td(31oct2018)
+	replace year_20=(31/365) if end_date==td(31jan2020)
+	replace year_20=(91/365) if end_date==td(31mar2020) 
+	replace year_20=(172/365) if end_date==td(20jun2020)
+	drop end_1* end_2*
+	forval i=13/20 {
+		replace year_`i'=0 if year_`i'==.
+	}
+
+	*Consider the effect as persistent 
+	replace year_14=1 if year_13==1
+	replace year_15=1 if year_14==1
+	replace year_16=1 if year_15==1
+	replace year_17=1 if year_16==1
+	replace year_18=1 if year_17==1
+	replace year_19=1 if year_18==1
+	replace year_20=1 if year_19==1
+
+
+	//Key information to implement the simulation
+
+	*       Annual change in household income (from DfID):
+	*       £1.38 in 2013-2015 
+	*       £9.65 2016 and after 
+
+	*       Exchange rates considered 
+	*       2013: 1 GBP = 138.4 KSh 
+	*       2014: 1 GBP = 140.8 KSh 
+	*       2015: 1 GBP = 149.6 KSh 
+	*       2016: 1 GBP = 142.2 KSh 
+	*       2017: 1 GBP = 139.1 KSh 
+	*       2018: 1 GBP = 143.2 KSh 
+	*       2019: 1 GBP = 125.4 KSh 
+	*       2020: 1 GBP = 129.9 KSh 
+
+
+	//Impact on consumption and poverty for every year 
+
+	*Adjustment for Scenario 2: Multiply by 50% the magnitude of support given 
+	*Create variable with additional income result of the program 
+	gen cons_extra_13=(((1.5*1.38*138.4)/12)/ctry_adq) * participant * year_13
+	gen cons_extra_14=(((1.5*1.38*140.8)/12)/ctry_adq) * participant * year_14
+	gen cons_extra_15=(((1.5*1.38*149.6)/12)/ctry_adq) * participant * year_15
+	gen cons_extra_16=(((1.5*9.65*142.2)/12)/ctry_adq) * participant * year_16
+	gen cons_extra_17=(((1.5*9.65*139.1)/12)/ctry_adq) * participant * year_17
+	gen cons_extra_18=(((1.5*9.65*143.2)/12)/ctry_adq) * participant * year_18
+	gen cons_extra_19=(((1.5*9.65*125.4)/12)/ctry_adq) * participant * year_19
+	gen cons_extra_20=(((1.5*9.65*129.9)/12)/ctry_adq) * participant * year_20
+
+	*Total household expenditure with benefits from the program
+	forval i=13/20 {
+		egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
+	}
+
+	*Poverty stauts w/adjusted expenditure 
+	forval i=13/20 {
+		gen program_poor_`i'=(program_y2_i_`i'<z2_i)
+	}
+
+	*HHs lifted from poverty by the program 
+	forval i=13/20 {
+		gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
+	}
+
+	*Save the file for analysis 
+	drop start_date end_date n_hhs 
+	gen n_simulation=`x'
+	save "${gsdTemp}/dfid_simulation_program_1_rand_`x'.dta", replace
+
 }
-sort strata rand 
 
-*Identify some randomly selected HHs as beneficiares of the program 
-by strata: gen num=_n
-gen cum_wta_hh=.
-forval i=1/92 {
-	replace cum_wta_hh=wta_hh if num==1 & strata==`i'
-	replace cum_wta_hh=cum_wta_hh[_n-1]+wta_hh if num>=2 & strata==`i' & rand<.
+//Integrate one file with the 100 simulations
+use "${gsdTemp}/dfid_simulation_program_1_rand_1.dta", clear
+qui forval x=2/`n_set_simulation' {
+	append using "${gsdTemp}/dfid_simulation_program_1_rand_`x'.dta"
 }
-gen diff_hhs=n_hhs-cum_wta_hh 
-gen pre_threshold=abs(diff_hhs)
-by strata: egen threshold=min(pre_threshold)
-gen threshold_in=rand if threshold==pre_threshold
-gen cut_off=.
-forval i=1/92 {
-	sum threshold_in if strata==`i'
-	replace cut_off=r(mean) if rand<. & strata==`i'
-}
-gen participant=1 if rand<=cut_off & rand<.
-replace participant=0 if participant>=.
-drop rand num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
-
-
-//Obtain the duration in the program (fraction of year)
-forval i=13/20 {
-	gen pre_end_`i'="31" + "-" + "12"  + "-" + "20`i'" 
-	gen end_`i'= date(pre_end_`i', "DMY")
-	format end_`i' %td
-	drop pre_end_`i'
-}
-forval i=13/20 {
-	gen year_`i'=(end_`i' - start_date)/365
-	replace year_`i'=0 if year_`i'<0
-	replace year_`i'=1 if year_`i'>1
-	replace year_`i'=. if participant!=1
-
-}
-replace year_19=0 if end_date==td(30dec2018)
-replace year_20=0 if end_date==td(30dec2018)
-replace year_19=0 if end_date==td(31dec2018)
-replace year_20=0 if end_date==td(31dec2018)
-replace year_20=0 if end_date==td(30dec2019)
-replace year_20=0 if end_date==td(31dec2019)
-replace year_19=0 if end_date==td(31oct2018)
-replace year_20=0 if end_date==td(31oct2018)
-replace year_18=(303/365) if end_date==td(31oct2018)
-replace year_20=(31/365) if end_date==td(31jan2020)
-replace year_20=(91/365) if end_date==td(31mar2020) 
-replace year_20=(172/365) if end_date==td(20jun2020)
-drop end_1* end_2*
-forval i=13/20 {
-	replace year_`i'=0 if year_`i'==.
-}
-
-*Consider the effect as persistent 
-replace year_14=1 if year_13==1
-replace year_15=1 if year_14==1
-replace year_16=1 if year_15==1
-replace year_17=1 if year_16==1
-replace year_18=1 if year_17==1
-replace year_19=1 if year_18==1
-replace year_20=1 if year_19==1
-
-
-//Impact on consumption and poverty for every year 
-
-*Adjustment for Scenario 2: Multiply by 50% the magnitude of support given 
-*Create variable with additional income result of the program (
-gen cons_extra_13=(((1.5*1.38*138.4)/12)/ctry_adq) * participant * year_13
-gen cons_extra_14=(((1.5*1.38*140.8)/12)/ctry_adq) * participant * year_14
-gen cons_extra_15=(((1.5*1.38*149.6)/12)/ctry_adq) * participant * year_15
-gen cons_extra_16=(((1.5*9.65*142.2)/12)/ctry_adq) * participant * year_16
-gen cons_extra_17=(((1.5*9.65*139.1)/12)/ctry_adq) * participant * year_17
-gen cons_extra_18=(((1.5*9.65*143.2)/12)/ctry_adq) * participant * year_18
-gen cons_extra_19=(((1.5*9.65*125.4)/12)/ctry_adq) * participant * year_19
-gen cons_extra_20=(((1.5*9.65*129.9)/12)/ctry_adq) * participant * year_20
-
-*Total household expenditure with benefits from the program
-forval i=13/20 {
-	egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
-}
-
-*Poverty stauts w/adjusted expenditure 
-forval i=13/20 {
-	gen program_poor_`i'=(program_y2_i_`i'<z2_i)
-}
-
-*HHs lifted from poverty by the program 
-forval i=13/20 {
-	gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
-}
-
-*Save the file for analysis 
-drop start_date end_date n_hhs 
+compress
 save "${gsdTemp}/dfid_simulation_program_1_scenario2.dta", replace
+qui forval x=1/`n_set_simulation' {
+	erase "${gsdTemp}/dfid_simulation_program_1_rand_`x'.dta"
+}
 
 
 //Effect on poverty (by year)
@@ -809,10 +886,11 @@ export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_5.xlsx", firstrow(var
 restore
 
 *Create graph
+drop if year<2014
 graph twoway (rarea poor_ub poor_lb year, color(gs14)) (line poverty_reduction year, lpattern(dash) lcolor(dknavy) ylabel(, angle(0) labsize(small))) ///
 		(line yline year, lpattern(solid) lcolor(gs7)) , xtitle("Year", size(small)) ytitle("Percentage points", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2013 "2013" 2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020") ///
-		ylabel(0.8 "0.8" 0.6 "0.6" 0.4 "0.4" 0.2 "0.2" 0.0 "0.0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
+		xlabel(2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020") ///
+		ylabel(0.4 "0.4" 0.2 "0.2" 0.0 "0.0" -0.2 "-0.2" -0.4 "-0.4" -0.6 "-0.6", angle(0)) legend(off)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-1_poverty-reduction_time_scenario2", replace	
 
 
@@ -850,3 +928,7 @@ forval i=1/5 {
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
 	erase "${gsdTemp}/Temp-Simulation_1_`i'.dta"
 }
+
+//Erase files w/100 simulations
+erase "${gsdTemp}/dfid_simulation_program_1_scenario1.dta"
+erase "${gsdTemp}/dfid_simulation_program_1_scenario2.dta"

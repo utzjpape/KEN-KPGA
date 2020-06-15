@@ -113,62 +113,79 @@ save "${gsdTemp}/dfid_analysis_program_6.dta", replace
 ****************************************
 * 2 | SIMULATE THE IMPACT ON POVERTY 
 ****************************************
-
-use "${gsdTemp}/dfid_analysis_program_6.dta", clear
-
-//Identify program recipients 
-*Randomly order households within each county 
-gen rand=.
 set seed 86813 
-qui forval i=1/47 {
-	replace rand=uniform() if county==`i' & n_hhs>0 & n_women>0
+
+//Loop for selecting randomly 100 different subsamples of beneficiaries
+local n_set_simulation =100
+
+qui forval x=1/`n_set_simulation' { 
+ 
+	use "${gsdTemp}/dfid_analysis_program_6.dta", clear
+
+	*Randomly order households within each county 
+	gen rand_`x'=.
+	qui forval i=1/47 {
+		replace rand_`x'=uniform() if county==`i' & n_hhs>0 & n_women>0
+	}
+	sort county rand_`x' 
+
+	*Identify some randomly selected HHs as beneficiares of the program 
+	by county: gen num=_n
+	gen cum_wta_hh=.
+	qui forval i=1/47 {
+		replace cum_wta_hh=wta_pop_target if num==1 & county==`i'
+		replace cum_wta_hh=cum_wta_hh[_n-1]+wta_pop_target if num>=2 & county==`i' & rand_`x'<.
+	}
+	gen diff_hhs=n_hhs-cum_wta_hh 
+	gen pre_threshold=abs(diff_hhs)
+	by county: egen threshold=min(pre_threshold)
+	gen threshold_in=rand_`x' if threshold==pre_threshold
+	gen cut_off=.
+	qui forval i=1/47 {
+		sum threshold_in if county==`i'
+		replace cut_off=r(mean) if rand_`x'<. & county==`i'
+	}
+	gen participant=1 if rand_`x'<=cut_off & rand_`x'<.
+	replace participant=0 if participant>=.
+	drop rand_`x' num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
+
+	forval i=19/24 {
+		gen year_`i'=participant
+	}
+
+
+	//Impact on poverty using evidence reviewed 
+	*Women aged reported monthly earnings that were 40% higher
+	gen share_extra_income=0.4
+
+	*Create variable with additional income result of the program (from 2040 only)
+	gen cons_extra_40=((y2_i_40*share_extra_income)*n_women) * participant 
+
+	*Total household expenditure with benefits from the program
+	egen program_y2_i_40=rowtotal(y2_i_40 cons_extra_40)
+
+	*Poverty stauts w/adjusted expenditure 
+	gen program_poor_40=(program_y2_i_40<z2_i)
+
+	*HHs lifted from poverty by the program 
+	gen program_lift_poor_40=(poor_40!=program_poor_40)
+
+	*Save the file for analysis 
+	drop start_date end_date n_hhs 
+	gen n_simulation=`x'
+	save "${gsdTemp}/dfid_simulation_program_6_rand_`x'.dta", replace
 }
-sort county rand 
 
-*Identify some randomly selected HHs as beneficiares of the program 
-by county: gen num=_n
-gen cum_wta_hh=.
-qui forval i=1/47 {
-	replace cum_wta_hh=wta_pop_target if num==1 & county==`i'
-	replace cum_wta_hh=cum_wta_hh[_n-1]+wta_pop_target if num>=2 & county==`i' & rand<.
+//Integrate one file with the 100 simulations
+use "${gsdTemp}/dfid_simulation_program_6_rand_1.dta", clear
+qui forval x=2/`n_set_simulation' {
+	append using "${gsdTemp}/dfid_simulation_program_6_rand_`x'.dta"
 }
-gen diff_hhs=n_hhs-cum_wta_hh 
-gen pre_threshold=abs(diff_hhs)
-by county: egen threshold=min(pre_threshold)
-gen threshold_in=rand if threshold==pre_threshold
-gen cut_off=.
-qui forval i=1/47 {
-	sum threshold_in if county==`i'
-	replace cut_off=r(mean) if rand<. & county==`i'
-}
-gen participant=1 if rand<=cut_off & rand<.
-replace participant=0 if participant>=.
-drop rand num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
-
-forval i=19/24 {
-	gen year_`i'=participant
-}
-
-
-//Impact on poverty using evidence reviewed 
-*Women aged reported monthly earnings that were 40% higher
-gen share_extra_income=0.4
-
-*Create variable with additional income result of the program (from 2040 only)
-gen cons_extra_40=((y2_i_40*share_extra_income)*n_women) * participant 
-
-*Total household expenditure with benefits from the program
-egen program_y2_i_40=rowtotal(y2_i_40 cons_extra_40)
-
-*Poverty stauts w/adjusted expenditure 
-gen program_poor_40=(program_y2_i_40<z2_i)
-
-*HHs lifted from poverty by the program 
-gen program_lift_poor_40=(poor_40!=program_poor_40)
-
-*Save the file for analysis 
-drop start_date end_date n_hhs 
+compress
 save "${gsdTemp}/dfid_simulation_program_6_benchmark.dta", replace
+qui forval x=1/`n_set_simulation' {
+	erase "${gsdTemp}/dfid_simulation_program_6_rand_`x'.dta"
+}
 
 
 
@@ -381,70 +398,87 @@ ta share_mean_extra_cons_40
 ***************************************
 * 4 | SCENARIO 1: IMPROVED TARGETING 
 ***************************************
-
-use "${gsdTemp}/dfid_analysis_program_6.dta", clear
-
-//Identify program recipients 
-*Randomly order households within each county 
-gen rand1=.
-gen rand0=.
 set seed 86813 
-qui forval i=1/47 {
-	replace rand1=uniform() if county==`i' & n_hhs>0 & n_women>0 & poor==1
-	replace rand0=uniform() if county==`i' & n_hhs>0 & n_women>0 & poor==0
+
+//Loop for selecting randomly 100 different subsamples of beneficiaries
+
+qui forval x=1/`n_set_simulation' { 
+ 
+	use "${gsdTemp}/dfid_analysis_program_6.dta", clear
+
+	*Randomly order households within each county 
+	gen rand1_`x'=.
+	gen rand0_`x'=.
+	qui forval i=1/47 {
+		replace rand1_`x'=uniform() if county==`i' & n_hhs>0 & n_women>0 & poor==1
+		replace rand0_`x'=uniform() if county==`i' & n_hhs>0 & n_women>0 & poor==0
+	}
+
+	*Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
+	gen rand_`x'=.
+	replace rand_`x'=rand1_`x' if poor==1
+	replace rand_`x'=rand_`x'*0.05 
+	replace rand_`x'=rand0_`x' if poor==0
+	sort county rand_`x' 
+
+	*Identify some randomly selected HHs as beneficiares of the program 
+	by county: gen num=_n
+	gen cum_wta_hh=.
+	qui forval i=1/47 {
+		replace cum_wta_hh=wta_pop_target if num==1 & county==`i'
+		replace cum_wta_hh=cum_wta_hh[_n-1]+wta_pop_target if num>=2 & county==`i' & rand_`x'<.
+	}
+	gen diff_hhs=n_hhs-cum_wta_hh 
+	gen pre_threshold=abs(diff_hhs)
+	by county: egen threshold=min(pre_threshold)
+	gen threshold_in=rand_`x' if threshold==pre_threshold
+	gen cut_off=.
+	qui forval i=1/47 {
+		sum threshold_in if county==`i'
+		replace cut_off=r(mean) if rand_`x'<. & county==`i'
+	}
+	gen participant=1 if rand_`x'<=cut_off & rand_`x'<.
+	replace participant=0 if participant>=.
+	drop rand_`x' num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
+
+	forval i=19/24 {
+		gen year_`i'=participant
+	}
+
+	//Impact on poverty using evidence reviewed 
+	*Women aged reported monthly earnings that were 40% higher
+	gen share_extra_income=0.4
+
+	*Create variable with additional income result of the program (from 2040 only)
+	gen cons_extra_40=((y2_i_40*share_extra_income)*n_women) * participant if n_women>0
+	replace cons_extra_40=((y2_i_40*share_extra_income)*1) * participant if cons_extra_40>=.
+
+	*Total household expenditure with benefits from the program
+	egen program_y2_i_40=rowtotal(y2_i_40 cons_extra_40)
+
+	*Poverty stauts w/adjusted expenditure 
+	gen program_poor_40=(program_y2_i_40<z2_i)
+
+	*HHs lifted from poverty by the program 
+	gen program_lift_poor_40=(poor_40!=program_poor_40)
+
+	*Save the file for analysis 
+	drop start_date end_date n_hhs
+	gen n_simulation=`x'
+	save "${gsdTemp}/dfid_simulation_program_6_rand_`x'.dta", replace
+
 }
 
-*Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
-gen rand=.
-replace rand=rand1 if poor==1
-replace rand=rand*0.05 
-replace rand=rand0 if poor==0
-sort county rand 
-
-*Identify some randomly selected HHs as beneficiares of the program 
-by county: gen num=_n
-gen cum_wta_hh=.
-qui forval i=1/47 {
-	replace cum_wta_hh=wta_pop_target if num==1 & county==`i'
-	replace cum_wta_hh=cum_wta_hh[_n-1]+wta_pop_target if num>=2 & county==`i' & rand<.
+//Integrate one file with the 100 simulations
+use "${gsdTemp}/dfid_simulation_program_6_rand_1.dta", clear
+qui forval x=2/`n_set_simulation' {
+	append using "${gsdTemp}/dfid_simulation_program_6_rand_`x'.dta"
 }
-gen diff_hhs=n_hhs-cum_wta_hh 
-gen pre_threshold=abs(diff_hhs)
-by county: egen threshold=min(pre_threshold)
-gen threshold_in=rand if threshold==pre_threshold
-gen cut_off=.
-qui forval i=1/47 {
-	sum threshold_in if county==`i'
-	replace cut_off=r(mean) if rand<. & county==`i'
-}
-gen participant=1 if rand<=cut_off & rand<.
-replace participant=0 if participant>=.
-drop rand num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
-
-forval i=19/24 {
-	gen year_`i'=participant
-}
-
-//Impact on poverty using evidence reviewed 
-*Women aged reported monthly earnings that were 40% higher
-gen share_extra_income=0.4
-
-*Create variable with additional income result of the program (from 2040 only)
-gen cons_extra_40=((y2_i_40*share_extra_income)*n_women) * participant if n_women>0
-replace cons_extra_40=((y2_i_40*share_extra_income)*1) * participant if cons_extra_40>=.
-
-*Total household expenditure with benefits from the program
-egen program_y2_i_40=rowtotal(y2_i_40 cons_extra_40)
-
-*Poverty stauts w/adjusted expenditure 
-gen program_poor_40=(program_y2_i_40<z2_i)
-
-*HHs lifted from poverty by the program 
-gen program_lift_poor_40=(poor_40!=program_poor_40)
-
-*Save the file for analysis 
-drop start_date end_date n_hhs 
+compress
 save "${gsdTemp}/dfid_simulation_program_6_scenario1.dta", replace
+qui forval x=1/`n_set_simulation' {
+	erase "${gsdTemp}/dfid_simulation_program_6_rand_`x'.dta"
+}
 
 
 //Coverage of total population and poor by year (all counties) 
@@ -566,3 +600,7 @@ forval i=1/4 {
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
 	erase "${gsdTemp}/Temp-Simulation_1_`i'.dta"
 }
+
+
+//Erase files w/100 simulations
+erase "${gsdTemp}/dfid_simulation_program_6_scenario1.dta"

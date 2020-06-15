@@ -12,11 +12,11 @@ set sortseed 11041955
 * 1 | DATA PREPARATION: ALL PROGRAMS  
 **************************************
 
-
 //Program 1
 use "${gsdTemp}/dfid_simulation_program_1_benchmark.dta", clear
 forval i=13/20 {
 	egen pre_lift_`i'=sum(wta_pop) if program_lift_poor_`i'==1
+	replace pre_lift_`i'=pre_lift_`i'/100
 	egen lift_`i'=min(pre_lift_`i') 
 }
 keep if _n==1 
@@ -26,12 +26,14 @@ drop county
 ren lift_ lift_program_1
 replace year=year+2000
 save "${gsdTemp}/dfid_temp_lift_1.dta", replace
+erase "${gsdTemp}/dfid_simulation_program_1_benchmark.dta"
 
 
 //Program 2
 use "${gsdTemp}/dfid_simulation_program_2_benchmark.dta", clear
 forval i=19/24 {
 	egen pre_lift_`i'=sum(wta_pop) if program_lift_poor_`i'==1
+	replace pre_lift_`i'=pre_lift_`i'/100
 	egen lift_`i'=min(pre_lift_`i') 
 }
 keep if _n==1 
@@ -41,12 +43,14 @@ drop county
 ren lift_ lift_program_2
 replace year=year+2000
 save "${gsdTemp}/dfid_temp_lift_2.dta", replace
+erase "${gsdTemp}/dfid_simulation_program_2_benchmark.dta"
 
 
 //Program 3
 use "${gsdTemp}/dfid_simulation_program_3_benchmark.dta", clear
 forval i=40/40 {
 	egen pre_lift_`i'=sum(wta_pop) if program_lift_poor_`i'==1
+	replace pre_lift_`i'=pre_lift_`i'/100	
 	egen lift_`i'=min(pre_lift_`i') 
 }
 keep if _n==1 
@@ -56,12 +60,14 @@ drop county
 ren lift_ lift_program_3
 replace year=year+2000
 save "${gsdTemp}/dfid_temp_lift_3.dta", replace
+erase "${gsdTemp}/dfid_simulation_program_3_benchmark.dta"
 
 
 //Program 4
 use "${gsdTemp}/dfid_simulation_program_4_benchmark.dta", clear
 forval i=13/17 {
 	egen pre_lift_`i'=sum(wta_pop) if program_lift_poor_`i'==1
+	replace pre_lift_`i'=pre_lift_`i'/100	
 	egen lift_`i'=min(pre_lift_`i') 
 }
 keep if _n==1 
@@ -71,12 +77,14 @@ drop county
 ren lift_ lift_program_4
 replace year=year+2000
 save "${gsdTemp}/dfid_temp_lift_4.dta", replace
+erase "${gsdTemp}/dfid_simulation_program_4_benchmark.dta"
 
 
 //Program 5
 use "${gsdTemp}/dfid_simulation_program_5_benchmark.dta", clear
 forval i=17/30 {
 	egen pre_lift_`i'=sum(wta_pop) if program_lift_poor_`i'==1
+	replace pre_lift_`i'=pre_lift_`i'/100	
 	egen lift_`i'=min(pre_lift_`i') 
 }
 keep if _n==1 
@@ -86,12 +94,14 @@ drop county
 ren lift_ lift_program_5
 replace year=year+2000
 save "${gsdTemp}/dfid_temp_lift_5.dta", replace
+erase "${gsdTemp}/dfid_simulation_program_5_benchmark.dta"
 
 
 //Program 6
 use "${gsdTemp}/dfid_simulation_program_6_benchmark.dta", clear
 forval i=40/40 {
 	egen pre_lift_`i'=sum(wta_pop) if program_lift_poor_`i'==1
+	replace pre_lift_`i'=pre_lift_`i'/100	
 	egen lift_`i'=min(pre_lift_`i') 
 }
 keep if _n==1 
@@ -101,12 +111,14 @@ drop county
 ren lift_ lift_program_6
 replace year=year+2000
 save "${gsdTemp}/dfid_temp_lift_6.dta", replace
+erase "${gsdTemp}/dfid_simulation_program_6_benchmark.dta"
 
 
 //Program 7
 use "${gsdTemp}/dfid_simulation_program_7_benchmark.dta", clear
 forval i=14/25 {
 	egen pre_lift_`i'=sum(wta_pop) if program_lift_poor_`i'==1
+	replace pre_lift_`i'=pre_lift_`i'/100	
 	egen lift_`i'=min(pre_lift_`i') 
 }
 keep if _n==1 
@@ -116,12 +128,14 @@ drop county
 ren lift_ lift_program_7
 replace year=year+2000
 save "${gsdTemp}/dfid_temp_lift_7.dta", replace
+erase "${gsdTemp}/dfid_simulation_program_7_benchmark.dta"
 
 
 //Program 8
 use "${gsdTemp}/dfid_simulation_program_8_benchmark.dta", clear
 forval i=19/23 {
 	egen pre_lift_`i'=sum(popweight_long) if program_lift_poor_`i'==1
+	replace pre_lift_`i'=pre_lift_`i'/100	
 	egen lift_`i'=min(pre_lift_`i') 
 }
 keep if _n==1 
@@ -131,12 +145,14 @@ drop hhsize
 ren lift_ lift_program_8
 replace year=year+2000
 save "${gsdTemp}/dfid_temp_lift_8.dta", replace
+erase "${gsdTemp}/dfid_simulation_program_8_benchmark.dta"
 
 
 //Program 9
 use "${gsdTemp}/dfid_simulation_program_9_benchmark.dta", clear
 forval i=17/23 {
 	egen pre_lift_`i'=sum(wta_pop) if program_lift_poor_`i'==1
+	replace pre_lift_`i'=pre_lift_`i'/100	
 	egen lift_`i'=min(pre_lift_`i') 
 }
 keep if _n==1 
@@ -146,6 +162,7 @@ drop county
 ren lift_ lift_program_9
 replace year=year+2000
 save "${gsdTemp}/dfid_temp_lift_9.dta", replace
+erase "${gsdTemp}/dfid_simulation_program_9_benchmark.dta"
 
 
 //Merge all programs
@@ -192,7 +209,7 @@ replace tot_lift_poor=tot_lift_poor/1000000
 *Graph time series
 twoway (line tot_lift_poor year, lpattern(-) lcolor(black)),  xtitle("Year", size(small)) ytitle("Number of people (Million)", size(small)) ///
         xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white)  xlabel(2010 "2010" 2015 "2015" 2020 "2020" 2025 "2025" 2030 "2030" 2035 "2035" 2040 "2040") ///
-		ylabel(0 "0.0" 0.6 "0.6" 1.2 "1.2" 1.8 "1.8", angle(0)) plotregion( m(b=0))
+		ylabel(0 "0.0" 0.5 "0.5" 1.0 "1.0" 1.5 "1.5" 2.0 "2.0", angle(0)) plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-All_lift-poor_time", replace	
 
 

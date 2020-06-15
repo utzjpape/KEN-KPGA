@@ -24,68 +24,85 @@ save "${gsdTemp}/dfid_analysis_program_9.dta", replace
 ****************************************
 * 2 | SIMULATE THE IMPACT ON POVERTY 
 ****************************************
-
-use "${gsdTemp}/dfid_analysis_program_9.dta", clear
-
-//Identify households that benefited from the program
-*Only HH heads wage-employed or self-employed in agriculture and manufacturing 
-gen participant=(inlist(hhempstat,1,2) & inlist(hhsector,1,2))
 set seed 20200661 
 
-*First randomly identify some beneficiaries among this group
-gen selected= floor((2)*runiform() + 0) if inlist(hhempstat,1,2) & inlist(hhsector,1,2)
-replace participant=0 if selected==0
+//Loop for selecting randomly 100 different subsamples of beneficiaries
+local n_set_simulation =100
 
-*Then randomly distribute the gains across these households
-gen rand=.
-set seed 20200661 
-replace rand=uniform() if participant==1
+qui forval x=1/`n_set_simulation' { 
+ 
+	use "${gsdTemp}/dfid_analysis_program_9.dta", clear
 
-*Scale up to sum 100 
-egen tot_rand=sum(rand)
-replace rand=rand/tot_rand
+	*Only HH heads wage-employed or self-employed in agriculture and manufacturing 
+	gen participant=(inlist(hhempstat,1,2) & inlist(hhsector,1,2))
 
-*Duration of the program
-gen year_17=(1/12)*participant
-forval i=18/23 {
-	gen year_`i'=1*participant
+	*First randomly identify some beneficiaries among this group
+	gen selected_`x'= floor((2)*runiform() + 0) if inlist(hhempstat,1,2) & inlist(hhsector,1,2)
+	replace participant=0 if selected_`x'==0
+
+	*Then randomly distribute the gains across these households
+	gen rand_`x'=.
+	replace rand_`x'=uniform() if participant==1
+
+	*Scale up to sum 100 
+	egen tot_rand_`x'=sum(rand_`x')
+	replace rand_`x'=rand_`x'/tot_rand_`x'
+
+	*Duration of the program
+	gen year_17=(1/12)*participant
+	forval i=18/23 {
+		gen year_`i'=1*participant
+	}
+
+	//Impact on consumption and poverty for every year 
+	*From OPM's report: 8.8 million USD increase on national income between 2010-2017
+	*Only 85% covered by DfID; thus 935,000 million USD per year
+	*Exchange rate for 2018 1 GBP = 143.2 KSh 
+
+	gen tot_benefits=935000*143.2 
+	replace tot_benefits=tot_benefits/12 
+	replace tot_benefits=tot_benefits/ctry_adq // Monthly per AE 
+
+	gen hh_benefits=rand_`x'*tot_benefits // Randomly distribute these benefits
+
+	*Create variable with additional income result of the program
+	forval i=17/23 {
+		gen cons_extra_`i'=hh_benefits * year_`i'
+	}
+
+	*Total household expenditure with benefits from the program
+	forval i=17/23 {
+		egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
+	}
+
+	*Poverty stauts w/adjusted expenditure 
+	forval i=17/23 {
+		gen program_poor_`i'=(program_y2_i_`i'<z2_i)
+	}
+
+	*HHs lifted from poverty by the program 
+	forval i=17/23 {
+		gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
+	}
+
+	*Save the file for analysis 
+	drop start_date end_date n_hhs selected_`x' rand_`x' tot_rand_`x'
+	gen n_simulation=`x'
+	save "${gsdTemp}/dfid_simulation_program_9_rand_`x'.dta", replace
+
 }
 
-
-//Impact on consumption and poverty for every year 
-*From OPM's report: 8.8 million USD increase on national income between 2010-2017
-*Only 85% covered by DfID; thus 935,000 million USD per year
-*Exchange rate for 2018 1 GBP = 143.2 KSh 
-
-gen tot_benefits=935000*143.2 
-replace tot_benefits=tot_benefits/12 
-replace tot_benefits=tot_benefits/ctry_adq // Monthly per AE 
-
-gen hh_benefits=rand*tot_benefits // Randomly distribute these benefits
-
-*Create variable with additional income result of the program
-forval i=17/23 {
-	gen cons_extra_`i'=hh_benefits * year_`i'
+//Integrate one file with the 100 simulations
+use "${gsdTemp}/dfid_simulation_program_9_rand_1.dta", clear
+qui forval x=2/`n_set_simulation' {
+	append using "${gsdTemp}/dfid_simulation_program_9_rand_`x'.dta"
 }
-
-*Total household expenditure with benefits from the program
-forval i=17/23 {
-	egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
-}
-
-*Poverty stauts w/adjusted expenditure 
-forval i=17/23 {
-	gen program_poor_`i'=(program_y2_i_`i'<z2_i)
-}
-
-*HHs lifted from poverty by the program 
-forval i=17/23 {
-	gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
-}
-
-*Save the file for analysis 
-drop start_date end_date n_hhs 
+compress
 save "${gsdTemp}/dfid_simulation_program_9_benchmark.dta", replace
+qui forval x=1/`n_set_simulation' {
+	erase "${gsdTemp}/dfid_simulation_program_9_rand_`x'.dta"
+}
+
 
 
 

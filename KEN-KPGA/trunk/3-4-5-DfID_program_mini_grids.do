@@ -48,116 +48,134 @@ save "${gsdTemp}/dfid_analysis_program_5.dta", replace
 ****************************************
 * 2 | SIMULATE THE IMPACT ON POVERTY 
 ****************************************
-
-use "${gsdTemp}/dfid_analysis_program_5.dta", clear
-
-//Identify program recipients 
-*Randomly order households within each county
-gen rand=.
 set seed 11095513 
-qui forval i=1/47 {
-	replace rand=uniform() if county==`i' & n_hhs>0 & elec_acc==0
+
+//Loop for selecting randomly 100 different subsamples of beneficiaries
+local n_set_simulation =100
+
+qui forval x=1/`n_set_simulation' { 
+ 
+	use "${gsdTemp}/dfid_analysis_program_5.dta", clear
+
+	*Randomly order households within each county
+	gen rand_`x'=.
+	qui forval i=1/47 {
+		replace rand_`x'=uniform() if county==`i' & n_hhs>0 & elec_acc==0
+	}
+	sort county strata rand_`x' 
+
+	*Identify some randomly selected HHs as beneficiares of the program 
+	by county: gen num=_n
+	gen cum_wta_hh=.
+	qui forval i=1/47 {
+		replace cum_wta_hh=wta_hh if num==1 & county==`i'
+		replace cum_wta_hh=cum_wta_hh[_n-1]+wta_hh if num>=2 & county==`i' & rand_`x'<.
+	}
+	gen diff_hhs=n_hhs-cum_wta_hh 
+	gen pre_threshold=abs(diff_hhs)
+	by county: egen threshold=min(pre_threshold)
+	gen threshold_in=rand_`x' if threshold==pre_threshold
+	gen cut_off=.
+	qui forval i=1/47 {
+		sum threshold_in if county==`i'
+		replace cut_off=r(mean) if rand_`x'<. & county==`i'
+	}
+	gen participant=1 if rand_`x'<=cut_off & rand_`x'<.
+	replace participant=0 if participant>=.
+	drop rand_`x' num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
+
+	*Consider current and future participants 
+	forval i=17/20 {
+		gen year_`i'=0
+	}
+	replace year_17=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
+	replace year_18=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
+	replace year_19=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
+	replace year_20=.593 if participant==1 & inlist(county,45,46) // half 1,859 and half 10k HHs 
+
+	replace year_17=.216 if participant==1 & inlist(county,40) // only 495 HHs 
+	replace year_18=.216 if participant==1 & inlist(county,40) // only 495 HHs 
+	replace year_19=.216 if participant==1 & inlist(county,40) // only 495 HHs 
+	replace year_20=.608 if participant==1 & inlist(county,40) // half 495 HHs and half 2,289
+
+	replace year_20=0.25 if participant==1 & inlist(county,35) // 2,300 household from october 2020
+
+	forval i=21/30 {
+		gen year_`i'=participant
+	}
+
+
+	//Impact on poverty using evidence reviewed 
+	*Increase in school attendance (0.4 years)
+	gen increase_yschool=0.4
+
+	*Returns to schooling (avg. 14.2%)
+	gen share_ind_extra_income=(.142*increase_yschool)
+
+	*Evidence for increased income:
+	*      Female employment increases by 9 percentage points and male employment by 3.5. 
+	*      In addition, there is no significant effect on female earnings, 
+	*      while male earning rise about 16%
+
+	sum y2_i if malehead==1, d
+	gen avg_male=r(p50)
+	replace avg_male=avg_male*(0.035)*(1.16)
+
+	sum y2_i if malehead==0,d
+	gen avg_female=r(p50)
+	replace avg_female=avg_female*(0.09)
+
+	gen cons_extra_17=0
+	forval i=18/26 { // 18-26 only effect from employment
+		gen cons_extra_`i'=.
+		replace cons_extra_`i'=year_`i'*avg_male if malehead==1
+		replace cons_extra_`i'=year_`i'*avg_female if malehead==0
+	}
+	forval i=27/30 { //27 onwards including indirect benefits from education
+		gen cons_extra_`i'=.
+		replace cons_extra_`i'=year_`i'*avg_male if malehead==1
+		replace cons_extra_`i'=year_`i'*avg_female if malehead==0
+		
+		gen indir_extra_`i'=year_`i'*share_ind_extra_income
+		replace indir_extra_`i'=(indir_extra_`i'*n5_14) if n5_14>1
+		
+		replace cons_extra_`i'=cons_extra_`i'*(1+indir_extra_`i')
+	}
+	drop indir_extra_* avg_*
+
+
+	*Total household expenditure with benefits from the program
+	forval i=17/30 {
+		egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
+	}
+
+	*Poverty stauts w/adjusted expenditure 
+	forval i=17/30 {
+		gen program_poor_`i'=(program_y2_i_`i'<z2_i)
+	}
+
+	*HHs lifted from poverty by the program 
+	forval i=17/30 {
+		gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
+	}
+
+	*Save the file for analysis 
+	drop start_date end_date n_hhs 
+	gen n_simulation=`x'
+	save "${gsdTemp}/dfid_simulation_program_5_rand_`x'.dta", replace
+
 }
-sort county strata rand 
 
-*Identify some randomly selected HHs as beneficiares of the program 
-by county: gen num=_n
-gen cum_wta_hh=.
-qui forval i=1/47 {
-	replace cum_wta_hh=wta_hh if num==1 & county==`i'
-	replace cum_wta_hh=cum_wta_hh[_n-1]+wta_hh if num>=2 & county==`i' & rand<.
+//Integrate one file with the 100 simulations
+use "${gsdTemp}/dfid_simulation_program_5_rand_1.dta", clear
+qui forval x=2/`n_set_simulation' {
+	append using "${gsdTemp}/dfid_simulation_program_5_rand_`x'.dta"
 }
-gen diff_hhs=n_hhs-cum_wta_hh 
-gen pre_threshold=abs(diff_hhs)
-by county: egen threshold=min(pre_threshold)
-gen threshold_in=rand if threshold==pre_threshold
-gen cut_off=.
-qui forval i=1/47 {
-	sum threshold_in if county==`i'
-	replace cut_off=r(mean) if rand<. & county==`i'
-}
-gen participant=1 if rand<=cut_off & rand<.
-replace participant=0 if participant>=.
-drop rand num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
-
-*Consider current and future participants 
-forval i=17/20 {
-	gen year_`i'=0
-}
-replace year_17=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
-replace year_18=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
-replace year_19=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
-replace year_20=.593 if participant==1 & inlist(county,45,46) // half 1,859 and half 10k HHs 
-
-replace year_17=.216 if participant==1 & inlist(county,40) // only 495 HHs 
-replace year_18=.216 if participant==1 & inlist(county,40) // only 495 HHs 
-replace year_19=.216 if participant==1 & inlist(county,40) // only 495 HHs 
-replace year_20=.608 if participant==1 & inlist(county,40) // half 495 HHs and half 2,289
-
-replace year_20=0.25 if participant==1 & inlist(county,35) // 2,300 household from october 2020
-
-forval i=21/30 {
-	gen year_`i'=participant
-}
-
-
-//Impact on poverty using evidence reviewed 
-*Increase in school attendance (0.4 years)
-gen increase_yschool=0.4
-
-*Returns to schooling (avg. 14.2%)
-gen share_ind_extra_income=(.142*increase_yschool)
-
-*Evidence for increased income:
-*      Female employment increases by 9 percentage points and male employment by 3.5. 
-*      In addition, there is no significant effect on female earnings, 
-*      while male earning rise about 16%
-
-sum y2_i if malehead==1, d
-gen avg_male=r(p50)
-replace avg_male=avg_male*(0.035)*(1.16)
-
-sum y2_i if malehead==0,d
-gen avg_female=r(p50)
-replace avg_female=avg_female*(0.09)
-
-gen cons_extra_17=0
-forval i=18/26 { // 18-26 only effect from employment
-	gen cons_extra_`i'=.
-	replace cons_extra_`i'=year_`i'*avg_male if malehead==1
-	replace cons_extra_`i'=year_`i'*avg_female if malehead==0
-}
-forval i=27/30 { //27 onwards including indirect benefits from education
-	gen cons_extra_`i'=.
-	replace cons_extra_`i'=year_`i'*avg_male if malehead==1
-	replace cons_extra_`i'=year_`i'*avg_female if malehead==0
-	
-	gen indir_extra_`i'=year_`i'*share_ind_extra_income
-	replace indir_extra_`i'=(indir_extra_`i'*n5_14) if n5_14>1
-	
-	replace cons_extra_`i'=cons_extra_`i'*(1+indir_extra_`i')
-}
-drop indir_extra_* avg_*
-
-
-*Total household expenditure with benefits from the program
-forval i=17/30 {
-	egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
-}
-
-*Poverty stauts w/adjusted expenditure 
-forval i=17/30 {
-	gen program_poor_`i'=(program_y2_i_`i'<z2_i)
-}
-
-*HHs lifted from poverty by the program 
-forval i=17/30 {
-	gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
-}
-
-*Save the file for analysis 
-drop start_date end_date n_hhs 
+compress
 save "${gsdTemp}/dfid_simulation_program_5_benchmark.dta", replace
+qui forval x=1/`n_set_simulation' {
+	erase "${gsdTemp}/dfid_simulation_program_5_rand_`x'.dta"
+}
 
 
 
@@ -380,123 +398,140 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-5_support_time", replace
 ***************************************
 * 4 | SCENARIO 1: IMPROVED TARGETING 
 ***************************************
-
-use "${gsdTemp}/dfid_analysis_program_5.dta", clear
-
-//Identify program recipients 
-*Randomly order households within each county
-gen rand0=.
-gen rand1=.
 set seed 11095513 
-forval i=1/92 {
-	replace rand1=uniform() if county==`i' & n_hhs>0 & elec_acc==0 & poor==1
-	replace rand0=uniform() if county==`i' & n_hhs>0 & elec_acc==0 & poor==0
+
+//Loop for selecting randomly 100 different subsamples of beneficiaries
+
+qui forval x=1/`n_set_simulation' { 
+
+	use "${gsdTemp}/dfid_analysis_program_5.dta", clear
+
+	//Identify program recipients 
+	*Randomly order households within each county
+	gen rand0_`x'=.
+	gen rand1_`x'=.
+	forval i=1/92 {
+		replace rand1_`x'=uniform() if county==`i' & n_hhs>0 & elec_acc==0 & poor==1
+		replace rand0_`x'=uniform() if county==`i' & n_hhs>0 & elec_acc==0 & poor==0
+	}
+
+	*Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
+	gen rand_`x'=.
+	replace rand_`x'=rand1_`x' if poor==1
+	replace rand_`x'=rand_`x'*0.05 
+	replace rand_`x'=rand0_`x' if poor==0
+	sort county strata rand_`x' 
+
+	*Identify some randomly selected HHs as beneficiares of the program 
+	by county: gen num=_n
+	gen cum_wta_hh=.
+	qui forval i=1/47 {
+		replace cum_wta_hh=wta_hh if num==1 & county==`i'
+		replace cum_wta_hh=cum_wta_hh[_n-1]+wta_hh if num>=2 & county==`i' & rand_`x'<.
+	}
+	gen diff_hhs=n_hhs-cum_wta_hh 
+	gen pre_threshold=abs(diff_hhs)
+	by county: egen threshold=min(pre_threshold)
+	gen threshold_in=rand_`x' if threshold==pre_threshold
+	gen cut_off=.
+	qui forval i=1/47 {
+		sum threshold_in if county==`i'
+		replace cut_off=r(mean) if rand_`x'<. & county==`i'
+	}
+	gen participant=1 if rand_`x'<=cut_off & rand_`x'<.
+	replace participant=0 if participant>=.
+	drop rand_`x' num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
+
+	*Consider current and future participants 
+	forval i=17/20 {
+		gen year_`i'=0
+	}
+	replace year_17=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
+	replace year_18=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
+	replace year_19=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
+	replace year_20=.593 if participant==1 & inlist(county,45,46) // half 1,859 and half 10k HHs 
+
+	replace year_17=.216 if participant==1 & inlist(county,40) // only 495 HHs 
+	replace year_18=.216 if participant==1 & inlist(county,40) // only 495 HHs 
+	replace year_19=.216 if participant==1 & inlist(county,40) // only 495 HHs 
+	replace year_20=.608 if participant==1 & inlist(county,40) // half 495 HHs and half 2,289
+
+	replace year_20=0.25 if participant==1 & inlist(county,35) // 2,300 household from october 2020
+
+	forval i=21/30 {
+		gen year_`i'=participant
+	}
+
+
+	//Impact on poverty using evidence reviewed 
+	*Increase in school attendance (0.4 years)
+	gen increase_yschool=0.4
+
+	*Returns to schooling (avg. 14.2%)
+	gen share_ind_extra_income=(.142*increase_yschool)
+
+	*Evidence for increased income:
+	*      Female employment increases by 9 percentage points and male employment by 3.5. 
+	*      In addition, there is no significant effect on female earnings, 
+	*      while male earning rise about 16%
+
+	sum y2_i if malehead==1, d
+	gen avg_male=r(p50)
+	replace avg_male=avg_male*(0.035)*(1.16)
+
+	sum y2_i if malehead==0,d
+	gen avg_female=r(p50)
+	replace avg_female=avg_female*(0.09)
+
+	gen cons_extra_17=0
+	forval i=18/26 { // 18-26 only effect from employment
+		gen cons_extra_`i'=.
+		replace cons_extra_`i'=year_`i'*avg_male if malehead==1
+		replace cons_extra_`i'=year_`i'*avg_female if malehead==0
+	}
+	forval i=27/30 { //27 onwards including indirect benefits from education
+		gen cons_extra_`i'=.
+		replace cons_extra_`i'=year_`i'*avg_male if malehead==1
+		replace cons_extra_`i'=year_`i'*avg_female if malehead==0
+		
+		gen indir_extra_`i'=year_`i'*share_ind_extra_income
+		replace indir_extra_`i'=(indir_extra_`i'*n5_14) if n5_14>1
+		
+		replace cons_extra_`i'=cons_extra_`i'*(1+indir_extra_`i')
+	}
+	drop indir_extra_* avg_*
+
+	*Total household expenditure with benefits from the program
+	forval i=17/30 {
+		egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
+	}
+
+	*Poverty stauts w/adjusted expenditure 
+	forval i=17/30 {
+		gen program_poor_`i'=(program_y2_i_`i'<z2_i)
+	}
+
+	*HHs lifted from poverty by the program 
+	forval i=17/30 {
+		gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
+	}
+
+	*Save the file for analysis 
+	drop start_date end_date n_hhs 
+	gen n_simulation=`x'
+	save "${gsdTemp}/dfid_simulation_program_5_rand_`x'.dta", replace
 }
 
-*Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
-gen rand=.
-replace rand=rand1 if poor==1
-replace rand=rand*0.05 
-replace rand=rand0 if poor==0
-sort county strata rand 
-
-*Identify some randomly selected HHs as beneficiares of the program 
-by county: gen num=_n
-gen cum_wta_hh=.
-qui forval i=1/47 {
-	replace cum_wta_hh=wta_hh if num==1 & county==`i'
-	replace cum_wta_hh=cum_wta_hh[_n-1]+wta_hh if num>=2 & county==`i' & rand<.
+//Integrate one file with the 100 simulations
+use "${gsdTemp}/dfid_simulation_program_5_rand_1.dta", clear
+qui forval x=2/`n_set_simulation' {
+	append using "${gsdTemp}/dfid_simulation_program_5_rand_`x'.dta"
 }
-gen diff_hhs=n_hhs-cum_wta_hh 
-gen pre_threshold=abs(diff_hhs)
-by county: egen threshold=min(pre_threshold)
-gen threshold_in=rand if threshold==pre_threshold
-gen cut_off=.
-qui forval i=1/47 {
-	sum threshold_in if county==`i'
-	replace cut_off=r(mean) if rand<. & county==`i'
-}
-gen participant=1 if rand<=cut_off & rand<.
-replace participant=0 if participant>=.
-drop rand num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
-
-*Consider current and future participants 
-forval i=17/20 {
-	gen year_`i'=0
-}
-replace year_17=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
-replace year_18=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
-replace year_19=.186 if participant==1 & inlist(county,45,46) // only 1,859 HHs 
-replace year_20=.593 if participant==1 & inlist(county,45,46) // half 1,859 and half 10k HHs 
-
-replace year_17=.216 if participant==1 & inlist(county,40) // only 495 HHs 
-replace year_18=.216 if participant==1 & inlist(county,40) // only 495 HHs 
-replace year_19=.216 if participant==1 & inlist(county,40) // only 495 HHs 
-replace year_20=.608 if participant==1 & inlist(county,40) // half 495 HHs and half 2,289
-
-replace year_20=0.25 if participant==1 & inlist(county,35) // 2,300 household from october 2020
-
-forval i=21/30 {
-	gen year_`i'=participant
-}
-
-
-//Impact on poverty using evidence reviewed 
-*Increase in school attendance (0.4 years)
-gen increase_yschool=0.4
-
-*Returns to schooling (avg. 14.2%)
-gen share_ind_extra_income=(.142*increase_yschool)
-
-*Evidence for increased income:
-*      Female employment increases by 9 percentage points and male employment by 3.5. 
-*      In addition, there is no significant effect on female earnings, 
-*      while male earning rise about 16%
-
-sum y2_i if malehead==1, d
-gen avg_male=r(p50)
-replace avg_male=avg_male*(0.035)*(1.16)
-
-sum y2_i if malehead==0,d
-gen avg_female=r(p50)
-replace avg_female=avg_female*(0.09)
-
-gen cons_extra_17=0
-forval i=18/26 { // 18-26 only effect from employment
-	gen cons_extra_`i'=.
-	replace cons_extra_`i'=year_`i'*avg_male if malehead==1
-	replace cons_extra_`i'=year_`i'*avg_female if malehead==0
-}
-forval i=27/30 { //27 onwards including indirect benefits from education
-	gen cons_extra_`i'=.
-	replace cons_extra_`i'=year_`i'*avg_male if malehead==1
-	replace cons_extra_`i'=year_`i'*avg_female if malehead==0
-	
-	gen indir_extra_`i'=year_`i'*share_ind_extra_income
-	replace indir_extra_`i'=(indir_extra_`i'*n5_14) if n5_14>1
-	
-	replace cons_extra_`i'=cons_extra_`i'*(1+indir_extra_`i')
-}
-drop indir_extra_* avg_*
-
-*Total household expenditure with benefits from the program
-forval i=17/30 {
-	egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
-}
-
-*Poverty stauts w/adjusted expenditure 
-forval i=17/30 {
-	gen program_poor_`i'=(program_y2_i_`i'<z2_i)
-}
-
-*HHs lifted from poverty by the program 
-forval i=17/30 {
-	gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
-}
-
-*Save the file for analysis 
-drop start_date end_date n_hhs 
+compress
 save "${gsdTemp}/dfid_simulation_program_5_scenario1.dta", replace
+qui forval x=1/`n_set_simulation' {
+	erase "${gsdTemp}/dfid_simulation_program_5_rand_`x'.dta"
+}
 
 
 //Coverage of total population and poor by year (all counties) 
@@ -569,7 +604,7 @@ restore
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
 		xlabel(2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020" 2021 "2021" 2022 "2022" 2023 "2023" 2024 "2024" 2025 "2025" 2026 "2026" 2027 "2027" 2028 "2028" 2029 "2029" 2030 "2030") ///
-		ylabel(0 "0" 1 "1" 2 "2" 3 "3" 4 "4" 5 "5" 6 "6" 7 "7", angle(0)) legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
+		ylabel(0 "0" 1 "1" 2 "2" 3 "3" 4 "4" 5 "5" 6 "6", angle(0)) legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-5_coverage_scenario1", replace	
 
 
@@ -628,3 +663,7 @@ forval i=1/4 {
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
 	erase "${gsdTemp}/Temp-Simulation_1_`i'.dta"
 }
+
+
+//Erase files w/100 simulations
+erase "${gsdTemp}/dfid_simulation_program_5_scenario1.dta"

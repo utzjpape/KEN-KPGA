@@ -43,80 +43,97 @@ save "${gsdTemp}/dfid_analysis_program_7.dta", replace
 ****************************************
 * 2 | SIMULATE THE IMPACT ON POVERTY 
 ****************************************
+set seed 106311050
 
-use "${gsdTemp}/dfid_analysis_program_7.dta", clear
+//Loop for selecting randomly 100 different subsamples of beneficiaries
+local n_set_simulation =100
 
-//Identify program recipients 
-*Randomly order households within each county 
-gen rand=.
-set seed 2213129
-replace rand=uniform() if county==8 & n_hhs<. & n_target>0 & imp_floor==0 & elec_acc==0 & room==1
-replace rand=uniform() if county==47 & n_hhs<. & n_target>0 & elec_acc==1 & poor_25==1
-sort county rand 
+qui forval x=1/`n_set_simulation' { 
+ 
+	use "${gsdTemp}/dfid_analysis_program_7.dta", clear
 
-*Identify some randomly selected HHs as beneficiares of the program 
-by county: gen num=_n
-gen cum_wta_hh=.
-forval i=1/47 {
-	replace cum_wta_hh=wta_pop_target if num==1 & county==`i'
-	replace cum_wta_hh=cum_wta_hh[_n-1]+wta_pop_target if num>=2 & county==`i' & rand<.
-}
-gen diff_hhs=n_hhs-cum_wta_hh 
-gen pre_threshold=abs(diff_hhs)
-by county: egen threshold=min(pre_threshold)
-gen threshold_in=rand if threshold==pre_threshold
-gen cut_off=.
-forval i=1/47 {
-	sum threshold_in if county==`i'
-	replace cut_off=r(mean) if rand<. & county==`i'
-}
-gen participant=1 if rand<=cut_off & rand<.
-replace participant=0 if participant>=.
-drop rand num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
+	*Randomly order households within each county 
+	gen rand_`x'=.
+	replace rand_`x'=uniform() if county==8 & n_hhs<. & n_target>0 & imp_floor==0 & elec_acc==0 & room==1
+	replace rand_`x'=uniform() if county==47 & n_hhs<. & n_target>0 & elec_acc==1 & poor_25==1
+	sort county rand_`x' 
 
-//Obtain the duration in the program (fraction of year)
-gen year_14=1
-gen year_15=1
-gen year_16=1
-gen year_17=(8/12)
-forval i=14/17 {
-	replace year_`i'=0 if participant!=1
-}
-forval i=18/25 {
-	gen year_`i'=(participant)
+	*Identify some randomly selected HHs as beneficiares of the program 
+	by county: gen num=_n
+	gen cum_wta_hh=.
+	forval i=1/47 {
+		replace cum_wta_hh=wta_pop_target if num==1 & county==`i'
+		replace cum_wta_hh=cum_wta_hh[_n-1]+wta_pop_target if num>=2 & county==`i' & rand_`x'<.
+	}
+	gen diff_hhs=n_hhs-cum_wta_hh 
+	gen pre_threshold=abs(diff_hhs)
+	by county: egen threshold=min(pre_threshold)
+	gen threshold_in=rand_`x' if threshold==pre_threshold
+	gen cut_off=.
+	forval i=1/47 {
+		sum threshold_in if county==`i'
+		replace cut_off=r(mean) if rand_`x'<. & county==`i'
+	}
+	gen participant=1 if rand_`x'<=cut_off & rand_`x'<.
+	replace participant=0 if participant>=.
+	drop rand_`x' num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
+
+	//Obtain the duration in the program (fraction of year)
+	gen year_14=1
+	gen year_15=1
+	gen year_16=1
+	gen year_17=(8/12)
+	forval i=14/17 {
+		replace year_`i'=0 if participant!=1
+	}
+	forval i=18/25 {
+		gen year_`i'=(participant)
+	}
+
+	//Impact on consumption and poverty for every year 
+	*Create variable with additional income result of the program
+	forval i=14/17 {
+		gen cons_extra_`i'=0
+		replace cons_extra_`i'=(1500/ctry_adq) * participant * year_`i' if county==8
+		replace cons_extra_`i'=(1125/ctry_adq) * participant * year_`i' if county==47
+	}
+	forval i=18/23 {
+		gen cons_extra_`i'=0
+	}
+	gen cons_extra_24=(y2_i_24*0.15) * participant * n_target
+	gen cons_extra_25=(y2_i_25*0.15) * participant * n_target
+
+	*Total household expenditure with benefits from the program
+	forval i=14/25 {
+		egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
+	}
+
+	*Poverty stauts w/adjusted expenditure 
+	forval i=14/25 {
+		gen program_poor_`i'=(program_y2_i_`i'<z2_i)
+	}
+
+	*HHs lifted from poverty by the program 
+	forval i=14/25 {
+		gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
+	}
+
+	*Save the file for analysis 
+	drop start_date end_date n_hhs 
+	gen n_simulation=`x'
+	save "${gsdTemp}/dfid_simulation_program_7_rand_`x'.dta", replace
 }
 
-//Impact on consumption and poverty for every year 
-*Create variable with additional income result of the program
-forval i=14/17 {
-	gen cons_extra_`i'=0
-	replace cons_extra_`i'=(1500/ctry_adq) * participant * year_`i' if county==8
-	replace cons_extra_`i'=(1125/ctry_adq) * participant * year_`i' if county==47
+//Integrate one file with the 100 simulations
+use "${gsdTemp}/dfid_simulation_program_7_rand_1.dta", clear
+qui forval x=2/`n_set_simulation' {
+	append using "${gsdTemp}/dfid_simulation_program_7_rand_`x'.dta"
 }
-forval i=18/23 {
-	gen cons_extra_`i'=0
-}
-gen cons_extra_24=(y2_i_24*0.15) * participant * n_target
-gen cons_extra_25=(y2_i_25*0.15) * participant * n_target
-
-*Total household expenditure with benefits from the program
-forval i=14/25 {
-	egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
-}
-
-*Poverty stauts w/adjusted expenditure 
-forval i=14/25 {
-	gen program_poor_`i'=(program_y2_i_`i'<z2_i)
-}
-
-*HHs lifted from poverty by the program 
-forval i=14/25 {
-	gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
-}
-
-*Save the file for analysis 
-drop start_date end_date n_hhs 
+compress
 save "${gsdTemp}/dfid_simulation_program_7_benchmark.dta", replace
+qui forval x=1/`n_set_simulation' {
+	erase "${gsdTemp}/dfid_simulation_program_7_rand_`x'.dta"
+}
 
 
 
@@ -149,7 +166,7 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-7_coverage_pop", replace
 
 graph twoway (bar share_poor county if county==1, barw(0.60) bcolor(olive_teal))  (bar share_poor county if county==0, barw(0.60) bcolor(olive))  ///
 	, xtitle("County", size(small)) ytitle("Coverage of poor (% of poor)", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-	xlabel(0 "Wajir" 1 "Nairobi") legend(off) ylabel(0 "0" 1 "1" 2 "2" 3 "3", angle(0))  
+	xlabel(0 "Wajir" 1 "Nairobi") legend(off) ylabel(0 "0" 1 "1" 2 "2" 3 "3" 4 "4", angle(0))  
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-7_coverage_poor", replace	
 
 
@@ -308,83 +325,100 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-7_support_time", replace
 ***************************************
 * 4 | SCENARIO 1: IMPROVED TARGETING 
 ***************************************
+set seed 291102
 
-use "${gsdTemp}/dfid_analysis_program_7.dta", clear
+//Loop for selecting randomly 100 different subsamples of beneficiaries
 
-//Identify program recipients 
-*Randomly order households within each county 
-gen rand=.
-set seed 2213129
-replace rand=uniform() if county==8 & n_hhs<. & n_target>0 & imp_floor==0 & elec_acc==0 & room==1
-replace rand=uniform() if county==47 & n_hhs<. & n_target>0 & elec_acc==1 & poor_25==1
+qui forval x=1/`n_set_simulation' { 
+ 
+	use "${gsdTemp}/dfid_analysis_program_7.dta", clear
 
-*Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
-replace rand=rand*0.15 if poor==1 & rand<.
-sort county rand 
+	*Randomly order households within each county 
+	gen rand_`x'=.
+	replace rand_`x'=uniform() if county==8 & n_hhs<. & n_target>0 & imp_floor==0 & elec_acc==0 & room==1
+	replace rand_`x'=uniform() if county==47 & n_hhs<. & n_target>0 & elec_acc==1 & poor_25==1
 
-*Identify some randomly selected HHs as beneficiares of the program 
-by county: gen num=_n
-gen cum_wta_hh=.
-forval i=1/47 {
-	replace cum_wta_hh=wta_pop_target if num==1 & county==`i'
-	replace cum_wta_hh=cum_wta_hh[_n-1]+wta_pop_target if num>=2 & county==`i' & rand<.
+	*Adjustment for Scenario 1: change targeting to have a larger coverage of poor 
+	replace rand_`x'=rand_`x'*0.15 if poor==1 & rand_`x'<.
+	sort county rand_`x' 
+
+	*Identify some randomly selected HHs as beneficiares of the program 
+	by county: gen num=_n
+	gen cum_wta_hh=.
+	forval i=1/47 {
+		replace cum_wta_hh=wta_pop_target if num==1 & county==`i'
+		replace cum_wta_hh=cum_wta_hh[_n-1]+wta_pop_target if num>=2 & county==`i' & rand_`x'<.
+	}
+	gen diff_hhs=n_hhs-cum_wta_hh 
+	gen pre_threshold=abs(diff_hhs)
+	by county: egen threshold=min(pre_threshold)
+	gen threshold_in=rand_`x' if threshold==pre_threshold
+	gen cut_off=.
+	forval i=1/47 {
+		sum threshold_in if county==`i'
+		replace cut_off=r(mean) if rand_`x'<. & county==`i'
+	}
+	gen participant=1 if rand_`x'<=cut_off & rand_`x'<.
+	replace participant=0 if participant>=.
+	drop rand_`x' num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
+
+	//Obtain the duration in the program (fraction of year)
+	gen year_14=1
+	gen year_15=1
+	gen year_16=1
+	gen year_17=(8/12)
+	forval i=14/17 {
+		replace year_`i'=0 if participant!=1
+	}
+	forval i=18/25 {
+		gen year_`i'=(participant)
+	}
+
+	//Impact on consumption and poverty for every year 
+	*Create variable with additional income result of the program
+	forval i=14/17 {
+		gen cons_extra_`i'=0
+		replace cons_extra_`i'=(1500/ctry_adq) * participant * year_`i' if county==8
+		replace cons_extra_`i'=(1125/ctry_adq) * participant * year_`i' if county==47
+	}
+	forval i=18/23 {
+		gen cons_extra_`i'=0
+	}
+	gen cons_extra_24=(y2_i_24*0.15) * participant * n_target
+	gen cons_extra_25=(y2_i_25*0.15) * participant * n_target
+
+	*Total household expenditure with benefits from the program
+	forval i=14/25 {
+		egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
+	}
+
+	*Poverty stauts w/adjusted expenditure 
+	forval i=14/25 {
+		gen program_poor_`i'=(program_y2_i_`i'<z2_i)
+	}
+
+	*HHs lifted from poverty by the program 
+	forval i=14/25 {
+		gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
+	}
+
+	*Save the file for analysis 
+	drop start_date end_date n_hhs 
+	gen n_simulation=`x'
+	save "${gsdTemp}/dfid_simulation_program_7_rand_`x'.dta", replace
+
 }
-gen diff_hhs=n_hhs-cum_wta_hh 
-gen pre_threshold=abs(diff_hhs)
-by county: egen threshold=min(pre_threshold)
-gen threshold_in=rand if threshold==pre_threshold
-gen cut_off=.
-forval i=1/47 {
-	sum threshold_in if county==`i'
-	replace cut_off=r(mean) if rand<. & county==`i'
-}
-gen participant=1 if rand<=cut_off & rand<.
-replace participant=0 if participant>=.
-drop rand num cum_wta_hh diff_hhs pre_threshold threshold threshold_in cut_off
 
-//Obtain the duration in the program (fraction of year)
-gen year_14=1
-gen year_15=1
-gen year_16=1
-gen year_17=(8/12)
-forval i=14/17 {
-	replace year_`i'=0 if participant!=1
+//Integrate one file with the 100 simulations
+use "${gsdTemp}/dfid_simulation_program_7_rand_1.dta", clear
+qui forval x=2/`n_set_simulation' {
+	append using "${gsdTemp}/dfid_simulation_program_7_rand_`x'.dta"
 }
-forval i=18/25 {
-	gen year_`i'=(participant)
-}
-
-//Impact on consumption and poverty for every year 
-*Create variable with additional income result of the program
-forval i=14/17 {
-	gen cons_extra_`i'=0
-	replace cons_extra_`i'=(1500/ctry_adq) * participant * year_`i' if county==8
-	replace cons_extra_`i'=(1125/ctry_adq) * participant * year_`i' if county==47
-}
-forval i=18/23 {
-	gen cons_extra_`i'=0
-}
-gen cons_extra_24=(y2_i_24*0.15) * participant * n_target
-gen cons_extra_25=(y2_i_25*0.15) * participant * n_target
-
-*Total household expenditure with benefits from the program
-forval i=14/25 {
-	egen program_y2_i_`i'=rowtotal(y2_i_`i' cons_extra_`i')
-}
-
-*Poverty stauts w/adjusted expenditure 
-forval i=14/25 {
-	gen program_poor_`i'=(program_y2_i_`i'<z2_i)
-}
-
-*HHs lifted from poverty by the program 
-forval i=14/25 {
-	gen program_lift_poor_`i'=(poor_`i'!=program_poor_`i')
-}
-
-*Save the file for analysis 
-drop start_date end_date n_hhs 
+compress
 save "${gsdTemp}/dfid_simulation_program_7_scenario1.dta", replace
+qui forval x=1/`n_set_simulation' {
+	erase "${gsdTemp}/dfid_simulation_program_7_rand_`x'.dta"
+}
 
 
 //Coverage of total population and poor by year (all counties) 
@@ -455,7 +489,7 @@ restore
 *Graph
 twoway (line pop_share_covered year, lpattern(-) lcolor(black)) (line share_poor_covered year, lpattern(solid) lcolor(black)) ///
 		,  xtitle("Year", size(small)) ytitle("Percentage", size(small)) xlabel(, labsize(small) ) graphregion(color(white)) bgcolor(white) ///
-		xlabel(2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 1 "1" 2 "2" 3 "3", angle(0)) ///
+		xlabel(2014 "2014" 2015 "2015" 2016 "2016" 2017 "2017" 2018 "2018" 2019 "2019" 2020 "2020")  ylabel(0 "0" 1 "1" 2 "2" 3 "3" 4 "4", angle(0)) ///
 		legend(order(1 2)) legend(label(1 "Coverage (% of total population)") label(2 "Coverage of poor (% of poor)") size(small))  plotregion( m(b=0))
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Program-7_coverage_scenario1", replace	
 
@@ -516,3 +550,7 @@ forval i=1/4 {
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
 	erase "${gsdTemp}/Temp-Simulation_1_`i'.dta"
 }
+
+
+//Erase files w/100 simulations
+erase "${gsdTemp}/dfid_simulation_program_7_scenario1.dta"

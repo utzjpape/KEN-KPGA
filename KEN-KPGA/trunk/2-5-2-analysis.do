@@ -3,20 +3,17 @@
 ***   Urbanization Chapter                         ***
 ***   By Shohei Nakamura                           ***
 ******************************************************
-/*
 clear all
-global path "C:/Users/WB377460/Documents/KPGA/"
-global data "${path}data/"
-global graph "${gsdOutput}/C5-Urban/"
-global output "${path}output/"
-global GIS "${path}GIS/"
-cd "${path}" 
-*/
-//////////////////////////////
-//     Check poverty        //
-//////////////////////////////
+set more off
 
-//* check poverty
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
+
+
+*Check poverty 
+
 use "${gsdData}/2-AnalysisOutput/KIHBS_master_2015", clear
 
 apoverty y2_i [aw=wta_pop], varpl(z2_i)
@@ -27,7 +24,7 @@ apoverty y2_i [aw=wta_pop] if urban==1, varpl(z2_i)
 mean poor [aw=wta_pop] if urban==1
 
 
-//* check poverty changes
+* check poverty changes
 use "${gsdData}/2-AnalysisOutput/KIHBS_master_2015", clear
 append using "${gsdData}/2-AnalysisOutput/KIHBS_master_2005", force
 svyset, clear
@@ -44,9 +41,7 @@ svy: mean poor if province!=8 & year==2015, over(urban)
 test c.poor@1.urban = c.poor@0.urban
 
 
-///////////////////////////////
-//   County-level analysis   //
-///////////////////////////////
+*County-level analysis   //
 
 use	"${gsdData}/2-AnalysisOutput/KIHBS_master_2005", clear
 append using "${gsdData}/2-AnalysisOutput/KIHBS_master_2015"
@@ -250,9 +245,7 @@ tw (scatter fgt1_rc fgt1_uc if fgt1_uc<0.3) (lfit fgt1_rc fgt1_uc if fgt1_uc<0.3
 	name(a_c, replace) 
 
 
-///////////////////////////////
-//   Province-level analysis //
-///////////////////////////////	
+*Province-level analysis //
 
 use	"${gsdData}/2-AnalysisOutput/KIHBS_master_2005", clear
 append using "${gsdData}/2-AnalysisOutput/KIHBS_master_2015"
@@ -321,9 +314,7 @@ tw (scatter fgt1_rc fgt1_uc if fgt1_uc<0.3) (lfit fgt1_rc fgt1_uc if fgt1_uc<0.3
 	name(a_c, replace) 
 	
 	
-/////////////////////////////////////////////	
-// ** Huppi and Ravallion decomposition ** //
-/////////////////////////////////////////////
+** Huppi and Ravallion decomposition ** //
 
 * net install sedecomposition, replace from(http://adeptanalytics.org/downlaod/ado)
 
@@ -450,10 +441,10 @@ forvalues i = 1/7 {
 
 
 ***********************
-//*** Consumption ***//
+*** Consumption ***//
 ***********************
 
-//*** 2005 ***//
+*** 2005 ***//
 * adjust to monthly adult equivalent deflated expenditure 
 
 use	"${gsdData}/2-AnalysisOutput/KIHBS_master_2005", clear
@@ -493,20 +484,7 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	*/
-	/*
-	preserve
-		collapse (mean) total food nonfood housing utilities trans edu otherexp ///
-			[aw=wta_hh] if `condition`i'', by(`Q`i'')
-		
-		export excel using "kenya_expenditure.xlsx", ///
-			sheet("expabs05_`i'") sheetreplace first(var)
-	restore
-	*/
+
 	preserve
 		collapse (mean) total food nonfood housing utilities trans edu otherexp ///
 			[aw=wta_hh] if `condition`i'', by(poor)
@@ -547,7 +525,7 @@ gen trans = nfdtrans
 
 gen otherexp = nonfood - housing - edu - utilities - trans
 
-// housing expenditure share
+*housing expenditure share
 tempfile temp
 preserve
 	use "${gsdDataRaw}/KIHBS15/eastatus", clear
@@ -563,7 +541,7 @@ gen slum = (eastat==4)
 
 gen hsg = housing / total * 100
 
-// in Nairobi and Mombasa slums
+*in Nairobi and Mombasa slums
 foreach x in 47 1 {
 	
 	local title47 Nairobi
@@ -660,20 +638,6 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	*/
-	/*
-	preserve
-		collapse (mean) total food nonfood housing utilities trans edu otherexp ///
-			[aw=wta_hh] if `condition`i'', by(`Q`i'')
-		
-		export excel using "kenya_expenditure.xlsx", ///
-			sheet("expabs15_`i'") sheetreplace first(var)
-	restore
-	*/
 
 	preserve
 		collapse (mean) total food nonfood housing utilities trans edu otherexp ///
@@ -693,9 +657,7 @@ forvalues i = 1/4 {
 	
 }
 
-///////////////////////////////	
-//   Water and sanitation	 //
-///////////////////////////////
+*Water and sanitation	 //
 
 tempfile temp
 use "${gsdDataRaw}/KIHBS15/hh", clear
@@ -818,22 +780,6 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	*/
-	* water
-	/*
-	preserve
-		collapse (mean) water* [aw=wta_hh] if `condition`i'', by(year `Q`i'')
-		forvalues x = 1/5 {
-			qui replace water`x' = water`x'*100
-		}
-		export excel using "${gsdOutput}/C5-Urban/kenya_water.xlsx", ///
-			sheet("water_`i'") sheetreplace first(var)
-	restore
-	*/
 	preserve
 		collapse (mean) water* [aw=wta_hh] if `condition`i'', by(year)
 		forvalues x = 1/5 {
@@ -852,17 +798,7 @@ forvalues i = 1/4 {
 			sheet("water_pov`i'") sheetreplace first(var)
 	restore
 	
-	* sanitation
-	/*
-	preserve
-		collapse (mean) toilet* [aw=wta_hh] if `condition`i'', by(year `Q`i'')
-		forvalues x = 1/5 {
-			qui replace toilet`x' = toilet`x'*100
-		}
-		export excel using "${path}graph\kenya_water.xlsx", ///
-			sheet("toilet_`i'") sheetreplace first(var)
-	restore
-	*/
+
 	preserve
 		collapse (mean) toilet* [aw=wta_hh] if `condition`i'', by(year)
 		forvalues x = 1/5 {
@@ -882,9 +818,7 @@ forvalues i = 1/4 {
 	restore
 }
 
-////////////////////////////////
-//        Electricity         //
-////////////////////////////////
+*Electricity         //
 
 tempfile temp
 use "${gsdDataRaw}/KIHBS15/hh", clear
@@ -954,22 +888,7 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	*/
-	/*
-	preserve
-		drop elec
-		collapse (mean) elec* [aw=wta_hh] if `condition`i'', by(year `Q`i'')
-		forvalues x = 1/3 {
-			qui replace elec`x' = elec`x'*100
-		}
-		export excel using "${path}graph\kenya_elec.xlsx", ///
-			sheet("elec_`i'") sheetreplace first(var)
-	restore
-	*/	
+	
 	preserve
 		drop elec
 		collapse (mean) elec* [aw=wta_hh] if `condition`i'', by(year)
@@ -993,11 +912,7 @@ forvalues i = 1/4 {
 	
 }
 
-
-	
-////////////////////////////////
-//  Commuting mode and time   //
-////////////////////////////////
+*Commuting mode and time   //
 
 tempfile temp
 use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
@@ -1036,19 +951,7 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	
-	* commuting mode
-	preserve
-		collapse (mean) tmode05_* tmode15_* [aw=wta_hh] if `condition`i'', by(`Q`i'')
-		
-		export excel using "${path}graph\kenya_mobility.xlsx", ///
-			sheet("mode_`i'") sheetreplace first(var)
-	restore
-	*/
+
 	preserve
 		collapse (mean) tmode05_* tmode15_* [aw=wta_hh] if `condition`i''
 		
@@ -1066,9 +969,7 @@ forvalues i = 1/4 {
 	
 }
 	
-//////////////////////
-//    Slums        ///
-//////////////////////
+*Slums        ///
 
 use "${gsdDataRaw}/KIHBS15/hh", clear
 
@@ -1231,9 +1132,7 @@ foreach x in 1 /*47 1*/ {
 
 }
 	
-///////////////////////
-//     Housing       //
-///////////////////////
+*Housing       //
 
 tempfile temp
 use "${gsdDataRaw}/KIHBS15/hh", clear
@@ -1724,7 +1623,7 @@ eststo: areg ln_wageh c.b05_yy##c.b05_yy i.b04 i.edu b3.sector_pri i.d30 ///
 
 esttab ///
 	using "${gsdOutput}/KIHBS_wage_Nairobi.rtf", replace ///
-	se unstack nogap onecell star(* 0.1 ** 0.05 *** 0.01) ///
+	se unstack nogap  star(* 0.1 ** 0.05 *** 0.01) ///
 	stats(r2_a N, labels("Adj-R2" "Obs.")) ///
 	title({\b Table.} Wage equations)
 eststo clear	
@@ -1733,62 +1632,8 @@ eststo clear
 * Nairobi
 eststo clear
 
-eststo: reg ln_wageh c.b05_yy##c.b05_yy i.b04 i.edu ///
-	[aw=wta_hh] if province==8
-
-eststo: reg ln_wageh b3.sector_pri ///
-	[aw=wta_hh] if province==8
-
-eststo: reg ln_wageh c.b05_yy##c.b05_yy i.b04 b3.sector_pri ///
-	[aw=wta_hh] if province==8
-	
-eststo: reg ln_wageh c.b05_yy##c.b05_yy i.edu b3.sector_pri ///
-	[aw=wta_hh] if province==8		
-
-eststo: reg ln_wageh c.b05_yy##c.b05_yy i.b04 i.edu b3.sector_pri ///
-	[aw=wta_hh] if province==8
-	
-eststo: reg ln_wageh c.b05_yy##c.b05_yy i.b04 i.edu b3.sector_pri i.d30 ///
-	[aw=wta_hh] if province==8
-
-esttab ///
-	using "${gsdOutput}/KIHBS_wage_Nairobi.rtf", replace ///
-	se unstack nogap onecell star(* 0.1 ** 0.05 *** 0.01) ///
-	stats(r2_a N, labels("Adj-R2" "Obs.")) ///
-	title({\b Table.} Wage equations)
-eststo clear		
-		
-	
-* Other urban
-eststo clear
-eststo: areg ln_wageh c.b05_yy##c.b05_yy i.b04 i.edu ///
-	[aw=wta_hh] if province!=8 & urban==1, absorb(county)
-
-eststo: areg ln_wageh b3.sector_pri ///
-	[aw=wta_hh] if province!=8 & urban==1, absorb(county)
-
-eststo: areg ln_wageh c.b05_yy##c.b05_yy i.b04 b3.sector_pri ///
-	[aw=wta_hh] if province!=8 & urban==1, absorb(county)
-	
-eststo: areg ln_wageh c.b05_yy##c.b05_yy i.edu b3.sector_pri ///
-	[aw=wta_hh] if province!=8 & urban==1, absorb(county)
-
-eststo: areg ln_wageh c.b05_yy##c.b05_yy i.b04 i.edu b3.sector_pri ///
-	[aw=wta_hh] if province!=8 & urban==1, absorb(county)
-	
-eststo: areg ln_wageh c.b05_yy##c.b05_yy i.b04 i.edu b3.sector_pri i.d30 ///
-	[aw=wta_hh] if province!=8 & urban==1, absorb(county)
-
-esttab ///
-	using "${gsdOutput}/KIHBS_wage_otherurban.rtf", replace ///
-	se unstack nogap onecell star(* 0.1 ** 0.05 *** 0.01) ///
-	stats(r2_a N, labels("Adj-R2" "Obs.")) ///
-	title({\b Table.} Wage equations)
-eststo clear	
-	
-
 ** urban, nairobi, and other urban areas
-// laborforce participation rate
+*laborforce participation rate
 cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
@@ -1797,20 +1642,7 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	*/
-	/*
-	preserve
-		collapse (mean) LF ///
-			[aw=wta_hh] if `condition`i'', by(`Q`i'')
-		
-		export excel using "kenya_labor.xlsx", ///
-			sheet("LF15_`i'") sheetreplace first(var)
-	restore
-	*/
+
 	preserve
 		collapse (mean) LF ///
 			[aw=wta_hh] if `condition`i'', by(poor)
@@ -1839,20 +1671,7 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	*/
-	/*
-	preserve
-		collapse (mean) unemp ///
-			[aw=wta_hh] if nilf==0 & `condition`i'', by(`Q`i'')
-		
-		export excel using "kenya_labor.xlsx", ///
-			sheet("unemp15_`i'") sheetreplace first(var)
-	restore
-	*/
+
 	preserve
 		collapse (mean) unemp ///
 			[aw=wta_hh] if nilf==0 &`condition`i'', by(poor)
@@ -1880,19 +1699,7 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	
-	preserve
-		collapse (mean) jobtype_* ///
-			[aw=wta_hh] if `condition`i'', by(`Q`i'')
-		
-		export excel using "kenya_labor.xlsx", ///
-			sheet("jobtype15_`i'") sheetreplace first(var)
-	restore
-	*/
+
 	preserve
 		collapse (mean) jobtype_* ///
 			[aw=wta_hh] if `condition`i'', by(poor)
@@ -1971,7 +1778,7 @@ tab county sector_pri [fw=round(wta_hh)]
 
 
 * Unemployment rate
-// All age
+*All age
 tab unemp if laborforce==1 [fw=round(wta_hh)]
 tab unemp if laborforce==1 & b04==1 [fw=round(wta_hh)]
 tab unemp if laborforce==1 & b04==2 [fw=round(wta_hh)]
@@ -1979,7 +1786,7 @@ tab county unemp if laborforce==1 [fw=round(wta_hh)]
 tab county unemp if laborforce==1 & b04==1 [fw=round(wta_hh)] // men
 tab county unemp if laborforce==1 & b04==2 [fw=round(wta_hh)] // women
 
-// Youth 15-29 yrs old
+*Youth 15-29 yrs old
 tab unemp if laborforce==1 & b05_yy>=15 & b05_yy<=29 [fw=round(wta_hh)]
 tab unemp if laborforce==1 & b04==1 & b05_yy>=15 & b05_yy<=29 [fw=round(wta_hh)]
 tab unemp if laborforce==1 & b04==2 & b05_yy>=15 & b05_yy<=29 [fw=round(wta_hh)]
@@ -2099,16 +1906,6 @@ lab def sector 1 "Agriculture" 2 "Manufacturing" 3 "Services" 4 "Construction"
 lab val sector sector
 
 
-/*
-* unemployment rate
-cap drop worked laborforce
-gen worked = inlist(e03,1,2,3,4,5)
-replace worked = 1 if e09==1
-gen laborforce = (worked==1)
-replace laborforce = 1 if worked==0 & (e10==3)
-tab worked laborforce [fw=round(wta_hh)], missing col
-gen unemp = (laborforce==1 & worked==0)
-*/
 
 * Employment types
 gen jobtype = .
@@ -2119,7 +1916,7 @@ replace jobtype = 4 if e04>=4 & e04<=9
 tab jobtype, gen(jobtype_)
 
 ** urban, nairobi, and other urban areas
-// laborforce participation rate
+* laborforce participation rate
 cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
@@ -2128,19 +1925,7 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	
-	preserve
-		collapse (mean) LF ///
-			[aw=wta_hh] if  `condition`i'', by(`Q`i'')
-		
-		export excel using "kenya_labor.xlsx", ///
-			sheet("LF05_`i'") sheetreplace first(var)
-	restore
-	*/
+
 	preserve
 		collapse (mean) LF ///
 			[aw=wta_hh] if `condition`i'', by(poor)
@@ -2159,7 +1944,7 @@ forvalues i = 1/4 {
 	
 	
 }
-// unemployment rate
+* unemployment rate
 cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
@@ -2168,19 +1953,7 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	
-	preserve
-		collapse (mean) unemp ///
-			[aw=wta_hh] if nilf==0 & `condition`i'', by(`Q`i'')
-		
-		export excel using "kenya_labor.xlsx", ///
-			sheet("unemp05_`i'") sheetreplace first(var)
-	restore
-	*/
+
 	preserve
 		collapse (mean) unemp ///
 			[aw=wta_hh] if nilf==0 &`condition`i'', by(poor)
@@ -2199,7 +1972,7 @@ forvalues i = 1/4 {
 	
 	
 }
-// jobtype
+* jobtype
 cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
@@ -2208,19 +1981,7 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	
-	preserve
-		collapse (mean) jobtype_* ///
-			[aw=wta_hh] if  `condition`i'', by(`Q`i'')
-		
-		export excel using "kenya_labor.xlsx", ///
-			sheet("jobtype05_`i'") sheetreplace first(var)
-	restore
-	*/
+
 	preserve
 		collapse (mean) jobtype_* ///
 			[aw=wta_hh] if `condition`i'', by(poor)
@@ -2240,7 +2001,7 @@ forvalues i = 1/4 {
 	
 }
 
-// Economic sectors
+*Economic sectors
 cd "${gsdOutput}/C5-Urban/"
 
 forvalues i = 1/4 {
@@ -2249,19 +2010,7 @@ forvalues i = 1/4 {
 	local condition2 "province==8"
 	local condition3 "county==1"
 	local condition4 "urban==1 & province!=8 & county!=1"
-	/*
-	local Q1 y2_5_u
-	local Q2 y2_5_n
-	local Q3 y2_5_o
-	
-	preserve
-		collapse (mean) ocusec_* ///
-			[aw=wta_hh] if  `condition`i'', by(`Q`i'')
-		
-		export excel using "kenya_labor.xlsx", ///
-			sheet("sector05_`i'") sheetreplace first(var)
-	restore
-	*/
+
 	preserve
 		collapse (mean) ocusec_* ///
 			[aw=wta_hh] if `condition`i'', by(poor)
@@ -2376,7 +2125,7 @@ label var y_5_n "Quintile of food per capita household consumption (Nairobi only
 label var y2_5_n "Quintile of total per capita household consumption (Nairobi only)"
 
 
-// commuting time
+* commuting time
 tab e28 [iw=weight] // district of job
 tab e29 [iw=weight] // travel mode to job
 sum e30a [aw=weight], de // travel time to job (peak)
@@ -2416,7 +2165,7 @@ restore
 graph combine a1 a2, xsize(8) iscale(0.8)
 graph export "${gsdOutput}/C5-Urban/travel_Nairobi2006.png", replace 
 
-// focus on only wage workers
+* focus on only wage workers
 gen ln_wage = log(wage)
 gen ln_wage_all = log(wage_all)
 sum ln_wage*
@@ -2479,7 +2228,7 @@ reg ln_wage female#married c.age##c.age i.edu##i.prov ///
 margins prov, at(edu = (0(1)4)) vsquish 
 marginsplot, noci 	
 
-// Livelihood of urban residents
+* Livelihood of urban residents
 tab e03 if rururb==2
 tab e04 if rururb==2
 tab e03 e04 if rururb==2
@@ -2525,7 +2274,7 @@ tabstat hour if rururb==2, by(prov) stat(mean p25 p50 p75)
 
 
 
-//*** Housing ***//
+* Housing ***//
 use "${gsdDataRaw}/KIHBS05/Section G Housing", clear
 
 sort id_clust id_hh
@@ -2538,7 +2287,7 @@ tab g13 [iw=weights] // roof
 tab g14 [iw=weights] // floor
 
 ********************************
-//*** Water and sanitation ***//
+**** Water and sanitation ***//
 ********************************
 use "${gsdDataRaw}/KIHBS05/Section H1 Water Sanitation", clear
 
@@ -2594,7 +2343,7 @@ sum h25 [aw=weights], de // cost of electricity last month
 tab h27 [iw=weights] // electricity working
 
 
-// Access to improved water
+* Access to improved water
 gen impwater = 0
 replace impwater = 1 if (h01a>=1 & h01a<=6)|h01a==11
 replace impwater = . if h01a==.
@@ -2644,7 +2393,7 @@ forvalues i = 1/3 {
 graph combine a1 a2 a3, row(1) xsize(12) iscale(0.9)
 graph export "${gsdOutput}/C5-Urban/water_urban2006.png", replace 
 
-// Access to improved sanitation
+* Access to improved sanitation
 gen imptoilet = 0
 replace imptoilet = 1 if h13==1|h13==2
 replace imptoilet = . if h13==.
@@ -2706,19 +2455,3 @@ forvalues i = 1/3 {
 }
 graph combine a1 a2 a3, row(1) xsize(12) iscale(0.9)
 graph export "${gsdOutput}/C5-Urban/sanitation_urban2006.png", replace 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

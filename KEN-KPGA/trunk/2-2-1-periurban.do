@@ -1,8 +1,13 @@
-clear all
 *Do-file used to show similarites between peri-urban and rural households to justify including peri-iurban in rural for pov. line + analysis
+clear all
+set more off
+
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 *Calculate population densities of clusters by eatype
 run "C:\Users\wb475840\OneDrive - WBG\Countries\KEN\KIHBS2015_16\Do\00-init.do"
-
 
 import excel "C:\Users\wb475840\OneDrive - WBG\Countries\Kenya\KPGA\HH_pop from Census & KIHBS.xlsx", sheet("Sheet1") firstrow clear
 ren ClusterNumber a09

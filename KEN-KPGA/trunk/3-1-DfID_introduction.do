@@ -1,16 +1,18 @@
 *Analysis for Section 1: Introduction
-
-
 set more off
 set seed 23081980 
 set sortseed 11041955
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 
 
 ****************************************************
 * 1 | IMPORT AND PREPARE CROSS-COUNTRY WDI DATA 
 ****************************************************
 
-//Import WDI data
+*Import WDI data
 *Decide if we want to re-import the data 
 local runimport = 1
 
@@ -19,84 +21,84 @@ if (`runimport'==1) {
 
 	*make sure the wbopendata command is available
 	set checksum off, permanently
-	cap ssc install wbopendata
+	cap ssc install wbopendata, replace
 
 	*sourcing from WB Open data to Temp in dta file 
 	wbopendata, language(en - English) country() topics() indicator(SI.POV.DDAY - Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_poverty.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(SI.POV.GINI - GINI index (World Bank estimate)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_gini.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(NY.GDP.PCAP.KD.ZG - GDP per capita growth (annual %)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_growthpc.dta", replace
 		
 	wbopendata, language(en - English) country() topics() indicator(NY.GDP.PCAP.PP.KD - GDP per capita, PPP (constant 2011 international $)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_gdpppp.dta", replace
 	
 	wbopendata, language(en - English) country() topics() indicator(SH.H2O.BASW.ZS - People using at least basic drinking water services (% of population)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_water.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(SH.STA.BASS.ZS - People using at least basic sanitation services (% of population)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_sanitation.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(SH.DYN.MORT - Mortality rate, under-5 (per 1,000 live births)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_mortality.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(SE.ADT.LITR.ZS - Adult literacy rate, population 15+ years, both sexes (%)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_literacy.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(SE.PRM.CUAT.ZS - Completed primary education, (%) of population aged 25+) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_primaryeduc.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(VC.IDP.TOCV - Internally displaced persons, total displaced by conflict and violence (number of people)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_idps.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(NE.CON.PRVT.ZS - Households and NPISHs final consumption expenditure (% of GDP)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_privateconshare.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(NE.CON.PRVT.KD.ZG - Households and NPISHs Final consumption expenditure (annual % growth)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_privateconsgrowth.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(NE.CON.GOVT.ZS - General government final consumption expenditure (% of GDP)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_govexpshare.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(NE.CON.GOVT.KD.ZG - General government final consumption expenditure (annual % growth)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_govexpgrowth.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(NE.RSB.GNFS.ZS - External balance on goods and services (% of GDP)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_extbalanceshare.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(NE.RSB.GNFS.KN - External balance on goods and services (constant LCU)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_extbalancelevel.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(NE.GDI.TOTL.ZS - Gross capital formation (% of GDP)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_investshare.dta", replace
 
 	wbopendata, language(en - English) country() topics() indicator(NE.GDI.TOTL.KD.ZG - Gross capital formation (annual % growth)) clear long
-    keep if regioncode=="SSF" & (year>=2005 & year<=2018)
+    keep if region=="SSF" & (year>=2005 & year<=2018)
 	save "${gsdTemp}/WB_data_investgrowth.dta", replace
 }
 
 
-//Clean and prepare the WDI data
+*Clean and prepare the WDI data
 *for each variable obtain the latest figures and year available
 foreach indicator in poverty gini growthpc gdpppp water sanitation mortality literacy primaryeduc idps privateconshare privateconsgrowth govexpshare govexpgrowth extbalanceshare extbalancelevel investshare investgrowth  {
 	use "${gsdTemp}/WB_data_`indicator'.dta", clear
@@ -228,20 +230,20 @@ foreach indicator in poverty gini growthpc gdpppp water sanitation mortality lit
 }
 
 
-//Export WDI data
+*Export WDI data
 *The whole time series
 use "${gsdTemp}/WB_clean_all_poverty.dta", clear
 foreach indicator in gini growthpc gdpppp water sanitation mortality literacy primaryeduc idps privateconshare privateconsgrowth govexpshare govexpgrowth extbalanceshare extbalancelevel investshare investgrowth  {
 	merge 1:1 countryname year using "${gsdTemp}\WB_clean_all_`indicator'.dta", nogen
 }
-save "${gsdTemp}/WB_clean_all.dta", replace 
+save "${gsdData}/2-AnalysisOutput/WB_clean_all.dta", replace 
 
 *Latest available data points
 use "${gsdTemp}/WB_clean_latest_poverty.dta", clear
 foreach indicator in gini growthpc gdpppp water sanitation mortality literacy primaryeduc idps privateconshare privateconsgrowth govexpshare govexpgrowth extbalanceshare extbalancelevel investshare investgrowth {
 	merge 1:1 countryname using "${gsdTemp}\WB_clean_latest_`indicator'.dta", nogen
 }
-save "${gsdTemp}/WB_clean_latest.dta", replace 
+save "${gsdData}/2-AnalysisOutput/WB_clean_latest.dta", replace 
 
 *Erase temp files created
 foreach indicator in poverty gini growthpc gdpppp water sanitation mortality literacy primaryeduc idps privateconshare privateconsgrowth govexpshare govexpgrowth extbalanceshare extbalancelevel investshare investgrowth {
@@ -251,11 +253,11 @@ foreach indicator in poverty gini growthpc gdpppp water sanitation mortality lit
 }
 
 *Export into excel 
-//Cross-country comparison of GDP growth 
-//Breakdown of GDP growth by demand component 
-use "${gsdTemp}/WB_clean_all.dta", clear
+*Cross-country comparison of GDP growth 
+*Breakdown of GDP growth by demand component 
+use "${gsdData}/2-AnalysisOutput/WB_clean_all.dta", clear
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_1.xlsx", firstrow(variables) replace
-use "${gsdTemp}/WB_clean_latest.dta", clear
+use "${gsdData}/2-AnalysisOutput/WB_clean_latest.dta", clear
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(variables) replace
 
 
@@ -264,15 +266,15 @@ export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(var
 * 2 | ANALYSIS FROM SURVEY DATA
 ****************************************************
 
-//Breakdown of GDP growth by sector 
+*Breakdown of GDP growth by sector 
 *From KNBS; sheet Raw_0
 
 
-//Evolution of poverty and inequality (2005/06-2015/16)
+*Evolution of poverty and inequality (2005/06-2015/16)
 *From KGPA in the excel file directly
 
 
-//Inequality figures
+*Inequality figures
 use "${gsdData}/1-CleanOutput/hh.dta" ,clear
 svyset clid [pw=wta_pop] , strat(strat)
 
@@ -282,7 +284,7 @@ fastgini y2_i if kihbs==2005 & province!=8 [pw = wta_pop], jk
 fastgini y2_i if kihbs==2015 [pw = wta_pop], jk
 fastgini y2_i if kihbs==2015 & province!=8 [pw = wta_pop], jk
 
-//Inequality measures in 2005/6 and 2015/16
+*Inequality measures in 2005/6 and 2015/16
 *National including and excluding Nairobi 
 qui foreach var in 2005 2015  {
 	ineqdeco y2_i if kihbs == `var' [aw = wta_pop]
@@ -300,7 +302,7 @@ putexcel B7=matrix(total_exc_2005)
 putexcel B8=matrix(total_exc_2015)
 
 
-//Current monteary value of poverty gap
+*Current monteary value of poverty gap
 use "${gsdData}/1-CleanOutput/hh.dta" ,clear
 keep if kihbs==2015
 svyset clid [pw=wta_pop] , strat(strat)
@@ -333,11 +335,11 @@ sum n_poor
 putexcel B12=`r(mean)'
 
 
-//Projection of poor people by 2025 and estimated cost for lifting 1 million people
+*Projection of poor people by 2025 and estimated cost for lifting 1 million people
 *Directly in Excel file using standard assumptions
 
 
-//The big 4 policy agenda 
+*The big 4 policy agenda 
 *From KNBS (directly into slides/note)
 
 
@@ -347,6 +349,6 @@ putexcel B12=`r(mean)'
 ****************************************************
 forval i=1/3 {
 	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx", sheet("Sheet1") firstrow case(lower) clear
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-1_v2.xlsx", sheetreplace sheet("Raw_`i'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-1_Final.xlsx", sheetreplace sheet("Raw_`i'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`i'.xlsx"
 }

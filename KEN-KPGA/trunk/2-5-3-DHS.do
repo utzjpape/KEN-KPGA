@@ -3,8 +3,13 @@
 ***   Urbanization Chapter                         ***
 ***   By Shohei Nakamura                           ***
 ******************************************************
-
 clear all
+set more off
+
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 
 **********************************************************
 **********                                        ********
@@ -77,9 +82,7 @@ replace COUNTY3_ID = 111 if smregion==306 // Taita Taveta
 replace COUNTY3_ID = 135 if smregion==302 // Kwale
 replace COUNTY3_ID = 141 if smregion==301 // Mombasa
 
-
-
-// proportion of recent migrants
+* proportion of recent migrants
 gen duration = .
 forvalues i = 1/10 {
 	replace duration = `i' if mv104==`i'
@@ -218,7 +221,7 @@ graph combine a1, ysize(6) iscale(0.6)
 graph export "${gsdOutput}/C5-Urban/duration2014.png", replace 
 
 
-// previous residence
+* previous residence
 
 tempfile temp
 preserve
@@ -315,11 +318,3 @@ preserve
 	export excel using "${gsdOutput}/C5-Urban/kenya_DHS.xlsx", ///
 		sheet("rural") sheetreplace first(var)
 restore
-
-
-
-
-
-
-
-

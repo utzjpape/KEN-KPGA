@@ -1,17 +1,20 @@
-*-------------------------------------------------------------------------*
-* Chapter 2: THE EXTENT AND EVOLUTION OF POVERTY AND INEQUALITY IN KENYA
-*	Spatial profile
+*Chapter 2: THE EXTENT AND EVOLUTION OF POVERTY AND INEQUALITY IN KENYA: Spatial profile
 *By Nduati Kariuki (nkariuki@worldbank.org)
-*-------------------------------------------------------------------------*
 clear all
-cap log close
+set more off
+
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 
 use "${gsdData}/1-CleanOutput/hh.dta" ,clear
-/************************
-BASIC DESCRIPTIVE STATS
+
+************************
+*BASIC DESCRIPTIVE STATS
 ************************/
 
-/*1.Poverty Incidence*/
+*1.Poverty Incidence*/
 *********************
 svyset clid [pw=wta_pop] , strat(strat)
 
@@ -101,7 +104,7 @@ tabout nedi malehead if kihbs==2015 using "${gsdOutput}/C2-Trends/ch2_table1_hh.
 svyset , clear
 
 	
-/*2.Vulnerability*/
+*2.Vulnerability*/
 *********************	
 
 gen Vline_month=2*z2_i
@@ -127,7 +130,7 @@ tabout urban kihbs  using "${gsdOutput}/C2-Trends/ch2_table2.xls" [aw=wta_pop], 
 tabout province kihbs  using "${gsdOutput}/C2-Trends/ch2_table2.xls" [aw=wta_pop], c(mean vul) f(3 3 3 3) sum  clab(Vulnerability) append 
 
 
-/*3.Kernel Density plots*/
+*3.Kernel Density plots*/
 *************************
 global cons "rcons"
 
@@ -145,7 +148,7 @@ graph combine g1 g2 g3, title("Distribution Graphs of Consumption")
 graph save "${gsdOutput}/C2-Trends/ch2_cons_distr.gph", replace
 
 
-/*3.Poverty gap and severity*/
+*3.Poverty gap and severity*/
 ******************************
 global cons "y2_i"
 
@@ -273,8 +276,8 @@ putexcel B19=matrix(prov_hc_2015)
 save "${gsdTemp}/ch2_analysis1.dta" , replace
 use "${gsdTemp}/ch2_analysis1.dta" , clear
 
-	/*4.Shared Prosperity*/
-	******************************
+*4.Shared Prosperity*/
+******************************
 global cons "rcons"
 
 *Total expenditure quintiles
@@ -504,7 +507,7 @@ tabout kihbs poor if province==8  using "${gsdOutput}/C2-Trends/ch2_table9_nbo_p
 foreach var of varlist impwater impsan elec_light elec_acc educhead ownhouse ownsland area_own title motorcycle bicycle radio cell_phone kero_stove char_jiko mnet fridge sofa car wash_machine microwave computer { 
 	tabout kihbs poor if province==8  using "${gsdOutput}/C2-Trends/ch2_table9_nbo_poor.xls" [aw=wta_hh], c(mean `var') f(3) sum  clab(`var') append
 }
- /*5.Decompositions*/
+ *5.Decompositions*/
 **********************
 *We have to adjust the absolute poverty line to be fixed using the previous price factor
 use "${gsdTemp}/ch2_0.dta" , clear
@@ -545,7 +548,7 @@ matselrc b prov_`i'_drdecomp ,  r(1/3,) c(3/3)
 }
 putexcel F2=matrix(prov_1_drdecomp) G2=matrix(prov_2_drdecomp) H2=matrix(prov_3_drdecomp) I2=matrix(prov_4_drdecomp) J2=matrix(prov_5_drdecomp) K2=matrix(prov_6_drdecomp) L2=matrix(prov_7_drdecomp) M2=matrix(prov_8_drdecomp)
 
-/*6.Inequality*/
+*6.Inequality*/
 ******************
 *inequality measures are the 90th/10th & 75th/25th percentile ratios, the Gini coefficient, Theil index, Atkinson (epsilon = 1), Atkinson (epsilon = 2).
 foreach var in 2005 2015  {
@@ -595,62 +598,15 @@ putexcel B25=matrix(prov_2015)
 putexcel B35=matrix(nedi_2005)
 putexcel B39=matrix(nedi_2015)
 
-/* Provincial-level GE1 not used
-*generate dummy for each province
-forvalues i = 1/8{
-	gen prov_`i' = (province==`i')
-}
-
-levelsof kihbs , local(years)
-foreach year of local years {
-	ineqdeco y2_i if kihbs == `year' [aw = wta_pop]  , bygroup(urban)
-	matrix rururb_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1), r(between_a1), r(within_a1),r(a1), r(between_a2), r(within_a2),r(a2)]
-	
-	ineqdeco y2_i if kihbs == `year' [aw = wta_pop]  , bygroup(province)
-	matrix prov_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1), r(between_a1), r(within_a1),r(a1), r(between_a2), r(within_a2),r(a2)]
-	*same decompositions as above done for each province
-	forvalues i = 1 / 8 {
-		ineqdeco y2_i if kihbs == `year' [aw = wta_pop] , bygroup(prov_`i')
-		matrix prov_`i'_ge1_`year' = [r(between_ge1) , r(within_ge1) , r(ge1), r(between_a1), r(within_a1),r(a1), r(between_a2), r(within_a2),r(a2)]
-		}
-}
-matrix rururb_ge1 = [rururb_ge1_2005 \ rururb_ge1_2015]
-matrix prov_ge1 = [prov_ge1_2005 \ prov_ge1_2015]
-forvalues i = 1/8 {
-	matrix prov_`i'_ge1 = [prov_`i'_ge1_2005 \ prov_`i'_ge1_2015]
-}
-
-putexcel set "${gsdOutput}/C2-Trends/ch2_table6_ineqdecomp.xls" , replace
-putexcel B1=("rural / urban decomp.") A3=("2005/06") A4=("2015/16") B2=("Between Group") C2=("Within Group") D2=("Total pop.") B6=("provincial decomp.") A8=("2005/06") A9=("2015/16") B7=("Between Group") C7=("Within Group") D7=("Total pop.") 
-putexcel E2=("Between Group (Atk e=1)") F2=("Within Group (Atk e=1)") G2=("Total pop. (Atk e=1)") H2=("Between Group (Atk e=2)") I2=("Within Group (Atk e=2)") J2=("Total pop. (Atk e=2)")
-local i = 11
-local j = 12
-local k = 13
-local l = 14
-local m = 1
-foreach s in Coast NorthEastern Eastern Central RiftValley Western Nyanza Nairobi {
-	putexcel A`k'=("2005/06") A`l'=("2015/16") B`j'=("Between Group (GE1)") C`j'=("Within Group (GE1)") D`j'=("Total pop. (GE1)")
-	putexcel B`k'=matrix(prov_`m'_ge1)
-	local i = `i' + 5
-	local j = `j' + 5
-	local k = `k' + 5
-	local l = `l' + 5
-	local m = `m'+1
-	
-}
-putexcel B3=matrix(rururb_ge1)
-putexcel B8=matrix(prov_ge1)
-*/
-
 save "${gsdTemp}/ch2_analysis2.dta" , replace
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 
-/*6.Growth Incidence curve*/
+*6.Growth Incidence curve*/
 *****************************
 
 global cons = "rcons"
 
-/*** Generating Percentiles ***/
+*** Generating Percentiles ***/
 
 foreach var in 2005 2015 {
         xtile pctile_`var'_total = $cons if kihbs == `var' [aw = wta_hh], nq(100)
@@ -734,7 +690,7 @@ foreach x in 05 15 {
 forvalues i = 1/8 {
 	local mean_change_prov`i' = (((mean2015_prov`i' / mean2005_prov`i')^(1/10)-1)*100)
 }
-/*** Generating graph ***/
+*** Generating graph ***/
 
 local mean_change1 = (((mean2015_total / mean2005_total)^(1/10)-1)*100)
 local mean_change2 = (((mean2015_rural / mean2005_rural)^(1/10)-1)*100)
@@ -751,10 +707,10 @@ graph save "${gsdOutput}/C2-Trends/ch2_GIC_nat.gph", replace
 
 graph combine gic3
 graph save "${gsdOutput}/C2-Trends/ch2_GIC_urb.gph", replace
-/*
+*
 graph export "${gsdOutput}\GIC_natrururb.png", as(png) replace
 graph save "${gsdOutput}/C2-Trends/GIC_nat_rur_urb.gph", replace
-*/
+
 graph combine gic1, iscale(*0.9)
 graph export "${gsdOutput}/C2-Trends/ch2_GIC_nat.png", replace
 graph combine gic2, iscale(*0.9)
@@ -762,74 +718,6 @@ graph export "${gsdOutput}/C2-Trends/ch2_GIC_rur.png", replace
 graph combine gic3, iscale(*0.9)
 graph export "${gsdOutput}/C2-Trends/ch2_GIC_urb.png", replace
 
-*Provincial level GICs [not included in final KPGA]
-/*
-use "${gsdTemp}/ch2_analysis2.dta" , clear
-/*6.Growth Incidence curve*/
-*****************************
-global cons = "rcons"
-/*** Generating Percentiles ***/
-
-foreach var in 2005 2015 {
-	forvalues i = 1 / 8 {
-        xtile pctile_`i'_`var' = $cons if kihbs == `var' & province == `i' [aw = wta_hh], nq(100)
-}
-}
-
-forvalues i = 1 / 8 {
-	egen pctile_prov`i' = rowtotal(pctile_`i'_2005 pctile_`i'_2015)
-}
-*Between 2005 and 2015
-*create (100x8) matrix full of zeros. Each column will populated with the percentile change in real consumption
-*for the 8 provinces).
-matrix change = J(100, 8, 0)
-
-forvalues x = 1/100 {
-		  forvalues i = 1 / 8 {
-		  	quietly sum $cons [aw = wta_hh] if kihbs == 2005 & pctile_prov`i' == `x'& province == `i'
-			matrix change[`x', (`i')] = r(mean)
-			
-			quietly sum $cons [aw = wta_hh] if kihbs == 2015 & pctile_prov`i' == `x'   & province == `i'
-			matrix change[`x', (`i')] = (((r(mean) / change[`x', `i'])^(1/10)-1)*100)	
-}
-}
-svmat change, names(change)
-gen x = _n if _n <= 100
-
-forvalues i = 1/8 {
-          lowess change`i' x, gen(schange`i') nograph
-}
-*
-foreach x in 05 15 {
-	forvalues i = 1/8 {
-		sum $cons if kihbs == 20`x' & province == `i' [aw = wta_hh]
-		scalar mean20`x'_prov`i' = r(mean)
-}
-}
-forvalues i = 1/8 {
-	local mean_change_prov`i' = (((mean2015_prov`i' / mean2005_prov`i')^(1/10)-1)*100)
-}
-/*** Generating graph ***/
-
-*Provincial level GICs
-local k = 1
-local provinces "Coast North_Eastern Eastern Central Rift_valley Western Nyanza Nairobi"
-
-foreach s of local provinces  {
-        line schange`k' x, lcolor(navy) lpattern(solid) yline(`mean_change_prov`k'') subtitle("Growth incidence (2005/06 - 2015/16), `s'")         xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic`k', replace)
-		local k = `k'+1
-}
-graph combine gic1 gic2 gic3 gic4 gic5 gic6 gic7 gic8, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
-graph save "${gsdOutput}/C2-Trends/ch2_GIC_provinces.gph", replace
-graph combine gic1  gic3  gic5  gic8, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
-graph save "${gsdOutput}/C2-Trends/ch2_GIC_provinces_select.gph", replace
-graph export "${gsdOutput}/C2-Trends/ch2_GIC_prov1.png", as(png) replace
-graph combine gic2  gic4  gic6  gic7, iscale(*0.9) title("Provincial GICs 2005/06-2015/16")
-graph save "${gsdOutput}/C2-Trends/ch2_GIC_provinces_select2.gph", replace
-graph export "${gsdOutput}/C2-Trends/ch2_GIC_prov2.png", as(png) replace
-drop pctile* schange* change* x 
-
-*/
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 *NEDI / Non-Nedi GICs 
 global cons = "rcons"
@@ -841,7 +729,7 @@ label values nedi_cat lnedicat
 label var nedi_cat "1=Non-NEDI County 2=NEDI county - FOR matrix in GIC"
 
 
-/*** Generating Percentiles ***/
+*** Generating Percentiles ***/
 foreach var in 2005 2015 {
         xtile pctile_2_`var' = $cons if kihbs == `var' & nedi_cat == 2 [aw = wta_hh], nq(100)
 }
@@ -871,7 +759,7 @@ foreach x in 05 15 {
 }
 	local mean_change_nedi2 = (((mean2015_nedi2 / mean2005_nedi2)^(1/10)-1)*100)
 
-/*** Generating graph ***/
+*** Generating graph ***/
 *NEDI GICs
 
  line schange2 x, lcolor(navy) lpattern(solid) yline(`mean_change_nedi2') yscale(range(8 0)) ylabel(#8) yline(0 , lstyle(foreground))  xtitle("Share of population ranked , percent", size(small)) xlabel(, labsize(small)) ytitle("Annualized % change in real consumption", size(small)) ylabel(, angle(horizontal) labsize(small)) name(gic2, replace)
@@ -883,7 +771,7 @@ graph combine gic2, iscale(*0.9)
 graph export "${gsdOutput}/C2-Trends/ch2_GIC_nedi.png", as(png) replace
 */
 drop pctile* schange* change* x
-/*6.Sectoral decompoosition*/
+*6.Sectoral decompoosition*/
 *****************************
 *Sectoral decomposition using sedecomposition command and 2 seperate datasets (one for each year) for rural and for urban.
 *Therefore there shall be 2 datasets (urban & rural).
@@ -958,7 +846,7 @@ erase "${gsdTemp}/decomp_urb_05.dta"
 erase "${gsdTemp}/decomp_nat_05.dta"
 erase "${gsdTemp}/decomp_nat_15.dta"
 
-/*7.Consumption Regressions*/
+*7.Consumption Regressions*/
 *****************************
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 svyset clid [pweight = wta_hh]  , strata(strata)
@@ -1000,4 +888,3 @@ estimates store probit
 esttab probit using "${gsdOutput}/C2-Trends/ch2_probit_urban.csv", label cells(b(star fmt(%9.3f)) se(fmt(%9.3f))) stats(N, fmt(%9.2f %12.0f) labels("Observations"))   starlevels(* 0.1 ** 0.05 *** 0.01) stardetach  replace
 
 clear
-

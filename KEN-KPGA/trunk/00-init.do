@@ -1,4 +1,3 @@
-
 *Initialize work environment
 
 global suser = c(username)

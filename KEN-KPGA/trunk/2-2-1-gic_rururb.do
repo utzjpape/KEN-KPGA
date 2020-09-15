@@ -1,3 +1,12 @@
+*Urban and rural growth incidence curves
+clear all
+set more off
+
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
+
 
 use "${gsdTemp}/ch2_analysis2.dta" , clear
 

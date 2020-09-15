@@ -1,4 +1,12 @@
 *Run Ravallion-Huppi (sectoral) decomposition on income source categories prvided by ag. chapter.
+clear all
+set more off
+
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
+
 *2 income variables are provided.
 	*1) Ag_NAg_source (1 -4)
 		*Ag_NAg_source4 replicates decomposition2 if ch2_master output file

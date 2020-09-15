@@ -1,27 +1,29 @@
 *Analysis for Section 2: Poverty dynamics in Kenya
-
-
 set more off
 set seed 23081980 
 set sortseed 11041955
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 
 
 ********************************************
 * 1 | CROSS-COUNTRY (WDI) AND OTHER DATA
 ********************************************
 
-//Cross-country comparison of poverty and income (latest year)
-//Cross-country comparison of non-monetary deprivations (latest year)
-use "${gsdTemp}/WB_clean_latest.dta", clear
+*Cross-country comparison of poverty and income (latest year)
+*Cross-country comparison of non-monetary deprivations (latest year)
+use "${gsdData}/2-AnalysisOutput/WB_clean_latest.dta", clear
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_1.xlsx", firstrow(variables) replace
 
 
-//Cross-country comparison of elasticity of poverty reduction
-use "${gsdTemp}/WB_clean_all.dta", clear
+*Cross-country comparison of elasticity of poverty reduction
+use "${gsdData}/2-AnalysisOutput/WB_clean_all.dta", clear
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(variables) replace
 
 
-//Breakdown of urba/rural households and population (2005/6 and 2015/16)
+*Breakdown of urba/rural households and population (2005/6 and 2015/16)
 use "${gsdData}/1-CleanOutput/hh.dta" ,clear
 svyset clid [pw=wta_pop] , strat(strat)
 foreach x in "hh" "pop" {
@@ -49,7 +51,7 @@ export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_3.xlsx", firstrow(var
 * 2 | DATA PREPARATION FOR KIHBS 
 ************************************
 
-//Create file with relevant information on vulnerability 
+*Create file with relevant information on vulnerability 
 use "${gsdData}/2-AnalysisOutput/C8-Vulnerability/kibhs15_16.dta", clear
 keep clid hhid vulnerable4
 rename vulnerable4 vul_status
@@ -64,7 +66,7 @@ save "${gsdTemp}/vul_status_05-15.dta", replace
 erase "${gsdTemp}/vul_status_15-16.dta"
 
 
-//Produce hh-level file for analysis 
+*Produce hh-level file for analysis 
 use "${gsdData}/1-CleanOutput/hh.dta" ,clear
 svyset clid [pw=wta_pop] , strat(strat)
 
@@ -80,7 +82,7 @@ label var severity "Poverty severity"
 save "${gsdTemp}/dfid_analysis_hh_section-2.dta", replace
 
 
-//Prepare HH file to create indicators on multiple deprivations
+*Prepare HH file to create indicators on multiple deprivations
 use "${gsdDataRaw}/KIHBS15/hh.dta", clear
 *Improved cooking fuels: Electricity, LPG, biogas and kerosene
 gen imp_cooking=(inlist(j18,2,3,4,5)) if !missing(j18)
@@ -94,7 +96,7 @@ keep kihbs clid hhid imp_*
 save "${gsdTemp}/dfid_deprivations_hh.dta", replace
 
 
-//Prepare HHM file to create indicators on multiple deprivations
+*Prepare HHM file to create indicators on multiple deprivations
 use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
 gen child_6_14_notsch=(c03==2 & b05_yy>=6 & b05_yy<=14) if !missing(c03) 
 label define ledu 0 "No education/other" 1 "Pre-primary/Primary" 2 "Secondary" 3 "Tertiary" 
@@ -110,7 +112,7 @@ gen kihbs=2015
 save "${gsdTemp}/dfid_deprivations_hhm.dta", replace
 
 
-//Integrate new variables
+*Integrate new variables
 use "${gsdTemp}/dfid_analysis_hh_section-2.dta", clear
 merge 1:1 kihbs clid hhid using "${gsdTemp}/dfid_deprivations_hh.dta", nogen
 merge 1:1 kihbs clid hhid using "${gsdTemp}/dfid_deprivations_hhm.dta", nogen
@@ -129,7 +131,7 @@ label var child_6_14_notsch "HH has at least one child (6-14) not in school"
 label var edu_level "All adults (18-64) in HH without education"
 
 
-//Create indicators on multiple deprivations
+*Create indicators on multiple deprivations
 *Living standard: if they meet at least one of the following criteria: i) does not have access to electricity; ii) the dwelling is not classified as improved floor and walls 
 gen dep_living=(elec_acc==0 | (imp_floor==0 & imp_wall==0)) if kihbs==2015 & !missing(elec_acc) & !missing(imp_wall) & !missing(imp_floor)
 label var dep_living "HH deprived in living conditions dimension"
@@ -149,7 +151,7 @@ egen dep_tot=rowtotal(dep_living dep_educ dep_wat_san dep_poor)
 label var dep_tot "Total number of dimensions household is deprived in"
 egen dep_tot_nopoor=rowtotal(dep_living dep_educ dep_wat_san )
 label var dep_tot_nopoor "Total number of dimensions household is deprived in, no poverty"
-save "${gsdTemp}/dfid_analysis_hh_section-2.dta", replace
+save "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-2.dta", replace
 
 
 
@@ -157,7 +159,7 @@ save "${gsdTemp}/dfid_analysis_hh_section-2.dta", replace
 * 3 | ANALYSIS FROM SURVEY DATA
 **********************************
 
-//Poverty and vulnerability (2005/06 and 2015/16)
+*Poverty and vulnerability (2005/06 and 2015/16)
 use "${gsdTemp}/dfid_analysis_hh_section-2.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 
@@ -218,12 +220,12 @@ export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_7.xlsx", firstrow(var
 restore
 
 
-//Link between vulnerability and poverty 
+*Link between vulnerability and poverty 
 qui tabout urban poor if kihbs==2005 using "${gsdOutput}/DfID-Poverty_Analysis/Raw_8.csv" , svy sum c(mean vul_status se) sebnone f(3) npos(col) h1(vul_status and poor 2005/06 by urban/rural and year) replace
 qui tabout urban poor if kihbs==2015 using "${gsdOutput}/DfID-Poverty_Analysis/Raw_8.csv" , svy sum c(mean vul_status se) sebnone f(3) npos(col) h1(vul_status and poor 2015/16 by urban/rural and year) append
 
 
-//Growth incidence curves
+*Growth incidence curves
 use "${gsdData}/1-CleanOutput/hh.dta", clear
 svyset clid [pw=wta_hh] , strat(strat)
 global cons = "rcons"
@@ -321,7 +323,7 @@ export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_9.xlsx", firstrow(var
 restore
 
 
-//Growth incidence curves [Excluding Nairobi]
+*Growth incidence curves [Excluding Nairobi]
 use "${gsdData}/1-CleanOutput/hh.dta", clear
 svyset clid [pw=wta_hh] , strat(strat)
 global cons = "rcons"
@@ -420,7 +422,7 @@ export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_10.xlsx", firstrow(va
 restore
 
 
-//Inequality and its decomposition (2015/16)
+*Inequality and its decomposition (2015/16)
 use "${gsdData}/1-CleanOutput/hh.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 
@@ -515,7 +517,7 @@ putexcel D58=`r(within_ge1)'
 putexcel E58=`r(between_ge1)'
 
 
-//Inequality and its decomposition (2015/16) [Excluding Nairobi]
+*Inequality and its decomposition (2015/16) [Excluding Nairobi]
 use "${gsdData}/1-CleanOutput/hh.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 drop if province==8
@@ -611,8 +613,8 @@ putexcel D58=`r(within_ge1)'
 putexcel E58=`r(between_ge1)'
 
 
-//Multiple deprivations, poverty and vulnerability (2015/16)
-use "${gsdTemp}/dfid_analysis_hh_section-2.dta", clear
+*Multiple deprivations, poverty and vulnerability (2015/16)
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-2.dta", clear
 keep if kihbs==2015
 svyset clid [pw=wta_hh] , strat(strat)
 qui tabout dep_tot urban using "${gsdOutput}/DfID-Poverty_Analysis/Raw_13.csv", svy c(col se) perc sebnone f(3) npos(col) h1(Deprivations by urban/rural) replace
@@ -629,8 +631,8 @@ qui foreach var of varlist dep_living dep_educ dep_wat_san  {
 }
 
 
-//Profile of poor and vulnerable 
-use "${gsdTemp}/dfid_analysis_hh_section-2.dta", clear
+*Profile of poor and vulnerable 
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-2.dta", clear
 keep if kihbs==2015
 svyset clid [pw=wta_hh] , strat(strat)
 ta hhempstat, gen (hhempstat_) 
@@ -693,18 +695,17 @@ qui foreach var of varlist  depen n0_4 n5_14 n15_24 n25_65 n66plus s_fem singhh 
 
 foreach x in "1" "2" "3" "5" "6" "7" "9" "10" "11" "12" "14" {
 	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xlsx", sheet("Sheet1") firstrow case(lower) clear
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_v3.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_Final.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xlsx"
 }
 foreach x in "4" "8" "13" {
 	import delimited "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.csv", delimiter(tab) clear 
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_v3.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_Final.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.csv"
 }
 foreach x in "15" "16" {
 	import delimited "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.txt", delimiter(tab) clear 
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_v3.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-2_Final.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.txt"
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xml"
 }
-

@@ -1,7 +1,11 @@
-clear
-set more off 
-
 *** Assign gender of decision maker
+clear all
+set more off
+
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 
 ************************************************
 		*SECTION N: AGRICULTURE HOLDING
@@ -72,9 +76,6 @@ tempfile gender_land
 save "`gender_land'", replace
 
 restore
-
-
-
 merge m:1 uhhid using "`gender_land'"
 drop _merge
 
@@ -88,8 +89,6 @@ drop _merge
 
 
 replace b01 = 1
-
-
 
 merge m:1 clid hhid b01 using "${gsdDataRaw}/KIHBS15/hhm", keepusing(b04 b05_yy)
 rename b04 sex_head

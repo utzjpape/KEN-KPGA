@@ -1,13 +1,14 @@
 *************************************************
 *********KENYA Poverty and Rural Livelihood******
 *************************************************
-
-/*
-Calculating Yield and its relationship with poverty
-*/
-clear
+*Calculating Yield and its relationship with poverty
+clear all
 set more off
 
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 
 
 ****2005****
@@ -41,8 +42,6 @@ qui foreach j in 13 14 15 19 20 21 22 23{		//Convert unit code to kg
 replace o`j'_2=1 if o`j'_2>=2 & o`j'_2<=4		//Covert unit 50/90kg bags and tons to kg
 replace o`j'_2=. if o`j'_2>=6 & o`j'_2<=10		//Unknown unit code	
 }
-
-
 gen harvested = o13_1
 gen consumed = o14_1
 gen sold = o15_1
@@ -59,11 +58,10 @@ gen area_hect = area_acre*0.404686
 gen yield = harvested/area_hect
 bysort uhhid: egen cult_area_tot_h = total(area_hect)
 
-
 save "${gsdData}/2-AnalysisOutput/C4-Rural/Yield05.dta", replace
 
 
-/***************** Maize Yield *******************/
+***************** Maize Yield *******************/
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Yield05.dta", clear
 
 * Units in kg or number, keep only kg.
@@ -77,7 +75,6 @@ gen identifier = _n
 
 gen tag = _N
 gen outlier_tag = identifier/tag
-
 
 drop if outlier_tag > 0.975 | outlier_tag < 0.025
 
@@ -96,7 +93,6 @@ rename prov province
 tempfile maize_2005_p
 sa "`maize_2005_p'"
 
-
 *** Yield and area, inverse relationship?
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Maize_yield05.dta", clear
 egen decile = xtile(area_hect), by(prov) p(25(25)75)
@@ -108,7 +104,6 @@ reshape wide  yield, i(decile) j(prov)
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Maize_yield05.dta", clear
 egen decile = xtile(area_hect), p(25(25)75)
 collapse yield, by(decile)
-
 
 *** Poverty correlated with cultivated crop area cultivated
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Maize_yield05.dta", clear
@@ -122,14 +117,10 @@ keep if prov != 1 & prov != 5
 
 reshape wide poor, i(decile) j(prov)
 
-
-
-
 *** Poverty correlated with Maize yield (by quintile) by prov
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Maize_yield05.dta", clear
 
 collapse yield poor prov [aw = area_hect], by(uhhid)
-
 
 egen decile = xtile(yield), by(prov) p(10(10)90)
 collapse poor, by(prov decile)
@@ -159,28 +150,22 @@ keep if prov != 1 & prov != 5
 reshape wide poor, i(decile) j(prov)
 
 
-
-
-/* Beans Yield*/
+* Beans Yield*/
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Yield05.dta", clear
-
 
 
 * Keep Beans & positive yield
 keep if crop== 32
 drop if yield == 0
 
-
 * Units in kg or number, keep only kg.
 keep if o13_2 == 1
-
 
 sort yield
 gen identifier = _n
 
 gen tag = _N
 gen outlier_tag = identifier/tag
-
 
 drop if outlier_tag > 0.975 | outlier_tag < 0.025
 
@@ -202,7 +187,6 @@ gen year = "2005-06"
 tempfile beans_2005_p
 sa "`beans_2005_p'"
 
-
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Beans_yield05.dta", clear
 collapse yield poor prov [aw = area_hect], by(uhhid)
 egen decile = xtile(yield), by(prov) p(10(10)90)
@@ -210,8 +194,6 @@ collapse poor, by(prov decile)
 lab value prov prov
 keep if prov != 1 & prov != 5
 reshape wide poor, i(decile) j(prov)
-
-
 
 *** Yield and area, inverse relationship?
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Beans_yield05.dta", clear
@@ -228,13 +210,8 @@ use "${gsdData}/2-AnalysisOutput/C4-Rural/Beans_yield05.dta", clear
 egen decile = xtile(area_hect), p(25(25)75)
 collapse yield, by(decile)
 
-
-
-
-
-/* Coffee&Tea Yield*/
+* Coffee&Tea Yield*/
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Yield05.dta", clear
-
 
 keep if crop== 76 | crop== 75
 drop if yield == 0
@@ -280,8 +257,8 @@ merge m:1 hhid clid using "${gsdDataRaw}/KIHBS15/poverty.dta", keepus(wta_pop po
 keep if _merge == 3
 drop _merge
 
-/* Classify counties into provinces. */
-do "${gsdDo}\2-4-County_to_Province.do"
+* Classify counties into provinces. */
+do "${gsdDo}\County_to_Province.do"
 
 * Assign gender of agriculture decision maker
 merge m:1 uhhid using "${gsdData}/2-AnalysisOutput/C4-Rural/primary_DM15.dta"
@@ -329,7 +306,7 @@ lab var num_food "# of Food Crops"
 save "${gsdData}/2-AnalysisOutput/C4-Rural/Num_crops_hh.dta", replace
 
 
-/***************** Maize Yield *******************/
+***************** Maize Yield *******************/
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Yield15.dta", clear
 
 
@@ -348,8 +325,6 @@ drop identifier tag outlier_tag
 egen Maize_yield_mean = mean(yield)
 egen Maize_yield_med = median(yield)
 save "${gsdData}/2-AnalysisOutput/C4-Rural/Maize_yield15.dta", replace
-
-
 
 *** Maize Yield by Province
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Maize_yield15.dta", clear
@@ -380,7 +355,6 @@ collapse (median) yield_med = yield (mean) yield_mean = yield Maize_yield_mean M
 drop if count_hh_15 < 50
 export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("fig4-14a") sheetreplace firstrow(varlabels)
 
-
 *** Yield and area, inverse relationship?
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Maize_yield15.dta", clear
 egen decile = xtile(area_hect), by(province) p(25(25)75)
@@ -406,15 +380,12 @@ keep if prov != 1 & prov != 5 &!mi(province)
 reshape wide poor, i(decile) j(prov)
 
 
-
 *** Poverty correlated with Maize yield (by quintile) by province
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Maize_yield15.dta", clear
 
 collapse yield poor province [aw = area_hect], by(uhhid)
 
 save "${gsdData}/2-AnalysisOutput/C4-Rural/Maize_yield15.dta_hh.dta", replace
-
-
 
 egen decile = xtile(yield), by(province) p(10(10)90)
 collapse poor, by(province decile)
@@ -425,8 +396,6 @@ keep if prov != 1 & prov != 5 &!mi(province)
 
 reshape wide poor, i(decile) j(province)
 export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("fig4-10a") sheetreplace firstrow(varlabels)
-
-
 
 
 *** Poverty correlated with Maize yield (by quintile) by province, (small farms)
@@ -447,16 +416,11 @@ keep if province != 1 & prov != 5 &!mi(province)
 
 reshape wide poor, i(decile) j(province)
 
-
-
-
-/* Beans Yield*/
+* Beans Yield*/
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Yield15.dta", clear
-
 
 keep if crop== 32
 drop if yield == 0
-
 
 sort yield
 gen identifier = _n
@@ -473,8 +437,6 @@ egen beans_yield_mean = mean(yield)
 egen beans_yield_med = median(yield)
 save "${gsdData}/2-AnalysisOutput/C4-Rural/Beans_yield15.dta", replace
 
-
-
 *** Bean Yield by Province
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Beans_yield15.dta", clear
 expand 2, gen(dup)
@@ -484,8 +446,6 @@ collapse (median) yield_med = yield (mean) yield_mean = yield beans_yield_mean b
 gen year = "2015-16"
 append using "`beans_2005_p'"
 export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("fig4-8b&13b") sheetreplace firstrow(varlabels)
-
-
 
 *** Bean Yield by county
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Beans_yield15.dta", clear
@@ -507,8 +467,6 @@ collapse (median) yield_med = yield (mean) yield_mean = yield beans_yield_mean b
 drop if count_hh_15 < 50
 export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("fig4-14b") sheetreplace firstrow(varlabels)
 
-
-
 *** Poverty correlated with bean yield (by quintile) by province
 
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Beans_yield15.dta", clear
@@ -529,9 +487,8 @@ reshape wide poor, i(decile) j(province)
 export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("fig4-10b") sheetreplace firstrow(varlabels)
 
 
-/* Coffee & Tea Yield*/
+* Coffee & Tea Yield*/
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Yield15.dta", clear
-
 
 keep if crop== 76 | crop== 75
 drop if yield == 0

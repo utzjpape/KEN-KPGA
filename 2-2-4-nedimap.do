@@ -1,5 +1,11 @@
-
+*Create NEDI maps
+clear all
 set more off
+
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 
 use "${gsdData}\1-CleanOutput\kihbs15_16.dta" , clear
 
@@ -74,4 +80,3 @@ grmap nedi using "${gsdData}/1-CleanOutput/KenyaCountyPolys_coord.dta", id(_ID) 
  legend(label(3 "NEDI")) legend(label(2 "Non-NEDI")) legstyle(1) fcolor(OrRd) clnumber(2) ///
  label(label( ID_OLD ) xcoord(x_c) ycoord(y_c) size(tiny)) 
 graph save "${gsdOutput}/C2-Trends/KEN-NEDI.gph" ,replace
-

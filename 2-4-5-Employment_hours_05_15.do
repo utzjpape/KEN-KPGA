@@ -1,7 +1,11 @@
-clear
-set more off 
+* Hours Worked in Agriculture/NonAgriclture within Household (2015/2016)*/
+clear all
+set more off
 
-/* Hours Worked in Agriculture/NonAgriclture within Household (2015/2016)*/
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 
 use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
 *drop _merge
@@ -19,28 +23,26 @@ drop resid
 
 rename b05_yy age
 /* Classify counties into provinces. */
-do "${gsdDo}/2-4-County_to_Province.do"
+do "${gsdDo}/County_to_Province.do"
 
 
 
-/*
-Household Income comes from a variety of sources. Two broad categories, agricultural
-income and non-agricultural income.
-*/
+* Household Income comes from a variety of sources. Two broad categories, agricultural
+* income and non-agricultural income.
 
-/* Within Agriculture, classify income from production and income from labor.
-Using employment codes, determine what proportion of employment time is spent on
-agriculture/nonagriculture activities. */
+* Within Agriculture, classify income from production and income from labor.
+* Using employment codes, determine what proportion of employment time is spent on
+* agriculture/nonagriculture activities. 
 
 *** Look at ISIC classifications, look at common sectors.
 
-/* Total hours worked in primary and secondary jobs */
+* Total hours worked in primary and secondary jobs */
 replace d18 = 0 if d18 == .
 replace d39 = 0 if d39 == .
 gen hours_all = d18 + d39
 replace hours_all = 0 if hours_all == .
 
-/* Agriculture hours */
+* Agriculture hours */
 gen hours_ag1 = d18 if d16 < 500
 gen hours_ag2 = d39 if d37 < 500
 
@@ -51,7 +53,7 @@ replace hours_ag2 = 0 if hours_ag2 == .
 gen hours_ag = hours_ag1 + hours_ag2
 replace hours_ag = 0 if hours_ag == .
 
-/* Non-Agriculture hours */
+* Non-Agriculture hours */
 gen hours_Nag1 = d18 if d16 > 500
 gen hours_Nag2 = d39 if d37 > 500
 
@@ -61,21 +63,21 @@ replace hours_Nag2 = 0 if hours_Nag2 == .
 gen hours_Nag = hours_Nag1 + hours_Nag2
 replace hours_Nag = 0 if hours_Nag == .
 
-/* Aggregate by household */
+* Aggregate by household */
 bysort clid hhid: egen hours_all_hh = sum(hours_all)
 bysort clid hhid: egen hours_ag_hh = sum(hours_ag)
 bysort clid hhid: egen hours_Nag_hh = sum(hours_Nag)
 
 keep if b03 == 1
 
-/* Proportion of total hours spent on agriculture work */
+* Proportion of total hours spent on agriculture work */
 gen prop_hrs_ag = hours_ag_hh/hours_all_hh
 gen prop_hrs_Nag = hours_Nag_hh/hours_all_hh
 
 
-/* Some households (270) have zero income sources (in terms of hours worked)
-These households are identified either as fully agrarian or fully non-agrarian
-based on the location, rural or urban respectively. */
+* Some households (270) have zero income sources (in terms of hours worked)
+*These households are identified either as fully agrarian or fully non-agrarian
+*based on the location, rural or urban respectively. */
 
 replace prop_hrs_ag = 1 if prop_hrs_ag == . & rural == 1
 replace prop_hrs_ag = 0 if prop_hrs_ag == . & rural == 0
@@ -83,7 +85,7 @@ replace prop_hrs_ag = 0 if prop_hrs_ag == . & rural == 0
 replace prop_hrs_Nag = 1 if prop_hrs_Nag == . & rural == 0
 replace prop_hrs_Nag = 0 if prop_hrs_Nag == . & rural == 1
 
-/* Add date of interview to determine if employment hours vary season */
+* Add date of interview to determine if employment hours vary season */
 
 merge m:1 clid hhid using "${gsdDataRaw}/KIHBS15/hh.dta", keepusing(iday hhsize)
 drop if _merge == 2
@@ -97,12 +99,6 @@ hours_ag hours_Nag hours_all_hh ///
 hours_ag_hh hours_Nag_hh prop_hrs_ag prop_hrs_Nag year month age)
 
 
-/*
-#delimit ;
-note: urban/rural statistics are different from q1_hh datafile. Check why?;
-#delimit cr
-*/
-
 *twoway histogram prop_hrs_ag, discrete by(rural) width(0.05)
 
 gen Survey = 2
@@ -114,18 +110,16 @@ lab val Survey lyear
 
 save "${gsdData}/2-AnalysisOutput/C4-Rural/Employment15.dta", replace
 
-
-
-/* As seen from the histograms, most households are either completely agrarian,
-or cocmpletely non-agrarian. We also want to see the level of diversification at
-the level of the locality. To do this, we use the clid variable to aggregate time
-spent working on agrarian and non agragrian activities. */
+* As seen from the histograms, most households are either completely agrarian,
+* or cocmpletely non-agrarian. We also want to see the level of diversification at
+* the level of the locality. To do this, we use the clid variable to aggregate time
+* spent working on agrarian and non agragrian activities. */
 
 
 *twoway histogram prop_hrs_ag, discrete by(rural) width(0.05)
 
 
-/* Hours Worked in Agriculture/NonAgriclture within Household (2005/2006)*/
+* Hours Worked in Agriculture/NonAgriclture within Household (2005/2006)*/
 
 use "${gsdDataRaw}/KIHBS05/Section E Labour.dta", clear
 rename e_id b_id
@@ -154,39 +148,35 @@ lab val rural Rural
 drop rururb
 
 
-/* Districts to County to match with 2015/2016 dataset. */
-*do "$log\District_to_County.do"
-
 drop district
 
 
 
-/*
-Household Income comes from a variety of sources. Two broad categories, agricultural
-income and non-agricultural income.
-*/
+*Household Income comes from a variety of sources. Two broad categories, agricultural
+*income and non-agricultural income.
 
-/* Total hours worked in primary and secondary jobs */
+
+* Total hours worked in primary and secondary jobs */
 gen hours_all = e05 + e06 + e07
 replace hours_all = 0 if hours_all == .
 replace hours_all = 0 if hours_all == .
 
-/* Within Agriculture, classify income from production and income from labor.
-Using employment codes, determine what proportion of employment time is spent on
-agriculture/nonagriculture activities. */
+* Within Agriculture, classify income from production and income from labor.
+* Using employment codes, determine what proportion of employment time is spent on
+* agriculture/nonagriculture activities. */
 
 gen hours_ag = e06
 replace hours_ag = hours_ag + e05 if e16 < 2000
 replace hours_ag = 0 if hours_ag == .
 
-/* Non-Agriculture hours */
+* Non-Agriculture hours */
 gen hours_Nag = e07
 replace hours_Nag = hours_Nag + e05 if e16 > 2000
 replace hours_Nag = 0 if hours_Nag == .
 
 *preserve
 
-/* Aggregate by household */
+* Aggregate by household */
 bysort id_clust id_hh: egen hours_all_hh = sum(hours_all)
 bysort id_clust id_hh: egen hours_ag_hh = sum(hours_ag)
 bysort id_clust id_hh: egen hours_Nag_hh = sum(hours_Nag)
@@ -201,9 +191,9 @@ gen prop_hrs_ag = hours_ag_hh/hours_all_hh
 gen prop_hrs_Nag = hours_Nag_hh/hours_all_hh
 
 
-/* Some households (270) have zero income sources (in terms of hours worked)
-These households are identified either as fully agrarian or fully non-agrarian
-based on the location, rural or urban respectively. */
+* Some households (270) have zero income sources (in terms of hours worked)
+* These households are identified either as fully agrarian or fully non-agrarian
+* based on the location, rural or urban respectively. */
 
 replace prop_hrs_ag = 1 if prop_hrs_ag == . & rural == 1
 replace prop_hrs_ag = 0 if prop_hrs_ag == . & rural == 0
@@ -211,7 +201,7 @@ replace prop_hrs_ag = 0 if prop_hrs_ag == . & rural == 0
 replace prop_hrs_Nag = 1 if prop_hrs_Nag == . & rural == 0
 replace prop_hrs_Nag = 0 if prop_hrs_Nag == . & rural == 1
 
-/* Add date of interview to determine if employment hours vary season */
+* Add date of interview to determine if employment hours vary season */
 
 merge m:1 id_hh id_cl using "${gsdDataRaw}/KIHBS05/Section A Identification.dta", keepusing(doi)
 drop if _merge == 2

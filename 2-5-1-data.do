@@ -3,23 +3,20 @@
 ***   Urbanization Chapter                         ***
 ***   By Shohei Nakamura                           ***
 ******************************************************
-/*
 clear all
-global path "C:/Users/WB377460/Documents/KPGA/"
-global data "${path}data/"
-global graph "${path}graph/"
-global output "${path}output/"
-global GIS "${path}GIS/"
-cd "${path}" 
-*/
+set more off
+
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
+
 
 ************************************
 ***        Data preparation      ***
 ************************************
 
-/////////////
-/* KIHBS05 */
-/////////////
+* KIHBS05 */
 
 use "${gsdDataRaw}/KIHBS05/consumption aggregated data", clear
 
@@ -103,9 +100,7 @@ tab urban [fw=round(wta_pop)]
 save "${gsdData}/2-AnalysisOutput/KIHBS_master_2005", replace
 
 
-////////////////
-/* KIHBS 2015 */
-////////////////
+* KIHBS 2015 */
 
 use "${gsdDataRaw}/KIHBS15/poverty", clear
 
@@ -184,10 +179,3 @@ apoverty y2_i [aw=wta_pop] if urban==1, varpl(z2_i)
 mean poor [aw=wta_pop] if urban==1
 
 save "${gsdData}/2-AnalysisOutput/KIHBS_master_2015", replace
-
-
-
-
-
-
-

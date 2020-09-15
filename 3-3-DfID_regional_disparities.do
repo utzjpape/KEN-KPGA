@@ -1,20 +1,22 @@
 *Analysis for Section 3: Regional disparities
-
-
 set more off
 set seed 23081980 
 set sortseed 11041955
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 
 
 **************************
 * 1 | DATA PREPARATION 
 **************************
 
-use "${gsdTemp}/dfid_analysis_hh_section-2.dta", clear
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-2.dta", clear
 keep if kihbs==2015
 
 
-//Include correct ID for county maps 
+*Include correct ID for county maps 
 gen _ID=.
 replace _ID=1 if county==5
 replace _ID=2 if county==2
@@ -66,7 +68,7 @@ replace _ID=49	if county==43
 label var _ID "ID of counties for maps in Stata"
 
 
-//Obtain standarized asset index from PCA 
+*Obtain standarized asset index from PCA 
 *Replace missing values with zeros
 foreach var of varlist motorcycle bicycle car radio tv cell_phone kero_stove char_jiko mnet fan fridge wash_machine microwave kettle sofa computer {
 	gen temp_`var'=`var'
@@ -104,12 +106,12 @@ qui forval i=1/47 {
 label var gini_county "Gini index by county"
 
 *Save the file used for analysis
-save "${gsdTemp}/dfid_analysis_hh_section-3.dta", replace
+save "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", replace
 collapse (mean) poor vul_status nedi malehead yrsch pgi severity (sum) countypw=wta_pop countyhw=wta_hh [pw=wta_pop], by(county)
 save "${gsdTemp}/dfid_analysis_wta_section-3.dta", replace
 
 
-//County-level file for some welfare indicators
+*County-level file for some welfare indicators
 foreach x in "stunting" "under-five mort" "ger primary" "ger secondary" {
 	import excel "${gsdDataRaw}/3-Gender/Data/Education_Simon/for_isis.xlsx", sheet(`x') clear first	
 	drop if county=="1" | county==""
@@ -179,7 +181,7 @@ ren (bm bf sm sf) (secon_mean_m secon_mean_f secon_sd_m secon_sd_f)
 drop bd sd td p abstd countyname
 merge 1:1 county using "${gsdTemp}/dfid_analysis_wta_section-3.dta", nogen assert(match)
 order county* nedi poor vul_status 
-save "${gsdTemp}/dfid_analysis_county_section-3.dta", replace
+save "${gsdData}/2-AnalysisOutput/dfid_analysis_county_section-3.dta", replace
 
 foreach x in "stunting" "under-five mort" "ger primary" "ger secondary" {
 	erase "${gsdTemp}/temp_`x'.dta"
@@ -191,8 +193,8 @@ foreach x in "stunting" "under-five mort" "ger primary" "ger secondary" {
 * 2 | ANALYSIS FOR SECTION III
 ********************************
 
-//Breakdown of households and population (2015/16)
-use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+*Breakdown of households and population (2015/16)
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 foreach x in "hh" "pop" {
 	bys county: egen sum_`x'=sum(wta_`x') 
@@ -207,8 +209,8 @@ duplicates drop
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_1.xlsx", firstrow(variables) replace
 
 
-//Number of poor (2015/16)
-use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+*Number of poor (2015/16)
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 keep if poor==1
 foreach x in "hh" "pop" {
@@ -224,8 +226,8 @@ duplicates drop
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_2.xlsx", firstrow(variables) replace
 
 
-//Number of vulnerable (2015/16)
-use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+*Number of vulnerable (2015/16)
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 keep if vul_status==1
 foreach x in "hh" "pop" {
@@ -241,8 +243,8 @@ duplicates drop
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_3.xlsx", firstrow(variables) replace
 
 
-//Number of NEDI (2015/16)
-use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+*Number of NEDI (2015/16)
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 keep if nedi==1
 bys county: egen sum_hh=sum(wta_hh) 
@@ -261,8 +263,8 @@ duplicates drop
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_4.xlsx", firstrow(variables) replace
 
 
-//Poverty measures, vulnerability and gender of HH head (2015/16)
-use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+*Poverty measures, vulnerability and gender of HH head (2015/16)
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 
 *Extract figures
@@ -272,7 +274,7 @@ qui foreach x in "pgi" "severity" "vul_status" "malehead"  {
 }
 
 *Poverty dynamics for NEDI vs. non-NEDI
-use "${gsdTemp}/dfid_analysis_hh_section-2.dta", clear
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-2.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 qui tabout nedi if kihbs==2005 using "${gsdOutput}/DfID-Poverty_Analysis/Raw_5.csv" , svy sum c(mean poor se) sebnone f(3) npos(col) h1(poor in 2005 by nedi) append
 qui tabout nedi if kihbs==2015 using "${gsdOutput}/DfID-Poverty_Analysis/Raw_5.csv" , svy sum c(mean poor se) sebnone f(3) npos(col) h1(poor in 2015 by nedi) append
@@ -302,7 +304,7 @@ twoway (scatter pgi poor if nedi==1, mcolor(black) ms(S)) (scatter pgi poor if n
 graph save "${gsdOutput}/DfID-Poverty_Analysis/County_poor_gap", replace	
 
 
-//Inequality and its decomposition 
+*Inequality and its decomposition 
 use "${gsdData}/1-CleanOutput/hh.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 
@@ -397,8 +399,8 @@ putexcel D58=`r(within_ge1)'
 putexcel E58=`r(between_ge1)'
 
 
-//Disparities in access to services
-use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+*Disparities in access to services
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", clear
 svyset clid [pw=wta_hh] , strat(strat)
 
 *Extract the data 
@@ -434,8 +436,8 @@ twoway (scatter elec_acc poor if nedi==1, mcolor(black) ms(S)) (scatter elec_acc
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_elec_acc", replace	
 
 
-//Disparities in assets
-use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+*Disparities in assets
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", clear
 svyset clid [pw=wta_hh] , strat(strat)
 
 *Extract the data 
@@ -465,9 +467,9 @@ grmap asset_index using "${gsdDataRaw}/SHP/KenyaCountyPolys_coord.dta" , id(_ID)
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_assets_map", replace	
 
 
-//Disparities in health 
+*Disparities in health 
 use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
-merge m:1 clid hhid using "${gsdTemp}/dfid_analysis_hh_section-3.dta", assert(match) nogen
+merge m:1 clid hhid using "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", assert(match) nogen
 svyset clid [pw=wta_hh] , strat(strat)
 gen sick_injured=(e02==1) if !missing(e02) 
 gen birth_hospital=(f03==1) if !missing(f03)
@@ -494,16 +496,16 @@ grmap birth_hospital using "${gsdDataRaw}/SHP/KenyaCountyPolys_coord.dta" , id(_
       clmethod(custom) clbreaks(0 25 40 55 70 85) legstyle(2) legend(position(8)) legtitle("Percentage") 
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_health_map", replace	
 
-use "${gsdTemp}/dfid_analysis_county_section-3.dta", clear
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_county_section-3.dta", clear
 foreach var of varlist stunt_mean* poor vul_status prim_mean* secon_mean* {
 	replace `var'=`var'*100
 }
 export excel using "${gsdOutput}/DfID-Poverty_Analysis/Raw_8.xlsx", firstrow(variables) replace
 
 
-//Disparities in education
+*Disparities in education
 use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
-merge m:1 clid hhid using "${gsdTemp}/dfid_analysis_hh_section-3.dta", assert(match) nogen
+merge m:1 clid hhid using "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", assert(match) nogen
 svyset clid [pw=wta_hh] , strat(strat)
 
 *Literacy 15+
@@ -548,8 +550,8 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_literacy_map", replac
 
 
 *County indicators for enrollment 
-use "${gsdTemp}/dfid_analysis_county_section-3.dta", clear
-merge 1:m county using "${gsdTemp}/dfid_analysis_hh_section-3.dta", nogen keep(match) keepusing(_ID)
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_county_section-3.dta", clear
+merge 1:m county using "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", nogen keep(match) keepusing(_ID)
 duplicates drop
 foreach var of varlist stunt_mean* poor vul_status prim_mean* secon_mean* {
 	replace `var'=`var'*100
@@ -578,9 +580,9 @@ grmap secon_mean_f using "${gsdDataRaw}/SHP/KenyaCountyPolys_coord.dta" , id(_ID
 graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_enrollment_female_map", replace	
 
 
-//Employment and sources of income
+*Employment and sources of income
 *Household level data
-use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", clear
 merge 1:1 clid hhid using "${gsdData}/2-AnalysisInput/income_1516.dta", nogen assert(match) keepusing(income_tot ag_income non_ag_income)
 svyset clid [pw=wta_hh] , strat(strat)
 gen share_non_agr_income=non_ag_income/income_tot
@@ -631,7 +633,7 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_hhh_nilf_map", replac
 
 *Household-member labor statistics 
 use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
-merge m:1 clid hhid using "${gsdTemp}/dfid_analysis_hh_section-3.dta", assert(match) nogen
+merge m:1 clid hhid using "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", assert(match) nogen
 svyset clid [pw=wta_hh] , strat(strat)
 gen employed_work = (d02_1==1 | d02_2==1 | d02_3==1 | d02_4==1 | d02_5==1 | d02_6==1)
 gen employed_workc = (d02_1==1 | d02_2==1 | d02_3==1 | d02_4==1)
@@ -694,8 +696,8 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Disparities_emp", replace
 * 3 | COUNTY MAPS FOR KENYA
 ******************************
 
-//Poverty, inequality and vulnerability
-use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+*Poverty, inequality and vulnerability
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", clear
 collapse (mean) poor vul_status gini_county dep_tot dep_tot_nopoor [pw=wta_pop], by(_ID)
 foreach var of varlist  poor vul_status gini_county {
 	replace `var'=`var'*100
@@ -727,15 +729,15 @@ graph save "${gsdOutput}/DfID-Poverty_Analysis/Deprivations_nopoor_map", replace
 * 4 | DETERMINANTS OF POVERTY 
 *********************************
 
-//Prepare the data
-use "${gsdTemp}/dfid_analysis_hh_section-3.dta", clear
+*Prepare the data
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-3.dta", clear
 drop hhnilf
 merge 1:1 clid hhid using "${gsdTemp}/dfid_analysis_hh_birth-hospital.dta", nogen assert(match)
 merge 1:1 clid hhid using "${gsdTemp}/dfid_analysis_hh_literate.dta", nogen assert(match)
 merge 1:1 clid hhid using "${gsdTemp}/dfid_analysis_hh_emp.dta", nogen assert(match)
 svyset clid [pw=wta_hh] , strat(strat)
 
-//Overall model
+*Overall model
 svy: probit poor hhsize s_fem depen  ///
 	malehead agehead i.hhedu ///
 	imp_cooking imp_floor imp_wall impwater impsan elec_acc ///
@@ -743,7 +745,7 @@ svy: probit poor hhsize s_fem depen  ///
 	i.county 
 qui outreg2 using "${gsdOutput}/DfID-Poverty_Analysis/Raw_9.txt", replace ctitle("Overall") label excel 
 	
-//By gender of the household head	
+*By gender of the household head	
 svy: probit poor hhsize s_fem depen  ///
 	malehead agehead i.hhedu ///
 	imp_cooking imp_floor imp_wall impwater impsan elec_acc ///
@@ -766,17 +768,17 @@ qui outreg2 using "${gsdOutput}/DfID-Poverty_Analysis/Raw_9.txt", append ctitle(
 
 foreach x in "1" "2" "3" "4" "6" "8" {
 	import excel "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xlsx", sheet("Sheet1") firstrow case(lower) clear
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-3_v2.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-3_Final.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xlsx"
 }
 foreach x in "5" "7"  {
 	import delimited "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.csv", delimiter(tab) clear 
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-3_v2.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-3_Final.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.csv"
 }
 foreach x in "9" {
 	import delimited "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.txt", delimiter(tab) clear 
-	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-3_v2.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
+	export excel using "${gsdOutput}/DfID-Poverty_Analysis/Analysis_Section-3_Final.xlsx", sheetreplace sheet("Raw_`x'") firstrow(variables)
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.txt"
 	erase "${gsdOutput}/DfID-Poverty_Analysis/Raw_`x'.xml"
 }

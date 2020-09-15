@@ -1,10 +1,13 @@
 *****************************************************
 *** Kenya Poverty Assessment - Agriculture Chapter***
 *****************************************************
+clear all
+set more off
 
-clear
-set more off 
-
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
 
 
 ********************************************
@@ -13,28 +16,28 @@ set more off
 
 *** 2005
 
-/* Urban/Rural in Kenya by region */
+* Urban/Rural in Kenya by region */
 
 use "${gsdData}/1-CleanOutput/kihbs05_06.dta", clear
 
 
-/* Drop households excluded for poverty estimates */
+* Drop households excluded for poverty estimates */
 drop if filter == 2
 
 gen rural = (rururb != 2)
 lab def Rural 1 "Rural" 0 "Urban"
 lab val rural Rural
 
-/* Classify rename prov province. */
+* Classify rename prov province. */
 
 *rename prov province
 
-/* Districts to County to match with 2015/2016 dataset. */
+* Districts to County to match with 2015/2016 dataset. */
 *do "${gsdDo}\District_to_County.do"
 
 
 
-/* Proportion Rural by Province */
+* Proportion Rural by Province */
 preserve
 
 expand 2, gen(dup)
@@ -46,7 +49,7 @@ save "${gsdData}/2-AnalysisOutput/C4-Rural/rural_province05.dta", replace
 restore
 
 
-/* Proportion Rural by county */
+* Proportion Rural by county */
 preserve
 
 expand 2, gen(dup)
@@ -57,7 +60,7 @@ collapse (mean) prop_rural_c05=rural (sd) sd_rural_c05 = rural [aw = weight_pop]
 save "${gsdData}/2-AnalysisOutput/C4-Rural/rural_county05.dta", replace
 restore
 
-/* Proportion Poor by Province, proprtion poor urban/rural*/
+* Proportion Poor by Province, proprtion poor urban/rural*/
 preserve
 
 expand 2, gen(dup)
@@ -103,7 +106,7 @@ restore
 
 *** 2015
 
-/* Urban/Rural in Kenya by region */
+* Urban/Rural in Kenya by region */
 
 use "${gsdData}/1-CleanOutput/kihbs05_06.dta", clear
 
@@ -111,10 +114,10 @@ gen rural = (resid != 2)
 lab def Rural 1 "Rural" 0 "Urban"
 lab val rural Rural
 
-/* Classify counties into provinces. */
+* Classify counties into provinces. */
 *do "${gsdDo}/2-4-County_to_Province.do"
 
-/* Proportion Rural by Province */
+* Proportion Rural by Province */
 preserve
 
 expand 2, gen(dup)
@@ -127,7 +130,7 @@ save "${gsdData}/2-AnalysisOutput/C4-Rural/rural_province15.dta", replace
 restore
 
 
-/* Proportion Rural by county */
+* Proportion Rural by county */
 preserve
 
 expand 2, gen(dup)
@@ -138,7 +141,7 @@ collapse (mean) prop_rural_c15=rural (sem) se_rural_c15 = rural [aw = wta_pop], 
 save "${gsdData}/2-AnalysisOutput/C4-Rural/rural_county15.dta", replace
 restore
 
-/* Proportion Poor by Province, proprtion poor urban/rural*/
+* Proportion Poor by Province, proprtion poor urban/rural*/
 preserve
 
 expand 2, gen(dup)

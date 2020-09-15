@@ -1,5 +1,12 @@
-
 *Do-file calculates household head poverty profile and runs Wald test on differneces in attributes of poor vs. non poor.
+clear all
+set more off
+
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
+
 use "${gsdData}/1-CleanOutput/hh.dta" , clear
 svyset clid [pw=wta_hh] , strata(strata)
 
@@ -195,21 +202,6 @@ label var aginc3 "mixed income dummy"
 
 local controls1 "agehead femhead hhsize depen urban aveyrsch hhedu1 hhedu2 hhedu3 hhedu4 aginc1 aginc2 aginc3 impwater impsan elec_light elec_acc radio cell_phone kero_stove char_jiko mnet fridge sofa"
 
-/*
-foreach year in 2005 2015 			{
-	foreach var of local controls1 {
-		svy: mean `var' if kihbs==`year' , over(poor)
-		matrix `var' = e(b)
-		test [`var']0 = [`var']1
-		matrix `var'_diff = `r(p)'
-		
-		svy: mean `var' if kihbs==`year'
-		matrix `var'_tot = e(b)
-}
-matrix wald_`year' = [agehead \ femhead \ hhsize \ depen \ urban \ aveyrsch \ impwater \ impsan \ elec_light \ elec_acc \ radio \ cell_phone \ kero_stove \ char_jiko \ mnet \ fridge \ sofa]
-matrix pdiff_`year' = [agehead_diff \ femhead_diff \ hhsize_diff \ depen_diff \ urban_diff \ aveyrsch_diff \ impwater_diff \ impsan_diff \ elec_light_diff \ elec_acc_diff \ radio_diff \ cell_phone_diff \ kero_stove_diff \ char_jiko_diff \ mnet_diff \ fridge_diff \ sofa_diff]
-}
-*/
 foreach year in 2005 2015 			{
 	foreach var of local controls1 {
 		svy: mean `var' if kihbs==`year' , over(poor)

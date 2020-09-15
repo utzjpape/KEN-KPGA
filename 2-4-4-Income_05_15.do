@@ -3,6 +3,15 @@
 *** Income 
 ******************************************************
 
+clear all
+set more off
+
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
+
+
 ******************************************************
 * 2005
 ******************************************************
@@ -40,19 +49,13 @@ lab val year lyear
 rename prov province
 
 
-/* Districts to County to match with 2015/2016 dataset. 
-do "$log\District_to_County.do"
-
-drop district
-*/
-
-/* Calculate Total income by aggregating from all sources 
-The sources of income are:
-1) Agricultural Income (from the sale of grown crops)
-2) Livestock Income
-4) Income from wages, casual & permanent waged employment
-5) Transfers
-6) Income from non-agricultural enterprise */
+* Calculate Total income by aggregating from all sources 
+* The sources of income are:
+* 1) Agricultural Income (from the sale of grown crops)
+* 2) Livestock Income
+* 4) Income from wages, casual & permanent waged employment
+* 5) Transfers
+* 6) Income from non-agricultural enterprise */
 
 
 ******** Income from Agriculture ********
@@ -76,7 +79,7 @@ drop _merge
 replace Ag_income = 0 if Ag_income == .
 
 
-/* Income counting total value of harvest & alternative definition of value of total sales + value of consumption*/
+* Income counting total value of harvest & alternative definition of value of total sales + value of consumption*/
 
 egen uhhid= concat(id_clust id_hh)				//Unique HH ID
 merge 1:1 uhhid using "${gsdData}/2-AnalysisOutput/C4-Rural/c_Agricultural_Output05.dta", keepusing(i_harv i_sc_crop i_s_crop consumed_crop)
@@ -110,7 +113,8 @@ preserve
 
 use "${gsdDataRaw}/KIHBS05/Section E Labour.dta", clear
 ren (id_clust id_hh) (clid hhid)
-/* Get rural/urban classification to specify some missing sectors */
+
+* Get rural/urban classification to specify some missing sectors */
 merge m:1 clid hhid using "${gsdData}/1-CleanOutput/kihbs05_06.dta", keepusing(rururb)
 ren (clid hhid) (id_clust id_hh)
 keep if _merge == 3
@@ -119,13 +123,13 @@ drop _merge
 duplicates t id_clust id_hh e_id, generate(tag)
 
 
-/* Some ISIC codes are incorrect (ISIC == 1 is not a valid ISIC code), get from KNOCS codes. */ 
+* Some ISIC codes are incorrect (ISIC == 1 is not a valid ISIC code), get from KNOCS codes. */ 
 replace e16 = 1115 if e16 == 1 & (e15 == 630 | e15 == 631)
 replace e16 = 9103 if e16 == 1 & (e15 ==0 | e15 == 1|e15 ==11)
 replace e16 = 7113 if e16 == 1 & (e15 ==542)
 replace e16 = 6218 if e16 == 60 & (e15 == 510 | e15 == 512)
 
-/* Using ICIC codes, create sector classification, Agriculture, Manufacturing & Services. */
+* Using ICIC codes, create sector classification, Agriculture, Manufacturing & Services. */
 gen sector = 1 if e16 < 2000
 replace sector = 2 if e16 > 2000 & e16 < 6000
 replace sector = 3 if e16 > 6000
@@ -134,8 +138,8 @@ replace sector = . if e16 == .
 lab def Sector 1 "Agriculture" 2 "Industry" 3 "Services"
 lab val sector Sector
 
-/* Some ICIC codes are missing for individuals with positive incomes, but KNOCS codes are
-available to infer which sector the individual is working in. Replace sector appropriate with these. */
+* Some ICIC codes are missing for individuals with positive incomes, but KNOCS codes are
+*available to infer which sector the individual is working in. Replace sector appropriate with these. */
 
 replace sector = 3 if e15 <= 533 & e16 == . & e15 != . & sector == .
 replace sector = 1 if e15 >= 611 & e15 < 721 & e16 == . & e15 != . & sector == .
@@ -143,26 +147,26 @@ replace sector = 2 if e15 >= 721 & e15 <= 913 & e16 == . & e15 != . & sector == 
 replace sector = 3 if e15 > 913 & e16 == . & e15 != . & sector == .
 
 
-/* Convert Salary income from monthly income to yearly income */
+* Convert Salary income from monthly income to yearly income */
 gen salary_income_i = e20 * e18
 
-/* Unlike the 2015-2016 dataset, the 2005-2006 dataset does not include contact salaray in the
-salary specified as "total". This contract salary is not very common. This is therefore added to
-salary income. */
+* Unlike the 2015-2016 dataset, the 2005-2006 dataset does not include contact salaray in the
+* salary specified as "total". This contract salary is not very common. This is therefore added to
+* salary income. */
 
 
-/* Convert Contact income from 3 month income to yearly income */
+* Convert Contact income from 3 month income to yearly income */
 replace salary_income_i = e25*e26/3*12 if e25 != . 
 
 replace salary_income_i = 0 if salary_income_i == .
 
-/* An additional problem is that the data does not specify the type of work this 
-contractual salary is. I impute sectors for these observations and where work classification 
-is missing. This is based on what the mode sector classification is for the household, and where
-still missing, I use: Rural = Agriculture, Urban = Services.  */
+* An additional problem is that the data does not specify the type of work this 
+* contractual salary is. I impute sectors for these observations and where work classification 
+* is missing. This is based on what the mode sector classification is for the household, and where
+* still missing, I use: Rural = Agriculture, Urban = Services.  */
 
 
-/* Replace remaining missing Sector Classifications */
+* Replace remaining missing Sector Classifications */
 bysort id_clust id_hh: egen mode_hh_sector = mode (sector)
 
 replace sector = mode_hh_sector if sector == . & (salary_income_i !=. & salary_income_i !=0)
@@ -239,7 +243,7 @@ preserve
 
 use "${gsdDataRaw}/KIHBS05/Section Q Household Enterprises.dta", clear
 
-/* Convert income over past six months to yearly income. */
+* Convert income over past six months to yearly income. */
 gen amt_earned_yr = q20 * 2
 
 
@@ -266,7 +270,7 @@ egen aggregate_income2 = rowtotal(i_harv livestock_income salary_income transfer
 
 egen aggregate_income3 = rowtotal(i_sc_crop livestock_income salary_income transfer_income Non_Ag_income)
 
-/* Generate per person values */
+* Generate per person values */
 
 foreach var in Ag_income i_harv i_s_crop i_sc_crop consumed_crop livestock_income salary_income salary_agr salary_ind salary_serv transfer_income Non_Ag_income aggregate_income1 aggregate_income2 aggregate_income3 {
 replace `var' = 0 if `var' == .
@@ -274,7 +278,7 @@ gen `var'_pp = `var'/ctry_adq
 }
 
 
-/* Remove Outliers */
+* Remove Outliers */
 
 drop if aggregate_income1 < 0 | aggregate_income2 < 0 | aggregate_income3 < 0
 
@@ -292,7 +296,7 @@ drop identifier tag outlier_tag
 rename id_clust clid
 rename id_hh hhid
 
-/* Proportion of HH income from each source */
+* Proportion of HH income from each source */
 
 gen prop_Ag_income1 = Ag_income / aggregate_income1
 gen prop_livestock_income1 = livestock_income / aggregate_income1
@@ -413,8 +417,6 @@ label var aggregate_income1_pp "PP Aggregate Income AgrInc = Crop Sale Revenue"
 label var aggregate_income2_pp "PP Aggregate Income AgrInc = Value of Harvest"
 label var aggregate_income3_pp "PP Aggregate Income AgrInc = Value of Sales and Own Consumption"
 
-
-
 label var  Ag_income_pp_d "Deflated PP Agricultural Income (Crop Sale Revenue)"
 label var  i_harv_pp_d "Deflated PP Agricultural Income (Value of Harvest)"
 label var  i_sc_crop_pp_d "Deflated PP Agricultural income (Value of Sales and Own Consumption)"
@@ -432,11 +434,10 @@ label var aggregate_income1_pp_d "Deflated PP Aggregate Income AgrInc = Crop Sal
 label var aggregate_income2_pp_d "Deflated PP Aggregate Income AgrInc = Value of Harvest"
 label var aggregate_income3_pp_d "Deflated PP Aggregate Income AgrInc = Value of Sales and Own Consumption"
 
-
 drop if i_harv > 1000000
 
-/* For households with no income in rural areas, find whether such households have engaged
-in agriculture in the past year. If so, they will be classified as ag, otherwise, non-ag.*/
+* For households with no income in rural areas, find whether such households have engaged
+*in agriculture in the past year. If so, they will be classified as ag, otherwise, non-ag.*/
 count
 *******************
 rename hhid id_hh
@@ -452,8 +453,8 @@ rename id_clust clid
 
 *******************
 
-/* Ag/Non-Ag income 4 (using crop sales + value of own crop conusumed for ag income in ag total)
-+replacing classification of HHs with no income according to farmhh classification */
+* Ag/Non-Ag income 4 (using crop sales + value of own crop conusumed for ag income in ag total)
+*+replacing classification of HHs with no income according to farmhh classification */
 
 gen ag_total4 =  salary_agr + i_sc_crop + livestock_income
 gen n_ag_total4 =  salary_ind + salary_serv + transfer_income + Non_Ag_income
@@ -501,20 +502,20 @@ lab def lyear 1 "2005-2006" 2 "2015-2016"
 lab val year lyear
 
 * Classify counties into provinces. 
-do "${gsdDo}/2-4-County_to_Province.do"
+do "${gsdDo}/County_to_Province.do"
 
 
-/* Calculate Total income by aggregating from all sources 
-The sources of income are:
-1) Agricultural Income (from the sale of grown crops)
-2) Livestock Income
-4) Income from wages, casual & permanent waged employment
-5) Transfers
-6) Income from non-agricultural enterprise */
+* Calculate Total income by aggregating from all sources 
+* The sources of income are:
+* 1) Agricultural Income (from the sale of grown crops)
+* 2) Livestock Income
+* 4) Income from wages, casual & permanent waged employment
+* 5) Transfers
+* 6) Income from non-agricultural enterprise */
 
 
 ******** Income from Agriculture ********
-/* Income from revenue only */
+* Income from revenue only */
 preserve
 use "${gsdDataRaw}/KIHBS15/l.dta", clear
 bysort clid hhid: egen Ag_income = sum(l12)
@@ -533,7 +534,7 @@ drop _merge
 
 replace Ag_income = 0 if Ag_income == .
 
-/* Income counting total value of harvest & alternative definition of value of total sales + value of consumption*/
+* Income counting total value of harvest & alternative definition of value of total sales + value of consumption*/
 
 egen uhhid= concat(hhid clid)				//Unique HH ID
 merge 1:1 uhhid using "${gsdData}/2-AnalysisOutput/C4-Rural/c_Agricultural_Output15.dta", keepusing(i_harv i_sc_crop i_s_crop consumed_crop)
@@ -567,7 +568,7 @@ preserve
 
 use "${gsdDataRaw}/KIHBS15/hhm.dta", clear
 
-/* Convert Salary income from monthly income to yearly income */
+* Convert Salary income from monthly income to yearly income */
 gen salary_income_i = d26 * d21
 replace salary_income_i = 0 if salary_income_i == .
 
@@ -646,18 +647,18 @@ preserve
 
 use "${gsdDataRaw}/KIHBS15/n.dta", clear
 
-/* Some observations do not specify over which time period the income is earned.
-This is strange. Since it was usually specified over 6 months, this is the value,
-I use if missing, though there is undoubtedly errors here. Almost 1/4th of the observations
-do not specify the time frame. Because the mean/median income for these values is closest
-to income earned over 6 months, it makes sense to use this value, though these values
-are statistically significantly less on average where the timeframe value is missing. */
+* Some observations do not specify over which time period the income is earned.
+* This is strange. Since it was usually specified over 6 months, this is the value,
+* I use if missing, though there is undoubtedly errors here. Almost 1/4th of the observations
+* do not specify the time frame. Because the mean/median income for these values is closest
+* to income earned over 6 months, it makes sense to use this value, though these values
+* are statistically significantly less on average where the timeframe value is missing. */
 
 
 replace n07_mo = 6 if n07_mo == .
 
 
-/* Convert income over the specified timeframe to yearly income. */
+* Convert income over the specified timeframe to yearly income. */
 gen amt_earned_yr = n07_ks /n07_mo*12
 
 
@@ -684,7 +685,7 @@ egen aggregate_income2 = rowtotal(i_harv livestock_income salary_income transfer
 
 egen aggregate_income3 = rowtotal(i_sc_crop livestock_income salary_income transfer_income Non_Ag_income)
 
-/* Generate per person values */
+* Generate per person values */
 
 foreach var in Ag_income i_harv i_s_crop i_sc_crop consumed_crop livestock_income salary_income salary_agr salary_ind salary_serv transfer_income Non_Ag_income aggregate_income1 aggregate_income2 aggregate_income3 {
 replace `var' = 0 if `var' == .
@@ -693,7 +694,7 @@ gen `var'_pp = `var'/ctry_adq
 
 
 
-/* Remove Outliers */
+* Remove Outliers */
 
 drop if aggregate_income1 < 0 | aggregate_income2 < 0 | aggregate_income3 < 0
 
@@ -708,7 +709,7 @@ drop if outlier_tag > 0.975 | outlier_tag < 0.025
 drop identifier tag outlier_tag
 
 
-/* Proportion of HH income from each source */
+* Proportion of HH income from each source */
 
 
 gen prop_Ag_income1 = Ag_income / aggregate_income1
@@ -852,8 +853,8 @@ label var aggregate_income3_pp_d "Deflated PP Aggregate Income AgrInc = Value of
 
 drop if i_harv > 1000000
 
-/* For households with no income in rural areas, find whether such households have engaged
-in agriculture in the past year. If so, they will be classified as ag, otherwise, non-ag.*/
+* For households with no income in rural areas, find whether such households have engaged
+*in agriculture in the past year. If so, they will be classified as ag, otherwise, non-ag.*/
 
 *******************
 merge 1:1 hhid clid using "${gsdDataRaw}/KIHBS15/hh.dta", keepusing(k01)
@@ -865,8 +866,8 @@ gen farmhh = 1 if k01 == 1
 replace farmhh = 0 if k01 == 2
 *******************
 
-/* Ag/Non-Ag income 4 (using crop sales + value of own crop conusumed for ag income in ag total)
-+replacing classification of HHs with no income according to farmhh classification */
+* Ag/Non-Ag income 4 (using crop sales + value of own crop conusumed for ag income in ag total)
+*+replacing classification of HHs with no income according to farmhh classification */
 
 gen ag_total4 =  salary_agr + i_sc_crop + livestock_income
 gen n_ag_total4 =  salary_ind + salary_serv + transfer_income + Non_Ag_income
@@ -938,10 +939,6 @@ replace province = 9 if dup == 1
 
 collapse (mean) prop_n_ag4 [aw = wta_pop], by(year province)
 
-
-
-
-
 * Figure 4-6
 use "${gsdData}/2-AnalysisOutput/C4-Rural/Income15.dta", clear
 keep if rural == 1
@@ -971,18 +968,3 @@ export excel using "${gsdOutput}/C4-Rural/kenya_KIHBS.xlsx", sheet("fig4-6") she
 
 *Additional Rural analysis
 export excel using "${gsdOutput}/C4-Rural/add_rural.xlsx", sheet("Income") sheetreplace firstrow(varlabels)
-/*
-use "${gsdData}/2-AnalysisOutput/C4-Rural/Income15.dta", clear
-keep if rural == 1
-merge m:1 uhhid using "${gsdData}/1-CleanTemp/hhfarmsub15.dta"
-collapse year prop_Ag_income3 prop_livestock_income3 prop_salary_income3 prop_salary_agr3 prop_salary_ind3 prop_salary_serv3 prop_transfer_income3 prop_Non_Ag_income3 [aw = wta_pop], by(subfarm)
-gen Agriculture = prop_Ag_income3 + prop_livestock_income3 + prop_salary_agr3
-gen Industry_wage = prop_salary_ind3
-gen Service_wage = prop_salary_serv3
-gen Transfers = prop_transfer_income3
-gen Enterprise_Income = prop_Non_Ag_income3
-keep year subfarm Agriculture Industry_wage Service_wage Transfers Enterprise_Income
-export excel using "${gsdOutput}/C4-Rural/add_rural.xlsx", sheet("Income_subfarm") sheetreplace firstrow(varlabels)
-
-
-

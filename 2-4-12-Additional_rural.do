@@ -1,11 +1,11 @@
+*Additional rural indicators
+clear all
 set more off
-*Initialise work environment
+
 if ("${gsdData}"=="") {
-	display as error "Please add a configuration block for your profile in run.do and init.do."
+	di as error "Configure work environment in 00-run.do before running the code."
 	error 1
-	}
-clear
-set more off
+}
 
 use "${gsdData}/1-CleanOutput/kihbs15_16.dta", clear
 merge 1:1 clid hhid using "${gsdDataRaw}\KIHBS15\hh", keepusing(k01)
@@ -296,7 +296,3 @@ merge m:1 uhhid using "${gsdData}/1-CleanTemp/hhsubfarm.dta", keepusing(uhhid cl
 keep if _merge==3
 collapse salary_agr prop_salary_agr1 (sem) salary_ag_se = salary_agr prop_salary_se = prop_salary_agr1 [aw = wta_hh], by(poor)
 export excel using "${gsdOutput}/C4-Rural/add_rural_output.xlsx", sheet("AgriWage_subfarm") sheetreplace firstrow(varlabels)
-
-
-
-

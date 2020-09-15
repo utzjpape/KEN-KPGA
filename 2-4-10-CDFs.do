@@ -1,6 +1,12 @@
+*Cumulative distributions
+clear all
+set more off
 
-clear
-set more off 
+if ("${gsdData}"=="") {
+	di as error "Configure work environment in 00-run.do before running the code."
+	error 1
+}
+
 
 global path "C:\Users\hasee\Documents\OneDrive\World Bank Kenya Study" 
 

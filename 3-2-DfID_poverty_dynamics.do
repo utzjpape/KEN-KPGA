@@ -160,7 +160,7 @@ save "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-2.dta", replace
 **********************************
 
 *Poverty and vulnerability (2005/06 and 2015/16)
-use "${gsdTemp}/dfid_analysis_hh_section-2.dta", clear
+use "${gsdData}/2-AnalysisOutput/dfid_analysis_hh_section-2.dta", clear
 svyset clid [pw=wta_pop] , strat(strat)
 
 qui tabout urban kihbs using "${gsdOutput}/DfID-Poverty_Analysis/Raw_4.csv" , svy sum c(mean poor se) sebnone f(3) npos(col) h1(poor by urban/rural and year) replace

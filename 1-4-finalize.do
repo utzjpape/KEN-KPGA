@@ -1,13 +1,6 @@
-*Merging all databases and appending the two years of data
-clear all
-set more off
-
-if ("${gsdData}"=="") {
-	di as error "Configure work environment in 00-run.do before running the code."
-	error 1
-}
  
 ***********************************************************
+*Merging all databases and appending the two years of data
 *Generating PPP (2011 $1.20,$1.90, $3.20) poverty lines
 *Generating poor dummies
 ***********************************************************
@@ -98,8 +91,9 @@ gen cons_pp =  (cons_pp_agg*ctry_adq)/hhsize
 replace cons_pp = cons_pp / 35.4296
 
 *Generate per capita aggregate without spatial deflation (PovcalNet compatible)
-gen double cons_pp_nsd = ((cons_pp_agg*fpindex*ctry_adq)/hhsize)
-replace cons_pp_nsd = cons_pp_nsd / 35.4296
+gen double cons_pp_nsd_kshs = ((cons_pp_agg*fpindex*ctry_adq)/hhsize)
+gen double cons_pp_nsd = cons_pp_nsd_kshs / 35.4296
+gen double cons_pp_nsd_2020revppp  = cons_pp_nsd_kshs / 35.62132
 
 drop cons_pp_agg
 
@@ -122,6 +116,10 @@ gen pline190 = (1.90*(365/12))/cpi2011
 gen poor190 = (cons_pp_nsd < pline190)
 gen pline320 = (3.20*(365/12))/cpi2011
 gen poor320 = (cons_pp_nsd < pline320)
+
+gen pline190_kshs_oldppp = (1.90*35.4296*(365/12))/cpi2011
+gen pline190_kshs_2020revppp = (1.90*35.62132*(365/12))/cpi2011
+
 
 label var cons_pp "Per capita aggregate (2011 US$)"
 label var cons_pp_nsd "Per capita aggregate (2011 US$) - No spatial deflation"
